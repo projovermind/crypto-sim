@@ -201,16 +201,16 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
           ) : (
             <table style={{ tableLayout: 'fixed', width: '100%', fontSize: 12, fontFamily: 'Inter, sans-serif' }}>
               <colgroup>
-                <col style={{ width: 100 }} />
                 <col style={{ width: 90 }} />
-                <col style={{ width: 130 }} />
                 <col style={{ width: 85 }} />
+                <col style={{ width: 120 }} />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 55 }} />
+                <col style={{ width: 45 }} />
                 <col style={{ width: 65 }} />
-                <col style={{ width: 50 }} />
-                <col style={{ width: 70 }} />
-                <col style={{ width: 100 }} />
-                <col style={{ width: 100 }} />
-                <col style={{ width: 100 }} />
+                <col style={{ width: 90 }} />
+                <col style={{ width: 90 }} />
+                <col style={{ width: 260 }} />
                 <col style={{ width: 110 }} />
               </colgroup>
               <thead>

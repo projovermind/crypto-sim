@@ -148,7 +148,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
     setPriceMatches([])
     setManualClosedTime(false)
 
-    const fromTime = p.entryTime ? new Date(p.entryTime).getTime() : undefined
+    const fromTime = p.entryTime ? Math.floor(new Date(p.entryTime).getTime() / 1000) : undefined
 
     const search = async () => {
       try {
