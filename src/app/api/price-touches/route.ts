@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   const searchMs = searchDays * 24 * 3600 * 1000
   const startTime = toTime ? Math.min(now - searchMs, toTime - searchMs) : now - searchMs
   const endTime = toTime || now
-  const chunkMs = 1500 * 3600 * 1000 // 1500 hours in ms
+  const chunkMs = 1000 * 3600 * 1000 // 1000 hours in ms (Binance klines max limit=1000)
   const numChunks = Math.ceil((endTime - startTime) / chunkMs)
 
   // Retry helper
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     const chunkStart = startTime + i * chunkMs
     const chunkEnd = Math.min(chunkStart + chunkMs, endTime)
 
-    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=1500&startTime=${chunkStart}&endTime=${chunkEnd}`
+    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=1000&startTime=${chunkStart}&endTime=${chunkEnd}`
     const res = await fetchWithRetry(url)
 
     if (!res) {
@@ -87,6 +87,12 @@ export async function GET(request: Request) {
       { matches: [], incomplete: chunkFailures > 0 },
       { status: 200 }
     )
+  }
+
+  // --- Pass 2 overload protection: cap at 500 hourly matches ---
+  if (hourlyMatches.length > 500) {
+    hourlyMatches.sort((a, b) => b.time - a.time)
+    hourlyMatches.length = Math.min(hourlyMatches.length, 500)
   }
 
   // --- Pass 2: 1m klines for each matched hour ---
