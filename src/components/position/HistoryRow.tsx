@@ -35,8 +35,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
   const [manualClosedTime, setManualClosedTime] = useState(false)
   const prevClosedPriceRef = useRef('')
   const [teledditChecked, setTeledditChecked] = useState(false)
-  const [selYear, setSelYear] = useState<number | null>(null)
-  const [selMonth, setSelMonth] = useState<number | null>(null)
+  const [selYearMonth, setSelYearMonth] = useState<string | null>(null)
   const [selDay, setSelDay] = useState<number | null>(null)
   const [selHour, setSelHour] = useState<number | null>(null)
 
@@ -82,7 +81,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
     setEditing(false)
     setPriceMatches([])
     setManualClosedTime(false)
-    setSelYear(null); setSelMonth(null); setSelDay(null); setSelHour(null)
+    setSelYearMonth(null); setSelDay(null); setSelHour(null)
     prevClosedPriceRef.current = ''
   }
 
@@ -142,7 +141,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
     if (editClosedPrice === prevClosedPriceRef.current) return
     prevClosedPriceRef.current = editClosedPrice
 
-    setSelYear(null); setSelMonth(null); setSelDay(null); setSelHour(null)
+    setSelYearMonth(null); setSelDay(null); setSelHour(null)
 
     let cancelled = false
     setSearchingClosedTime(true)
@@ -218,6 +217,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
           const pad = (n: number) => String(n).padStart(2, '0')
           setEditClosedTime(`${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`)
           setPriceMatches([])
+          setSelYearMonth(null); setSelDay(null); setSelHour(null)
         } else {
           setPriceMatches(matches)
         }
@@ -236,35 +236,29 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
   // Cascading auto-select: 각 단계가 1개뿐이면 자동 선택 + 하위 단계로 넘어감
   useEffect(() => {
     if (priceMatches.length === 0) return
-    const uniq = (arr: Array<{ time: string; timestamp: number }>, fn: (p: ReturnType<typeof parseMatchTime>) => number) =>
-      [...new Set(arr.map(m => fn(parseMatchTime(m.time))))].sort((a, b) => b - a)
+    const parseYM = (t: string) => {
+      const p = parseMatchTime(t)
+      return `${p.year}-${String(p.month).padStart(2, '0')}`
+    }
 
-    // 연도 자동 선택
-    const years = uniq(priceMatches, p => p.year)
-    if (years.length === 1 && selYear === null) {
-      setSelYear(years[0])
+    // 년월 자동 선택
+    const yearMonths = [...new Set(priceMatches.map(m => parseYM(m.time)))].sort().reverse()
+    if (yearMonths.length === 1 && selYearMonth === null) {
+      setSelYearMonth(yearMonths[0])
       return
     }
-    if (selYear === null) return
+    if (selYearMonth === null) return
 
-    const afterYear = priceMatches.filter(m => parseMatchTime(m.time).year === selYear)
-    const months = uniq(afterYear, p => p.month)
-    if (months.length === 1 && selMonth === null) {
-      setSelMonth(months[0])
-      return
-    }
-    if (selMonth === null) return
-
-    const afterMonth = afterYear.filter(m => parseMatchTime(m.time).month === selMonth)
-    const days = uniq(afterMonth, p => p.day)
+    const afterYM = priceMatches.filter(m => parseYM(m.time) === selYearMonth)
+    const days = [...new Set(afterYM.map(m => parseMatchTime(m.time).day))].sort((a, b) => b - a)
     if (days.length === 1 && selDay === null) {
       setSelDay(days[0])
       return
     }
     if (selDay === null) return
 
-    const afterDay = afterMonth.filter(m => parseMatchTime(m.time).day === selDay)
-    const hours = uniq(afterDay, p => p.hour)
+    const afterDay = afterYM.filter(m => parseMatchTime(m.time).day === selDay)
+    const hours = [...new Set(afterDay.map(m => parseMatchTime(m.time).hour))].sort((a, b) => b - a)
     if (hours.length === 1 && selHour === null) {
       setSelHour(hours[0])
       return
@@ -272,7 +266,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
     if (selHour === null) return
 
     const afterHour = afterDay.filter(m => parseMatchTime(m.time).hour === selHour)
-    const minutes = uniq(afterHour, p => p.minute)
+    const minutes = [...new Set(afterHour.map(m => parseMatchTime(m.time).minute))].sort((a, b) => b - a)
     if (minutes.length === 1) {
       const match = afterHour[0]
       const pt = parseMatchTime(match.time)
@@ -280,9 +274,9 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
       const ts = `${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`
       setEditClosedTime(ts)
       setPriceMatches([])
-      setSelYear(null); setSelMonth(null); setSelDay(null); setSelHour(null)
+      setSelYearMonth(null); setSelDay(null); setSelHour(null)
     }
-  }, [priceMatches, selYear, selMonth, selDay, selHour])
+  }, [priceMatches, selYearMonth, selDay, selHour])
 
   if (editing) {
     return (
@@ -348,86 +342,84 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
             <div className="text-[9px] text-binance-red mt-0.5">⚠️ 해당 가격 도달 이력 없음</div>
           )}
           {priceMatches.length > 0 && (() => {
-            const filtered = priceMatches.filter(m => {
-              const pt = parseMatchTime(m.time)
-              if (selYear !== null && pt.year !== selYear) return false
-              if (selMonth !== null && pt.month !== selMonth) return false
-              if (selDay !== null && pt.day !== selDay) return false
-              if (selHour !== null && pt.hour !== selHour) return false
-              return true
-            })
-            const uniq = (fn: (pt: ReturnType<typeof parseMatchTime>) => number) =>
-              [...new Set(filtered.map(m => fn(parseMatchTime(m.time))))].sort((a, b) => b - a)
-            const years = uniq(pt => pt.year)
-            const months = selYear !== null ? uniq(pt => pt.month) : []
-            const days = selMonth !== null ? uniq(pt => pt.day) : []
-            const hours = selDay !== null ? uniq(pt => pt.hour) : []
-            const minutes = selHour !== null ? uniq(pt => pt.minute) : []
-            const chip = (active: boolean) =>
-              `px-2.5 py-1 text-[11px] rounded transition-colors cursor-pointer select-none ${active ? 'bg-binance-yellow text-black font-bold' : 'bg-binance-bg border border-binance-border text-binance-text hover:border-binance-yellow/40'}`
-            const resetL = (lv: number) => {
-              if (lv <= 0) { setSelMonth(null); setSelDay(null); setSelHour(null) }
-              if (lv <= 1) { setSelDay(null); setSelHour(null) }
-              if (lv <= 2) { setSelHour(null) }
+            const parseYM = (t: string) => {
+              const p = parseMatchTime(t)
+              return `${p.year}-${String(p.month).padStart(2, '0')}`
             }
+            const yearMonths = [...new Set(priceMatches.map(m => parseYM(m.time)))].sort().reverse()
+            const afterYM = selYearMonth !== null ? priceMatches.filter(m => parseYM(m.time) === selYearMonth) : priceMatches
+            const days = [...new Set(afterYM.map(m => parseMatchTime(m.time).day))].sort((a, b) => b - a)
+            const afterDay = selDay !== null ? afterYM.filter(m => parseMatchTime(m.time).day === selDay) : afterYM
+            const hours = [...new Set(afterDay.map(m => parseMatchTime(m.time).hour))].sort((a, b) => b - a)
+            const afterHour = selHour !== null ? afterDay.filter(m => parseMatchTime(m.time).hour === selHour) : afterDay
+            const minutes = [...new Set(afterHour.map(m => parseMatchTime(m.time).minute))].sort((a, b) => b - a)
+
+            const selectBase = 'bg-binance-bg border text-binance-text text-[11px] rounded h-[28px] px-1 focus:outline-none transition-colors'
+            const selectCls = (hasVal: boolean) => `${selectBase} ${hasVal ? 'border-binance-yellow' : 'border-binance-border'}`
+
             return (
-              <div className="mt-1.5 flex flex-row items-start gap-3 overflow-x-auto bg-binance-bg border border-binance-border rounded p-2">
-                <div className="min-w-fit shrink-0">
-                  <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">연도</div>
-                  <div className="flex flex-wrap gap-1">
-                    {years.map(y => (
-                      <button key={y} type="button" onClick={() => { setSelYear(selYear === y ? null : y); resetL(0) }} className={chip(selYear === y)}>{y}</button>
-                    ))}
-                  </div>
-                </div>
-                {selYear !== null && (
-                  <div className="min-w-fit shrink-0">
-                    <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">월</div>
-                    <div className="flex flex-wrap gap-1">
-                      {months.map(mo => (
-                        <button key={mo} type="button" onClick={() => { setSelMonth(selMonth === mo ? null : mo); resetL(1) }} className={chip(selMonth === mo)}>{mo}월</button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {selMonth !== null && (
-                  <div className="min-w-fit shrink-0">
-                    <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">일</div>
-                    <div className="flex flex-wrap gap-1">
-                      {days.map(d => (
-                        <button key={d} type="button" onClick={() => { setSelDay(selDay === d ? null : d); resetL(2) }} className={chip(selDay === d)}>{d}일</button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {selDay !== null && (
-                  <div className="min-w-fit shrink-0">
-                    <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">시</div>
-                    <div className="flex flex-wrap gap-1">
-                      {hours.map(h => (
-                        <button key={h} type="button" onClick={() => setSelHour(selHour === h ? null : h)} className={chip(selHour === h)}>{String(h).padStart(2, '0')}시</button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {selHour !== null && minutes.length > 1 && (
-                  <div className="min-w-fit shrink-0">
-                    <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">분</div>
-                    <div className="flex flex-wrap gap-1">
-                      {minutes.map(mi => {
-                        const match = filtered.find(m => parseMatchTime(m.time).minute === mi)!
-                        const pt = parseMatchTime(match.time)
-                        const pad = (n: number) => String(n).padStart(2, '0')
-                        const ts = `${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`
-                        return (
-                          <button key={mi} type="button" onClick={() => { setEditClosedTime(ts); setPriceMatches([]); setSelYear(null); setSelMonth(null); setSelDay(null); setSelHour(null) }} className={chip(false)}>{String(mi).padStart(2, '0')}분</button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-                <div className="min-w-fit shrink-0 text-[9px] text-binance-text-dim self-center whitespace-nowrap">
-                  {selYear ?? '연도 선택'}{selMonth ? ` / ${selMonth}월` : ''}{selDay ? ` / ${selDay}일` : ''}{selHour ? ` / ${String(selHour).padStart(2, '0')}시` : ''} ({filtered.length}개)
+              <div className="mt-1.5 bg-binance-bg border border-binance-border rounded p-2">
+                <div className="flex gap-2 items-center">
+                  {/* 년월 select */}
+                  <select
+                    value={selYearMonth ?? ''}
+                    onChange={e => { setSelYearMonth(e.target.value || null); setSelDay(null); setSelHour(null) }}
+                    className={selectCls(!!selYearMonth)}
+                  >
+                    <option value="">--년월--</option>
+                    {yearMonths.map(ym => {
+                      const [y, mo] = ym.split('-')
+                      return <option key={ym} value={ym}>{y}년 {parseInt(mo)}월</option>
+                    })}
+                  </select>
+                  {/* 일 select */}
+                  {selYearMonth !== null && (
+                    <select
+                      value={selDay ?? ''}
+                      onChange={e => { setSelDay(e.target.value ? Number(e.target.value) : null); setSelHour(null) }}
+                      className={selectCls(selDay !== null)}
+                    >
+                      <option value="">--일--</option>
+                      {days.map(d => <option key={d} value={d}>{d}일</option>)}
+                    </select>
+                  )}
+                  {/* 시 select */}
+                  {selDay !== null && (
+                    <select
+                      value={selHour ?? ''}
+                      onChange={e => setSelHour(e.target.value ? Number(e.target.value) : null)}
+                      className={selectCls(selHour !== null)}
+                    >
+                      <option value="">--시--</option>
+                      {hours.map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}시</option>)}
+                    </select>
+                  )}
+                  {/* 분 select */}
+                  {selHour !== null && (
+                    <select
+                      value=""
+                      onChange={e => {
+                        if (!e.target.value) return
+                        const mi = Number(e.target.value)
+                        const match = afterHour.find(m => parseMatchTime(m.time).minute === mi)
+                        if (match) {
+                          const pt = parseMatchTime(match.time)
+                          const pad = (n: number) => String(n).padStart(2, '0')
+                          const ts = `${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`
+                          setEditClosedTime(ts)
+                          setPriceMatches([])
+                          setSelYearMonth(null); setSelDay(null); setSelHour(null)
+                        }
+                      }}
+                      className={selectCls(false)}
+                    >
+                      <option value="">--분--</option>
+                      {minutes.map(mi => <option key={mi} value={mi}>{String(mi).padStart(2, '0')}분</option>)}
+                    </select>
+                  )}
+                  <span className="text-[9px] text-binance-text-dim whitespace-nowrap">
+                    ({afterHour.length}개)
+                  </span>
                 </div>
               </div>
             )
