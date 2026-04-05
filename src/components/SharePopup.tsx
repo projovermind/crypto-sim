@@ -23,6 +23,7 @@ export default function SharePopup({ position, onClose }: SharePopupProps) {
   const [bgIndex, setBgIndex] = useState(0)
   const [copyImageDone, setCopyImageDone] = useState(false)
   const [copyNoLogoDone, setCopyNoLogoDone] = useState(false)
+  const [hideProfit, setHideProfit] = useState(false)
 
   const symbol = position.symbol
   const pnlData = calculatePnL(
@@ -250,13 +251,13 @@ export default function SharePopup({ position, onClose }: SharePopupProps) {
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: 12, lineHeight: '16px', color: '#fff', opacity: 0.8, marginBottom: 0 }}>ROE</div>
                   <div style={{ fontSize: 44, lineHeight: '44px', color: pnlColor, fontWeight: 600 }}>
-                    {isProfit ? '+' : ''}{formatNumber(pnlData.roe)}%
+                    {hideProfit ? '****' : `${isProfit ? '+' : ''}${formatNumber(pnlData.roe)}%`}
                   </div>
                 </div>
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: 12, lineHeight: '16px', color: '#fff', opacity: 0.8, marginBottom: 0 }}>PNL(USDT)</div>
                   <div style={{ fontSize: 44, lineHeight: '44px', color: pnlColor, fontWeight: 600 }}>
-                    {isProfit ? '+' : ''}{formatNumber(pnlData.pnl)}
+                    {hideProfit ? '****' : `${isProfit ? '+' : ''}${formatNumber(pnlData.pnl)}`}
                   </div>
                 </div>
               </div>
@@ -298,6 +299,19 @@ export default function SharePopup({ position, onClose }: SharePopupProps) {
               />
             ))}
           </div>
+        </div>
+
+        {/* Hide profit checkbox */}
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="checkbox"
+            id="hideProfit"
+            checked={hideProfit}
+            onChange={e => setHideProfit(e.target.checked)}
+          />
+          <label htmlFor="hideProfit" style={{ color: '#fff', fontSize: 14, cursor: 'pointer' }}>
+            수익금 숨기기
+          </label>
         </div>
 
         {/* Copy Image buttons */}

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { PositionWithLive, Position } from '@/types'
 import { usePriceStore, subscribeSymbols } from '@/lib/hooks'
 import { calculatePnL, checkTPSL } from '@/lib/calculations'
-import { entrySound, closeSound } from '@/lib/sounds'
+
 
 const DEFAULT_TEMPLATE = '🟢 {{symbol}} {{side}} {{leverage}}x | 진입 ${{entryPrice}}'
 
@@ -237,7 +237,6 @@ export function useDashboard(): UseDashboardReturn {
       body: JSON.stringify(data),
     })
     if (res.ok) {
-      entrySound()
       fetchPositions()
     } else {
       const err = await res.json()
@@ -260,7 +259,6 @@ export function useDashboard(): UseDashboardReturn {
       res = await fetch(`/api/positions/${id}`, { method: 'DELETE' })
     }
     if (res.ok) {
-      closeSound()
       fetchPositions()
       setSelectedPosition(prev => prev?.id === id ? null : prev)
     } else {

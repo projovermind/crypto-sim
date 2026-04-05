@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { Position, PositionWithLive } from '@/types'
 import { usePriceStore, subscribeSymbols } from '@/lib/hooks'
 import { calculatePnL, checkTPSL } from '@/lib/calculations'
-import { closeSound } from '@/lib/sounds'
 import PositionTable from '@/components/position/PositionTable'
 
 export default function PositionsPopupPage() {
@@ -75,7 +74,6 @@ export default function PositionsPopupPage() {
         res = await fetch(`/api/positions/${id}`, { method: 'DELETE' })
       }
       if (res.ok) {
-        closeSound()
         fetchPositions()
       } else {
         const err = await res.json()
