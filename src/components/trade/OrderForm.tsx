@@ -85,8 +85,7 @@ export default function OrderForm({
     return { year: y, month: mo, day: d, hour: h, minute: mi }
   }
 
-  // entryPrice 변경 시 3개월치 가격 도달 이력 검색 (Limit 모드만)
-  // 2패스: 1h 캔들로 도달 시간대 탐색 → 1m 캔들로 정확한 분 단위 매치
+  // entryPrice 변경 시 가격 도달 이력 검색 — 서버 API 1회 호출 (Limit 모드만)
   useEffect(() => {
     if (orderType !== 'Limit') return
     const price = parseFloat(entryPrice)
@@ -101,67 +100,12 @@ export default function OrderForm({
     if (priceMatchRef.current) clearTimeout(priceMatchRef.current)
     priceMatchRef.current = setTimeout(async () => {
       try {
-        const now = Date.now()
-        const searchDaysMs = 180 * 24 * 60 * 60 * 1000
-        const chunkMs = 1500 * 60 * 60 * 1000
-        const numChunks = Math.ceil(searchDaysMs / chunkMs)
-
-        // 패스1: 1h 캔들로 도달 시간대 빠르게 탐색 (동적 N개 청크 병렬)
-        const chunkResponses = await Promise.all(
-          Array.from({ length: numChunks }, (_, i) => {
-            const startTime = now - searchDaysMs + i * chunkMs
-            return fetch(`/api/klines?symbol=${symbol}&interval=1h&limit=1500&startTime=${startTime}`)
-          })
+        const res = await fetch(
+          `/api/price-touches?symbol=${encodeURIComponent(symbol)}&price=${price}&searchDays=180`
         )
-
-        const allKlines: { time: number; open: number; high: number; low: number; close: number }[] = []
-        for (const res of chunkResponses) {
-          if (res.ok) {
-            const data: { time: number; open: number; high: number; low: number; close: number }[] = await res.json()
-            allKlines.push(...data)
-          }
-        }
-
-        // entryPrice가 캔들 low~high 범위 내인 1h 캔들 필터 → 최신순 상위 30개
-        const hourlyMatches = allKlines
-          .filter(k => k.low <= price && price <= k.high)
-          .sort((a, b) => b.time - a.time)
-          .slice(0, 200)
-
-        if (hourlyMatches.length === 0) {
-          setPriceMatches([])
-          setShowMatchList(true)
-          return
-        }
-
-        // 패스2: 각 도달 1h 캔들에 대해 1m 캔들 조회 → 정확한 분 단위 매치
-        const minuteResults = await Promise.all(
-          hourlyMatches.map(async (hk) => {
-            try {
-              const hourStartMs = hk.time * 1000
-              const hourEndMs = hourStartMs + 60 * 60 * 1000
-              const mRes = await fetch(
-                `/api/klines?symbol=${symbol}&interval=1m&limit=60&startTime=${hourStartMs}&endTime=${hourEndMs}`
-              )
-              if (!mRes.ok) return []
-              const mKlines: { time: number; open: number; high: number; low: number; close: number }[] = await mRes.json()
-              return mKlines
-                .filter(k => k.low <= price && price <= k.high)
-                .map(k => {
-                  const dt = new Date(k.time * 1000)
-                  const pad = (n: number) => String(n).padStart(2, '0')
-                  const localStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
-                  return { time: localStr, timestamp: k.time }
-                })
-            } catch { return [] }
-          })
-        )
-
-        const matches = minuteResults
-          .flat()
-          .sort((a, b) => b.timestamp - a.timestamp)
-
-        setPriceMatches(matches)
+        if (!res.ok) throw new Error(`API ${res.status}`)
+        const data: { matches: Array<{ time: string; timestamp: number }>; incomplete?: boolean } = await res.json()
+        setPriceMatches(data.matches)
         setShowMatchList(true)
       } catch {
         setPriceMatches([])

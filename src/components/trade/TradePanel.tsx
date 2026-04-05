@@ -21,7 +21,7 @@ export default function TradePanel({ symbol, currentPrice, onSubmit }: TradePane
   const [marginMode, setMarginMode] = useState<'CROSS' | 'ISOLATED'>('CROSS')
   const [showLeverage, setShowLeverage] = useState(false)
   const [activeTab, setActiveTab] = useState<'open' | 'close'>('open')
-  const [orderType, setOrderType] = useState<'Limit' | 'Market'>('Limit')
+  const [orderType, setOrderType] = useState<'Limit' | 'Market'>('Market')
   const [entryPrice, setEntryPrice] = useState('')
   const [amount, setAmount] = useState('')
   const [takeProfit, setTakeProfit] = useState('')

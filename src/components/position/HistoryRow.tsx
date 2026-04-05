@@ -129,7 +129,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
     return { year: y, month: mo, day: d, hour: h, minute: mi }
   }
 
-  // Auto-search closed time when editClosedPrice changes (2-pass: 1h → 1m)
+  // Auto-search closed time when editClosedPrice changes (server-side API)
   useEffect(() => {
     if (!editing) return
     const price = parseFloat(editClosedPrice)
@@ -148,71 +148,28 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
     setPriceMatches([])
     setManualClosedTime(false)
 
-    const entryT = p.entryTime ? new Date(p.entryTime).getTime() : Date.now()
-    const now = Date.now()
+    const fromTime = p.entryTime ? new Date(p.entryTime).getTime() : undefined
 
     const search = async () => {
       try {
-        // 패스1: entryTime~now까지 1h 캔들로 도달 시간대 탐색
-        const chunkMs = 1500 * 60 * 60 * 1000
-        const fetches: Promise<Response>[] = []
-        let cursor = entryT
-        while (cursor < now) {
-          fetches.push(fetch(`/api/klines?symbol=${p.symbol}&interval=1h&limit=1500&startTime=${cursor}`))
-          cursor += chunkMs
-        }
-        const responses = await Promise.all(fetches)
-        const allKlines: { time: number; open: number; high: number; low: number; close: number }[] = []
-        for (const res of responses) {
-          if (res.ok) {
-            const data: { time: number; open: number; high: number; low: number; close: number }[] = await res.json()
-            allKlines.push(...data)
-          }
-        }
+        const params = new URLSearchParams({
+          symbol: p.symbol,
+          price: String(price),
+        })
+        if (fromTime) params.set('fromTime', String(fromTime))
 
-        const hourlyMatches = allKlines
-          .filter(k => k.low <= price && price <= k.high && k.time * 1000 >= entryT && k.time * 1000 <= now)
-          .sort((a, b) => b.time - a.time)
-          .slice(0, 30)
+        const res = await fetch(`/api/price-touches?${params}`)
+        if (!res.ok) throw new Error('API error')
+        const data = await res.json()
 
         if (cancelled) return
 
-        if (hourlyMatches.length === 0) {
-          setSearchingClosedTime(false)
-          setManualClosedTime(true)
-          return
-        }
-
-        // 패스2: 각 1h 캔들에 대해 1m 정밀 매치
-        const minuteResults = await Promise.all(
-          hourlyMatches.map(async (hk) => {
-            try {
-              const hourStartMs = hk.time * 1000
-              const hourEndMs = hourStartMs + 60 * 60 * 1000
-              const mRes = await fetch(
-                `/api/klines?symbol=${p.symbol}&interval=1m&limit=60&startTime=${hourStartMs}&endTime=${hourEndMs}`
-              )
-              if (!mRes.ok) return []
-              const mKlines: { time: number; open: number; high: number; low: number; close: number }[] = await mRes.json()
-              return mKlines
-                .filter(k => k.low <= price && price <= k.high)
-                .map(k => {
-                  const dt = new Date(k.time * 1000)
-                  const pad = (n: number) => String(n).padStart(2, '0')
-                  const localStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
-                  return { time: localStr, timestamp: k.time }
-                })
-            } catch { return [] }
-          })
-        )
-
-        if (cancelled) return
-        const matches = minuteResults.flat().sort((a, b) => b.timestamp - a.timestamp)
+        const matches: { time: string; timestamp: number }[] = data.matches || []
         setSearchingClosedTime(false)
+
         if (matches.length === 0) {
           setManualClosedTime(true)
         } else if (matches.length === 1) {
-          // 자동 설정
           const pt = parseMatchTime(matches[0].time)
           const pad = (n: number) => String(n).padStart(2, '0')
           setEditClosedTime(`${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`)
