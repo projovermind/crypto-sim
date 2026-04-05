@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { formatNumber } from '@/lib/calculations'
 
 const MAX_POSITION_USDT = 10000000
@@ -71,6 +71,40 @@ export default function OrderForm({
 }: OrderFormProps) {
   const base = symbol.replace('USDT', '')
   const [showQtyDropdown, setShowQtyDropdown] = useState(false)
+  const entryPriceDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // entryPrice 변경 시 자동 진입시간 계산 (Limit 모드만)
+  useEffect(() => {
+    if (orderType !== 'Limit') return
+    const price = parseFloat(entryPrice)
+    if (!price || price <= 0) return
+
+    if (entryPriceDebounceRef.current) clearTimeout(entryPriceDebounceRef.current)
+    entryPriceDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/klines?symbol=${symbol}&interval=1m&limit=720`)
+        if (!res.ok) return
+        const klines: { time: number; open: number; high: number; low: number; close: number }[] = await res.json()
+        // entryPrice가 캔들 범위 내에 있는 것 필터
+        const matches = klines.filter(k => k.low <= price && price <= k.high)
+        if (matches.length > 0) {
+          // 가장 최근 캔들 (time 내림차순)
+          const latest = matches.reduce((a, b) => (a.time > b.time ? a : b))
+          const dt = new Date(latest.time * 1000) // API returns time in seconds
+          // datetime-local 포맷: YYYY-MM-DDTHH:mm
+          const pad = (n: number) => String(n).padStart(2, '0')
+          const localStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
+          setEntryTime(localStr)
+        }
+      } catch {
+        // API 실패 시 무시
+      }
+    }, 500)
+
+    return () => {
+      if (entryPriceDebounceRef.current) clearTimeout(entryPriceDebounceRef.current)
+    }
+  }, [entryPrice, symbol, orderType, setEntryTime])
 
   useEffect(() => {
     if (currentPrice) {
