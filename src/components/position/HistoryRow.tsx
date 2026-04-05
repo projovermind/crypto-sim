@@ -30,11 +30,15 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
   const [editAmount, setEditAmount] = useState('')
   const [editLeverage, setEditLeverage] = useState('')
   const [editClosedTime, setEditClosedTime] = useState('')
-  const [closedTimeCandidates, setClosedTimeCandidates] = useState<{ time: number; open: number; high: number; low: number; close: number }[]>([])
+  const [priceMatches, setPriceMatches] = useState<{ time: string; timestamp: number }[]>([])
   const [searchingClosedTime, setSearchingClosedTime] = useState(false)
   const [manualClosedTime, setManualClosedTime] = useState(false)
   const prevClosedPriceRef = useRef('')
   const [teledditChecked, setTeledditChecked] = useState(false)
+  const [selYear, setSelYear] = useState<number | null>(null)
+  const [selMonth, setSelMonth] = useState<number | null>(null)
+  const [selDay, setSelDay] = useState<number | null>(null)
+  const [selHour, setSelHour] = useState<number | null>(null)
 
   const closedPrice = p.closedPrice || p.entryPrice
   const pnlData = calculatePnL(p.side, p.entryPrice, closedPrice, p.leverage, p.amount, p.quantity, p.entryFee)
@@ -76,8 +80,9 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
 
   const cancelEdit = () => {
     setEditing(false)
-    setClosedTimeCandidates([])
+    setPriceMatches([])
     setManualClosedTime(false)
+    setSelYear(null); setSelMonth(null); setSelDay(null); setSelHour(null)
     prevClosedPriceRef.current = ''
   }
 
@@ -118,63 +123,166 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
 
   const editInputClass = "w-full bg-binance-bg border border-binance-border rounded px-2 py-1 text-[11px] text-binance-text font-mono focus:outline-none focus:border-binance-yellow/50"
 
-  // Auto-search closed time when editClosedPrice changes
+  const parseMatchTime = (t: string) => {
+    const [datePart, timePart] = t.split('T')
+    const [y, mo, d] = datePart.split('-').map(Number)
+    const [h, mi] = timePart.split(':').map(Number)
+    return { year: y, month: mo, day: d, hour: h, minute: mi }
+  }
+
+  // Auto-search closed time when editClosedPrice changes (2-pass: 1h → 1m)
   useEffect(() => {
     if (!editing) return
     const price = parseFloat(editClosedPrice)
     if (isNaN(price) || price <= 0) {
-      setClosedTimeCandidates([])
+      setPriceMatches([])
       setManualClosedTime(false)
       return
     }
-    // Skip if same as previous value (avoid re-search)
     if (editClosedPrice === prevClosedPriceRef.current) return
     prevClosedPriceRef.current = editClosedPrice
 
-    const entryT = p.entryTime ? new Date(p.entryTime).getTime() : Date.now()
-    const startTime = entryT - 2 * 3600000
-    const endTime = entryT + 4 * 3600000
+    setSelYear(null); setSelMonth(null); setSelDay(null); setSelHour(null)
 
     let cancelled = false
     setSearchingClosedTime(true)
-    setClosedTimeCandidates([])
+    setPriceMatches([])
     setManualClosedTime(false)
 
-    fetch(`/api/klines?symbol=${p.symbol}&interval=1m&startTime=${startTime}&endTime=${endTime}&limit=360`)
-      .then(r => r.json())
-      .then((klines: { time: number; open: number; high: number; low: number; close: number }[]) => {
-        if (cancelled) return
-        const matches = klines.filter(k => k.low <= price && price <= k.high)
-        setSearchingClosedTime(false)
-        if (matches.length === 1) {
-          // Auto-set single match
-          const d = new Date(matches[0].time * 1000)
-          const offset = d.getTimezoneOffset() * 60000
-          setEditClosedTime(new Date(d.getTime() - offset).toISOString().slice(0, 16))
-          setClosedTimeCandidates([])
-        } else if (matches.length > 1) {
-          // Show candidates, latest first
-          setClosedTimeCandidates(matches.sort((a, b) => b.time - a.time))
-        } else {
-          setManualClosedTime(true)
+    const entryT = p.entryTime ? new Date(p.entryTime).getTime() : Date.now()
+    const now = Date.now()
+
+    const search = async () => {
+      try {
+        // 패스1: entryTime~now까지 1h 캔들로 도달 시간대 탐색
+        const chunkMs = 1500 * 60 * 60 * 1000
+        const fetches: Promise<Response>[] = []
+        let cursor = entryT
+        while (cursor < now) {
+          fetches.push(fetch(`/api/klines?symbol=${p.symbol}&interval=1h&limit=1500&startTime=${cursor}`))
+          cursor += chunkMs
         }
-      })
-      .catch(() => {
+        const responses = await Promise.all(fetches)
+        const allKlines: { time: number; open: number; high: number; low: number; close: number }[] = []
+        for (const res of responses) {
+          if (res.ok) {
+            const data: { time: number; open: number; high: number; low: number; close: number }[] = await res.json()
+            allKlines.push(...data)
+          }
+        }
+
+        const hourlyMatches = allKlines
+          .filter(k => k.low <= price && price <= k.high && k.time * 1000 >= entryT && k.time * 1000 <= now)
+          .sort((a, b) => b.time - a.time)
+          .slice(0, 30)
+
+        if (cancelled) return
+
+        if (hourlyMatches.length === 0) {
+          setSearchingClosedTime(false)
+          setManualClosedTime(true)
+          return
+        }
+
+        // 패스2: 각 1h 캔들에 대해 1m 정밀 매치
+        const minuteResults = await Promise.all(
+          hourlyMatches.map(async (hk) => {
+            try {
+              const hourStartMs = hk.time * 1000
+              const hourEndMs = hourStartMs + 60 * 60 * 1000
+              const mRes = await fetch(
+                `/api/klines?symbol=${p.symbol}&interval=1m&limit=60&startTime=${hourStartMs}&endTime=${hourEndMs}`
+              )
+              if (!mRes.ok) return []
+              const mKlines: { time: number; open: number; high: number; low: number; close: number }[] = await mRes.json()
+              return mKlines
+                .filter(k => k.low <= price && price <= k.high)
+                .map(k => {
+                  const dt = new Date(k.time * 1000)
+                  const pad = (n: number) => String(n).padStart(2, '0')
+                  const localStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
+                  return { time: localStr, timestamp: k.time }
+                })
+            } catch { return [] }
+          })
+        )
+
+        if (cancelled) return
+        const matches = minuteResults.flat().sort((a, b) => b.timestamp - a.timestamp)
+        setSearchingClosedTime(false)
+        if (matches.length === 0) {
+          setManualClosedTime(true)
+        } else if (matches.length === 1) {
+          // 자동 설정
+          const pt = parseMatchTime(matches[0].time)
+          const pad = (n: number) => String(n).padStart(2, '0')
+          setEditClosedTime(`${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`)
+          setPriceMatches([])
+        } else {
+          setPriceMatches(matches)
+        }
+      } catch {
         if (!cancelled) {
           setSearchingClosedTime(false)
           setManualClosedTime(true)
         }
-      })
+      }
+    }
 
+    search()
     return () => { cancelled = true }
   }, [editing, editClosedPrice])
 
-  const selectClosedTimeCandidate = (time: number) => {
-    const d = new Date(time * 1000)
-    const offset = d.getTimezoneOffset() * 60000
-    setEditClosedTime(new Date(d.getTime() - offset).toISOString().slice(0, 16))
-    setClosedTimeCandidates([])
-  }
+  // Cascading auto-select: 각 단계가 1개뿐이면 자동 선택 + 하위 단계로 넘어감
+  useEffect(() => {
+    if (priceMatches.length === 0) return
+    const uniq = (arr: Array<{ time: string; timestamp: number }>, fn: (p: ReturnType<typeof parseMatchTime>) => number) =>
+      [...new Set(arr.map(m => fn(parseMatchTime(m.time))))].sort((a, b) => b - a)
+
+    // 연도 자동 선택
+    const years = uniq(priceMatches, p => p.year)
+    if (years.length === 1 && selYear === null) {
+      setSelYear(years[0])
+      return
+    }
+    if (selYear === null) return
+
+    const afterYear = priceMatches.filter(m => parseMatchTime(m.time).year === selYear)
+    const months = uniq(afterYear, p => p.month)
+    if (months.length === 1 && selMonth === null) {
+      setSelMonth(months[0])
+      return
+    }
+    if (selMonth === null) return
+
+    const afterMonth = afterYear.filter(m => parseMatchTime(m.time).month === selMonth)
+    const days = uniq(afterMonth, p => p.day)
+    if (days.length === 1 && selDay === null) {
+      setSelDay(days[0])
+      return
+    }
+    if (selDay === null) return
+
+    const afterDay = afterMonth.filter(m => parseMatchTime(m.time).day === selDay)
+    const hours = uniq(afterDay, p => p.hour)
+    if (hours.length === 1 && selHour === null) {
+      setSelHour(hours[0])
+      return
+    }
+    if (selHour === null) return
+
+    const afterHour = afterDay.filter(m => parseMatchTime(m.time).hour === selHour)
+    const minutes = uniq(afterHour, p => p.minute)
+    if (minutes.length === 1) {
+      const match = afterHour[0]
+      const pt = parseMatchTime(match.time)
+      const pad = (n: number) => String(n).padStart(2, '0')
+      const ts = `${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`
+      setEditClosedTime(ts)
+      setPriceMatches([])
+      setSelYear(null); setSelMonth(null); setSelDay(null); setSelHour(null)
+    }
+  }, [priceMatches, selYear, selMonth, selDay, selHour])
 
   if (editing) {
     return (
@@ -239,27 +347,91 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
           {manualClosedTime && !searchingClosedTime && (
             <div className="text-[9px] text-binance-red mt-0.5">⚠️ 해당 가격 도달 이력 없음</div>
           )}
-          {closedTimeCandidates.length > 1 && (
-            <div className="mt-1 max-h-[60px] overflow-y-auto flex flex-wrap gap-0.5">
-              {closedTimeCandidates.slice(0, 12).map((k) => {
-                const t = new Date(k.time * 1000)
-                const hh = String(t.getHours()).padStart(2, '0')
-                const mm = String(t.getMinutes()).padStart(2, '0')
-                return (
-                  <button
-                    key={k.time}
-                    onClick={() => selectClosedTimeCandidate(k.time)}
-                    className="px-1 py-0.5 text-[9px] bg-binance-bg border border-binance-border rounded hover:border-binance-yellow hover:text-binance-yellow transition-colors font-mono"
-                  >
-                    {hh}:{mm}
-                  </button>
-                )
-              })}
-              {closedTimeCandidates.length > 12 && (
-                <span className="text-[9px] text-binance-text-dim px-1 self-center">+{closedTimeCandidates.length - 12}</span>
-              )}
-            </div>
-          )}
+          {priceMatches.length > 0 && (() => {
+            const filtered = priceMatches.filter(m => {
+              const pt = parseMatchTime(m.time)
+              if (selYear !== null && pt.year !== selYear) return false
+              if (selMonth !== null && pt.month !== selMonth) return false
+              if (selDay !== null && pt.day !== selDay) return false
+              if (selHour !== null && pt.hour !== selHour) return false
+              return true
+            })
+            const uniq = (fn: (pt: ReturnType<typeof parseMatchTime>) => number) =>
+              [...new Set(filtered.map(m => fn(parseMatchTime(m.time))))].sort((a, b) => b - a)
+            const years = uniq(pt => pt.year)
+            const months = selYear !== null ? uniq(pt => pt.month) : []
+            const days = selMonth !== null ? uniq(pt => pt.day) : []
+            const hours = selDay !== null ? uniq(pt => pt.hour) : []
+            const minutes = selHour !== null ? uniq(pt => pt.minute) : []
+            const chip = (active: boolean) =>
+              `px-2.5 py-1 text-[11px] rounded transition-colors cursor-pointer select-none ${active ? 'bg-binance-yellow text-black font-bold' : 'bg-binance-bg border border-binance-border text-binance-text hover:border-binance-yellow/40'}`
+            const resetL = (lv: number) => {
+              if (lv <= 0) { setSelMonth(null); setSelDay(null); setSelHour(null) }
+              if (lv <= 1) { setSelDay(null); setSelHour(null) }
+              if (lv <= 2) { setSelHour(null) }
+            }
+            return (
+              <div className="mt-1.5 flex flex-row items-start gap-3 overflow-x-auto bg-binance-bg border border-binance-border rounded p-2">
+                <div className="min-w-fit shrink-0">
+                  <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">연도</div>
+                  <div className="flex flex-wrap gap-1">
+                    {years.map(y => (
+                      <button key={y} type="button" onClick={() => { setSelYear(selYear === y ? null : y); resetL(0) }} className={chip(selYear === y)}>{y}</button>
+                    ))}
+                  </div>
+                </div>
+                {selYear !== null && (
+                  <div className="min-w-fit shrink-0">
+                    <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">월</div>
+                    <div className="flex flex-wrap gap-1">
+                      {months.map(mo => (
+                        <button key={mo} type="button" onClick={() => { setSelMonth(selMonth === mo ? null : mo); resetL(1) }} className={chip(selMonth === mo)}>{mo}월</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selMonth !== null && (
+                  <div className="min-w-fit shrink-0">
+                    <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">일</div>
+                    <div className="flex flex-wrap gap-1">
+                      {days.map(d => (
+                        <button key={d} type="button" onClick={() => { setSelDay(selDay === d ? null : d); resetL(2) }} className={chip(selDay === d)}>{d}일</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selDay !== null && (
+                  <div className="min-w-fit shrink-0">
+                    <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">시</div>
+                    <div className="flex flex-wrap gap-1">
+                      {hours.map(h => (
+                        <button key={h} type="button" onClick={() => setSelHour(selHour === h ? null : h)} className={chip(selHour === h)}>{String(h).padStart(2, '0')}시</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selHour !== null && minutes.length > 1 && (
+                  <div className="min-w-fit shrink-0">
+                    <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">분</div>
+                    <div className="flex flex-wrap gap-1">
+                      {minutes.map(mi => {
+                        const match = filtered.find(m => parseMatchTime(m.time).minute === mi)!
+                        const pt = parseMatchTime(match.time)
+                        const pad = (n: number) => String(n).padStart(2, '0')
+                        const ts = `${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`
+                        return (
+                          <button key={mi} type="button" onClick={() => { setEditClosedTime(ts); setPriceMatches([]); setSelYear(null); setSelMonth(null); setSelDay(null); setSelHour(null) }} className={chip(false)}>{String(mi).padStart(2, '0')}분</button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+                <div className="min-w-fit shrink-0 text-[9px] text-binance-text-dim self-center whitespace-nowrap">
+                  {selYear ?? '연도 선택'}{selMonth ? ` / ${selMonth}월` : ''}{selDay ? ` / ${selDay}일` : ''}{selHour ? ` / ${String(selHour).padStart(2, '0')}시` : ''} ({filtered.length}개)
+                </div>
+              </div>
+            )
+          })()}
         </td>
         {/* Actions */}
         <td className="py-1 px-2">

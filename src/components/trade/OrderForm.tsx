@@ -74,8 +74,22 @@ export default function OrderForm({
   const priceMatchRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [priceMatches, setPriceMatches] = useState<Array<{ time: string; timestamp: number }>>([])
   const [showMatchList, setShowMatchList] = useState(false)
+  // Cascading time picker state
+  const [selYear, setSelYear] = useState<number | null>(null)
+  const [selMonth, setSelMonth] = useState<number | null>(null)
+  const [selDay, setSelDay] = useState<number | null>(null)
+  const [selHour, setSelHour] = useState<number | null>(null)
 
-  // entryPrice 변경 시 3개월치 1h 캔들에서 가격 도달 이력 검색 (Limit 모드만)
+  // Parse match time string to components
+  const parseMatchTime = (t: string) => {
+    const [datePart, timePart] = t.split('T')
+    const [y, mo, d] = datePart.split('-').map(Number)
+    const [h, mi] = timePart.split(':').map(Number)
+    return { year: y, month: mo, day: d, hour: h, minute: mi }
+  }
+
+  // entryPrice 변경 시 3개월치 가격 도달 이력 검색 (Limit 모드만)
+  // 2패스: 1h 캔들로 도달 시간대 탐색 → 1m 캔들로 정확한 분 단위 매치
   useEffect(() => {
     if (orderType !== 'Limit') return
     const price = parseFloat(entryPrice)
@@ -84,6 +98,8 @@ export default function OrderForm({
       setShowMatchList(false)
       return
     }
+    // Reset cascading selection
+    setSelYear(null); setSelMonth(null); setSelDay(null); setSelHour(null)
 
     if (priceMatchRef.current) clearTimeout(priceMatchRef.current)
     priceMatchRef.current = setTimeout(async () => {
@@ -93,6 +109,7 @@ export default function OrderForm({
         const startTime1 = now - ninetyDaysMs
         const startTime2 = startTime1 + 1500 * 60 * 60 * 1000
 
+        // 패스1: 1h 캔들로 도달 시간대 빠르게 탐색
         const [res1, res2] = await Promise.all([
           fetch(`/api/klines?symbol=${symbol}&interval=1h&limit=1500&startTime=${startTime1}`),
           fetch(`/api/klines?symbol=${symbol}&interval=1h&limit=1500&startTime=${startTime2}`),
@@ -102,16 +119,44 @@ export default function OrderForm({
         const klines2: { time: number; open: number; high: number; low: number; close: number }[] = res2.ok ? await res2.json() : []
         const allKlines = [...klines1, ...klines2]
 
-        // entryPrice가 캔들 low~high 범위 내인 것 필터
-        const matches = allKlines
+        // entryPrice가 캔들 low~high 범위 내인 1h 캔들 필터 → 최신순 상위 30개
+        const hourlyMatches = allKlines
           .filter(k => k.low <= price && price <= k.high)
-          .map(k => {
-            const dt = new Date(k.time * 1000) // API returns time in seconds
-            const pad = (n: number) => String(n).padStart(2, '0')
-            const localStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
-            return { time: localStr, timestamp: k.time }
+          .sort((a, b) => b.time - a.time)
+          .slice(0, 30)
+
+        if (hourlyMatches.length === 0) {
+          setPriceMatches([])
+          setShowMatchList(true)
+          return
+        }
+
+        // 패스2: 각 도달 1h 캔들에 대해 1m 캔들 조회 → 정확한 분 단위 매치
+        const minuteResults = await Promise.all(
+          hourlyMatches.map(async (hk) => {
+            try {
+              const hourStartMs = hk.time * 1000
+              const hourEndMs = hourStartMs + 60 * 60 * 1000
+              const mRes = await fetch(
+                `/api/klines?symbol=${symbol}&interval=1m&limit=60&startTime=${hourStartMs}&endTime=${hourEndMs}`
+              )
+              if (!mRes.ok) return []
+              const mKlines: { time: number; open: number; high: number; low: number; close: number }[] = await mRes.json()
+              return mKlines
+                .filter(k => k.low <= price && price <= k.high)
+                .map(k => {
+                  const dt = new Date(k.time * 1000)
+                  const pad = (n: number) => String(n).padStart(2, '0')
+                  const localStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
+                  return { time: localStr, timestamp: k.time }
+                })
+            } catch { return [] }
           })
-          .sort((a, b) => b.timestamp - a.timestamp) // 최신순
+        )
+
+        const matches = minuteResults
+          .flat()
+          .sort((a, b) => b.timestamp - a.timestamp)
 
         setPriceMatches(matches)
         setShowMatchList(true)
@@ -125,6 +170,57 @@ export default function OrderForm({
       if (priceMatchRef.current) clearTimeout(priceMatchRef.current)
     }
   }, [entryPrice, symbol, orderType])
+
+  // Cascading auto-select: 각 단계가 1개뿐이면 자동 선택 + 하위 단계로 넘어감
+  useEffect(() => {
+    if (priceMatches.length === 0) return
+    const uniq = (arr: Array<{ time: string; timestamp: number }>, fn: (p: ReturnType<typeof parseMatchTime>) => number) =>
+      [...new Set(arr.map(m => fn(parseMatchTime(m.time))))].sort((a, b) => b - a)
+
+    // 연도 자동 선택
+    const years = uniq(priceMatches, p => p.year)
+    if (years.length === 1 && selYear === null) {
+      setSelYear(years[0])
+      return
+    }
+    if (selYear === null) return
+
+    const afterYear = priceMatches.filter(m => parseMatchTime(m.time).year === selYear)
+    const months = uniq(afterYear, p => p.month)
+    if (months.length === 1 && selMonth === null) {
+      setSelMonth(months[0])
+      return
+    }
+    if (selMonth === null) return
+
+    const afterMonth = afterYear.filter(m => parseMatchTime(m.time).month === selMonth)
+    const days = uniq(afterMonth, p => p.day)
+    if (days.length === 1 && selDay === null) {
+      setSelDay(days[0])
+      return
+    }
+    if (selDay === null) return
+
+    const afterDay = afterMonth.filter(m => parseMatchTime(m.time).day === selDay)
+    const hours = uniq(afterDay, p => p.hour)
+    if (hours.length === 1 && selHour === null) {
+      setSelHour(hours[0])
+      return
+    }
+    if (selHour === null) return
+
+    const afterHour = afterDay.filter(m => parseMatchTime(m.time).hour === selHour)
+    const minutes = uniq(afterHour, p => p.minute)
+    if (minutes.length === 1) {
+      const match = afterHour[0]
+      const pt = parseMatchTime(match.time)
+      const pad = (n: number) => String(n).padStart(2, '0')
+      const ts = `${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`
+      setEntryTime(ts)
+      setShowMatchList(false)
+      setSelYear(null); setSelMonth(null); setSelDay(null); setSelHour(null)
+    }
+  }, [priceMatches, selYear, selMonth, selDay, selHour, setEntryTime])
 
   useEffect(() => {
     if (currentPrice) {
@@ -376,34 +472,93 @@ export default function OrderForm({
               className={`${inputClass} cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-70 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:invert`}
             />
           </div>
-          {/* 가격 도달 이력 리스트 */}
+          {/* Cascading time selector from price matches */}
           {showMatchList && orderType === 'Limit' && parseFloat(entryPrice) > 0 && (
-            priceMatches.length > 0 ? (
-              <div className="mt-1 max-h-[160px] overflow-y-auto bg-binance-bg border border-binance-border rounded">
-                {priceMatches.slice(0, 20).map((m, i) => {
-                  const matchDate = new Date(m.time)
-                  const now = new Date()
-                  const diffMs = now.getTime() - matchDate.getTime()
-                  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-                  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-                  let ago = ''
-                  if (diffDays > 0) ago = `(${diffDays}일 전)`
-                  else if (diffHours > 0) ago = `(${diffHours}시간 전)`
-                  else ago = '(1시간 이내)'
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => { setEntryTime(m.time); setShowMatchList(false) }}
-                      className="w-full text-left px-2 py-1.5 text-[11px] text-binance-text hover:bg-binance-border/40 transition-colors flex justify-between items-center"
-                    >
-                      <span className="font-mono">{m.time.replace('T', ' ')}</span>
-                      <span className="text-binance-text-dim text-[10px]">{ago}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            ) : (
+            priceMatches.length > 0 ? (() => {
+              const filtered = priceMatches.filter(m => {
+                const p = parseMatchTime(m.time)
+                if (selYear !== null && p.year !== selYear) return false
+                if (selMonth !== null && p.month !== selMonth) return false
+                if (selDay !== null && p.day !== selDay) return false
+                if (selHour !== null && p.hour !== selHour) return false
+                return true
+              })
+              const uniq = (fn: (p: ReturnType<typeof parseMatchTime>) => number) =>
+                [...new Set(filtered.map(m => fn(parseMatchTime(m.time))))].sort((a, b) => b - a)
+              const years = uniq(p => p.year)
+              const months = selYear !== null ? uniq(p => p.month) : []
+              const days = selMonth !== null ? uniq(p => p.day) : []
+              const hours = selDay !== null ? uniq(p => p.hour) : []
+              const minutes = selHour !== null ? uniq(p => p.minute) : []
+              const chip = (active: boolean) =>
+                `px-2.5 py-1 text-[11px] rounded transition-colors cursor-pointer select-none ${active ? 'bg-binance-yellow text-black font-bold' : 'bg-binance-bg border border-binance-border text-binance-text hover:border-binance-yellow/40'}`
+              const resetL = (lv: number) => {
+                if (lv <= 0) { setSelMonth(null); setSelDay(null); setSelHour(null) }
+                if (lv <= 1) { setSelDay(null); setSelHour(null) }
+                if (lv <= 2) { setSelHour(null) }
+              }
+              return (
+                <div className="mt-1.5 flex flex-row items-start gap-3 overflow-x-auto bg-binance-bg border border-binance-border rounded p-2">
+                  <div className="min-w-fit shrink-0">
+                    <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">연도</div>
+                    <div className="flex flex-wrap gap-1">
+                      {years.map(y => (
+                        <button key={y} type="button" onClick={() => { setSelYear(selYear === y ? null : y); resetL(0) }} className={chip(selYear === y)}>{y}</button>
+                      ))}
+                    </div>
+                  </div>
+                  {selYear !== null && (
+                    <div className="min-w-fit shrink-0">
+                      <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">월</div>
+                      <div className="flex flex-wrap gap-1">
+                        {months.map(mo => (
+                          <button key={mo} type="button" onClick={() => { setSelMonth(selMonth === mo ? null : mo); resetL(1) }} className={chip(selMonth === mo)}>{mo}월</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {selMonth !== null && (
+                    <div className="min-w-fit shrink-0">
+                      <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">일</div>
+                      <div className="flex flex-wrap gap-1">
+                        {days.map(d => (
+                          <button key={d} type="button" onClick={() => { setSelDay(selDay === d ? null : d); resetL(2) }} className={chip(selDay === d)}>{d}일</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {selDay !== null && (
+                    <div className="min-w-fit shrink-0">
+                      <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">시</div>
+                      <div className="flex flex-wrap gap-1">
+                        {hours.map(h => (
+                          <button key={h} type="button" onClick={() => setSelHour(selHour === h ? null : h)} className={chip(selHour === h)}>{String(h).padStart(2, '0')}시</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {selHour !== null && minutes.length > 1 && (
+                    <div className="min-w-fit shrink-0">
+                      <div className="text-[9px] text-binance-text-dim mb-1 uppercase tracking-wider">분</div>
+                      <div className="flex flex-wrap gap-1">
+                        {minutes.map(mi => {
+                          const match = filtered.find(m => parseMatchTime(m.time).minute === mi)!
+                          const pt = parseMatchTime(match.time)
+                          const pad = (n: number) => String(n).padStart(2, '0')
+                          const ts = `${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`
+                          return (
+                            <button key={mi} type="button" onClick={() => { setEntryTime(ts); setShowMatchList(false); setSelYear(null); setSelMonth(null); setSelDay(null); setSelHour(null) }} className={chip(false)}>{String(mi).padStart(2, '0')}분</button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <div className="min-w-fit shrink-0 text-[9px] text-binance-text-dim self-center whitespace-nowrap">
+                    {selYear ?? '연도 선택'}{selMonth ? ` / ${selMonth}월` : ''}{selDay ? ` / ${selDay}일` : ''}{selHour ? ` / ${String(selHour).padStart(2,'0')}시` : ''} ({filtered.length}개)
+                  </div>
+                </div>
+              )
+            })() : (
               <div className="mt-1 text-[10px] text-binance-red bg-binance-bg border border-binance-border rounded px-2 py-1.5">
                 해당 가격 도달 이력 없음
               </div>

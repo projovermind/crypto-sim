@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Position, PositionWithLive } from '@/types'
 import { usePriceStore, subscribeSymbols } from '@/lib/hooks'
 import { calculatePnL, checkTPSL } from '@/lib/calculations'
+import { closeSound } from '@/lib/sounds'
 import PositionTable from '@/components/position/PositionTable'
 
 export default function PositionsPopupPage() {
@@ -59,14 +60,27 @@ export default function PositionsPopupPage() {
       return { ...p, currentPrice, pnlLive: pnl.pnl, roeLive: pnl.roe, liquidationPrice: pnl.liquidationPrice, hitTP: tpsl.hitTP, hitSL: tpsl.hitSL }
     })
 
-  const handleClose = async (id: string) => {
+  const handleClose = async (id: string, partialMargin?: number) => {
     try {
-      const res = await fetch(`/api/positions/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'close' }),
-      })
-      if (res.ok) fetchPositions()
+      let res: Response
+      if (partialMargin != null && partialMargin > 0) {
+        // 부분 익절
+        res = await fetch(`/api/positions/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'partialClose', closeMargin: partialMargin }),
+        })
+      } else {
+        // 전체 청산
+        res = await fetch(`/api/positions/${id}`, { method: 'DELETE' })
+      }
+      if (res.ok) {
+        closeSound()
+        fetchPositions()
+      } else {
+        const err = await res.json()
+        alert(err.error || '청산 실패')
+      }
     } catch {}
   }
 

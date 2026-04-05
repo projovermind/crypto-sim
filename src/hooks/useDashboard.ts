@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { PositionWithLive, Position } from '@/types'
 import { usePriceStore, subscribeSymbols } from '@/lib/hooks'
 import { calculatePnL, checkTPSL } from '@/lib/calculations'
+import { entrySound, closeSound } from '@/lib/sounds'
 
 const DEFAULT_TEMPLATE = '🟢 {{symbol}} {{side}} {{leverage}}x | 진입 ${{entryPrice}}'
 
@@ -55,7 +56,7 @@ export interface UseDashboardReturn {
   // Handlers
   fetchPositions: () => Promise<void>
   handleCreatePosition: (data: any) => Promise<void>
-  handleClosePosition: (id: string) => Promise<void>
+  handleClosePosition: (id: string, partialMargin?: number) => Promise<void>
   handleEditPosition: (id: string, data: { takeProfit?: number | null; stopLoss?: number | null }) => Promise<void>
   handleEditHistory: (id: string, data: { entryPrice?: number; closedPrice?: number; amount?: number; leverage?: number; entryTime?: string; closedAt?: string }) => Promise<void>
   handleDeleteHistory: (ids: string[]) => Promise<void>
@@ -236,6 +237,7 @@ export function useDashboard(): UseDashboardReturn {
       body: JSON.stringify(data),
     })
     if (res.ok) {
+      entrySound()
       fetchPositions()
     } else {
       const err = await res.json()
@@ -243,12 +245,27 @@ export function useDashboard(): UseDashboardReturn {
     }
   }, [fetchPositions])
 
-  // ─── Handler: close position ────────────────────────────
-  const handleClosePosition = useCallback(async (id: string) => {
-    const res = await fetch(`/api/positions/${id}`, { method: 'DELETE' })
+  // ─── Handler: close position (전체/부분 익절) ────────────
+  const handleClosePosition = useCallback(async (id: string, partialMargin?: number) => {
+    let res: Response
+    if (partialMargin != null && partialMargin > 0) {
+      // 부분 익절: PATCH + action=partialClose
+      res = await fetch(`/api/positions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'partialClose', closeMargin: partialMargin }),
+      })
+    } else {
+      // 전체 청산: DELETE
+      res = await fetch(`/api/positions/${id}`, { method: 'DELETE' })
+    }
     if (res.ok) {
+      closeSound()
       fetchPositions()
       setSelectedPosition(prev => prev?.id === id ? null : prev)
+    } else {
+      const err = await res.json()
+      alert(err.error || '청산 실패')
     }
   }, [fetchPositions])
 

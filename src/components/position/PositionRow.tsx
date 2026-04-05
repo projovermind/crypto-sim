@@ -31,7 +31,7 @@ interface PositionRowProps {
   position: PositionWithLive
   isSelected: boolean
   onSelect: (p: PositionWithLive) => void
-  onClose: (id: string) => void
+  onClose: (id: string, partialMargin?: number) => void
   onEdit: (id: string, data: { takeProfit?: number | null; stopLoss?: number | null; leverage?: number }) => void
   onShare: (p: PositionWithLive) => void
   onTeledditToggle?: (p: PositionWithLive, checked: boolean) => void
@@ -51,6 +51,8 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
   const [editingLev, setEditingLev] = useState(false)
   const [editLev, setEditLev] = useState('')
   const [teledditChecked, setTeledditChecked] = useState(false)
+  const [showCloseForm, setShowCloseForm] = useState(false)
+  const [closeMargin, setCloseMargin] = useState('')
 
   const price = p.currentPrice
   const pnlData = calculatePnL(p.side, p.entryPrice, price, p.leverage, p.amount, p.quantity, p.entryFee)
@@ -86,6 +88,22 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
       onEdit(p.id, { leverage: val })
     }
     setEditingLev(false)
+  }
+
+  const startCloseForm = () => {
+    setCloseMargin(String(Math.round(margin * 100) / 100))
+    setShowCloseForm(true)
+  }
+
+  const submitClose = () => {
+    const val = parseFloat(closeMargin)
+    if (!val || val <= 0) return
+    if (val >= margin) {
+      onClose(p.id)
+    } else {
+      onClose(p.id, val)
+    }
+    setShowCloseForm(false)
   }
 
   return (
@@ -210,29 +228,63 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
 
       {/* Operation */}
       <td className="py-2 px-2" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            defaultValue={formatPrice(price)}
-            className="bg-transparent border border-binance-border rounded-sm"
-            style={{ width: 108, height: 32, paddingLeft: 12, color: ICON_COLOR, fontSize: 12 }}
-            placeholder="Price"
-          />
-          <input
-            type="text"
-            defaultValue={formatPrice(positionValue)}
-            className="bg-transparent border border-binance-border rounded-sm"
-            style={{ width: 108, height: 32, paddingLeft: 12, color: ICON_COLOR, fontSize: 12 }}
-            placeholder={formatPrice(positionValue)}
-          />
-          <button
-            onClick={() => { if (confirm('Close this position?')) onClose(p.id) }}
-            className="rounded transition-colors hover:opacity-80"
-            style={{ padding: '4px 12px', backgroundColor: 'rgb(0, 191, 117)', color: '#fff', fontSize: 12, fontWeight: 500 }}
-          >
-            Close
-          </button>
-        </div>
+        {showCloseForm ? (
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              step="any"
+              min="0"
+              value={closeMargin}
+              onChange={e => setCloseMargin(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') submitClose()
+                if (e.key === 'Escape') setShowCloseForm(false)
+              }}
+              autoFocus
+              className="bg-binance-bg border border-binance-yellow/50 rounded-sm text-center"
+              style={{ width: 90, height: 28, paddingLeft: 6, color: 'rgb(255, 187, 0)', fontSize: 12 }}
+              placeholder="Margin"
+            />
+            <button
+              onClick={submitClose}
+              className="rounded transition-colors hover:opacity-80"
+              style={{ padding: '4px 10px', backgroundColor: 'rgb(0, 191, 117)', color: '#fff', fontSize: 11, fontWeight: 500 }}
+            >
+              ✓
+            </button>
+            <button
+              onClick={() => setShowCloseForm(false)}
+              className="rounded transition-colors hover:opacity-80"
+              style={{ padding: '4px 6px', backgroundColor: '#2C2D31', color: 'rgb(200, 200, 200)', fontSize: 11 }}
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              defaultValue={formatPrice(price)}
+              className="bg-transparent border border-binance-border rounded-sm"
+              style={{ width: 108, height: 32, paddingLeft: 12, color: ICON_COLOR, fontSize: 12 }}
+              placeholder="Price"
+            />
+            <input
+              type="text"
+              defaultValue={formatPrice(positionValue)}
+              className="bg-transparent border border-binance-border rounded-sm"
+              style={{ width: 108, height: 32, paddingLeft: 12, color: ICON_COLOR, fontSize: 12 }}
+              placeholder={formatPrice(positionValue)}
+            />
+            <button
+              onClick={startCloseForm}
+              className="rounded transition-colors hover:opacity-80"
+              style={{ padding: '4px 12px', backgroundColor: 'rgb(0, 191, 117)', color: '#fff', fontSize: 12, fontWeight: 500 }}
+            >
+              Close
+            </button>
+          </div>
+        )}
       </td>
 
       {/* TP/SL */}

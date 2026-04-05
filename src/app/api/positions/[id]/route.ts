@@ -3,7 +3,8 @@ import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { TAKER_FEE_RATE } from '@/lib/calculations'
 
-// DELETE /api/positions/[id] - 포지션 수동 청산
+// DELETE /api/positions/[id] - 포지션 수동 청산 (전체/부분 익절)
+// Body (optional): { partialMargin?: number } — 부분 청산 시 마진 금액
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -12,6 +13,17 @@ export async function DELETE(
     const user = await getAuthUser(request)
     if (!user) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    }
+
+    // body에서 partialMargin 선택적으로 파싱
+    let partialMargin: number | undefined
+    try {
+      const body = await request.json()
+      if (body?.partialMargin != null) {
+        partialMargin = parseFloat(body.partialMargin)
+      }
+    } catch {
+      // body 없는 DELETE 요청도 허용
     }
 
     const position = await prisma.position.findUnique({
@@ -26,37 +38,109 @@ export async function DELETE(
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
-    // Get current price from Binance
+    if (position.status !== 'OPEN') {
+      return NextResponse.json({ error: '이미 청산된 포지션입니다.' }, { status: 400 })
+    }
+
+    // Get current price from Binance (시장가)
     const priceRes = await fetch(
       `https://api.binance.com/api/v3/ticker/price?symbol=${position.symbol}`
     )
     const priceData = await priceRes.json()
     const currentPrice = parseFloat(priceData.price)
 
-    // Calculate raw PnL
-    let rawPnl: number
-    if (position.side === 'LONG') {
-      rawPnl = (currentPrice - position.entryPrice) * position.quantity
-    } else {
-      rawPnl = (position.entryPrice - currentPrice) * position.quantity
+    const totalMargin = position.amount / position.leverage
+
+    // partialMargin이 없거나 totalMargin 이상이면 전체 청산
+    if (!partialMargin || partialMargin >= totalMargin) {
+      // ── 전체 청산 (기존 로직) ──
+      let rawPnl: number
+      if (position.side === 'LONG') {
+        rawPnl = (currentPrice - position.entryPrice) * position.quantity
+      } else {
+        rawPnl = (position.entryPrice - currentPrice) * position.quantity
+      }
+      const entryFee = position.entryFee || 0
+      const closeFee = position.quantity * currentPrice * TAKER_FEE_RATE
+      const pnl = rawPnl - entryFee - closeFee
+
+      const updated = await prisma.position.update({
+        where: { id: params.id },
+        data: {
+          status: 'CLOSED_MANUAL',
+          closedAt: new Date(),
+          closedPrice: currentPrice,
+          pnl,
+        },
+      })
+
+      return NextResponse.json({ type: 'full', position: updated })
     }
 
-    // 수수료 차감: 진입 수수료 + 청산 수수료
-    const entryFee = position.entryFee || 0
-    const closeFee = position.quantity * currentPrice * TAKER_FEE_RATE
-    const pnl = rawPnl - entryFee - closeFee
+    // ── 부분 익절 ──
+    const ratio = partialMargin / totalMargin // 청산 비율
 
-    const updated = await prisma.position.update({
-      where: { id: params.id },
-      data: {
-        status: 'CLOSED_MANUAL',
-        closedAt: new Date(),
-        closedPrice: currentPrice,
-        pnl,
-      },
+    // 청산할 분량
+    const closedAmount = position.amount * ratio
+    const closedQuantity = position.quantity * ratio
+    const closedEntryFee = (position.entryFee || 0) * ratio
+
+    // 청산 PnL 계산
+    let rawPnl: number
+    if (position.side === 'LONG') {
+      rawPnl = (currentPrice - position.entryPrice) * closedQuantity
+    } else {
+      rawPnl = (position.entryPrice - currentPrice) * closedQuantity
+    }
+    const closeFee = closedQuantity * currentPrice * TAKER_FEE_RATE
+    const pnl = rawPnl - closedEntryFee - closeFee
+
+    // 남은 포지션 분량
+    const remainAmount = position.amount - closedAmount
+    const remainQuantity = position.quantity - closedQuantity
+    const remainEntryFee = (position.entryFee || 0) - closedEntryFee
+
+    // 트랜잭션: 원본 축소 + 신규 CLOSED_MANUAL 생성
+    const [updatedOriginal, closedPosition] = await prisma.$transaction([
+      // 원본 포지션: 남은 만큼 축소
+      prisma.position.update({
+        where: { id: params.id },
+        data: {
+          amount: remainAmount,
+          quantity: remainQuantity,
+          entryFee: remainEntryFee,
+        },
+      }),
+      // 청산 분량으로 신규 히스토리 생성
+      prisma.position.create({
+        data: {
+          userId: position.userId,
+          symbol: position.symbol,
+          side: position.side,
+          leverage: position.leverage,
+          entryPrice: position.entryPrice,
+          amount: closedAmount,
+          quantity: closedQuantity,
+          marginMode: position.marginMode,
+          orderType: position.orderType,
+          entryFee: closedEntryFee,
+          takeProfit: position.takeProfit,
+          stopLoss: position.stopLoss,
+          status: 'CLOSED_MANUAL',
+          closedAt: new Date(),
+          closedPrice: currentPrice,
+          pnl,
+          entryTime: position.entryTime,
+        },
+      }),
+    ])
+
+    return NextResponse.json({
+      type: 'partial',
+      ratio: Math.round(ratio * 10000) / 100, // 퍼센트 (소수점 2자리)
+      remaining: updatedOriginal,
+      closed: closedPosition,
     })
-
-    return NextResponse.json(updated)
   } catch (error) {
     console.error('DELETE /api/positions/[id] error:', error)
     return NextResponse.json({ error: '포지션 청산 중 오류가 발생했습니다.' }, { status: 500 })
@@ -86,6 +170,75 @@ export async function PATCH(
 
     if (position.userId !== user.id) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+    }
+
+    // ── Partial close: 마진 기준 부분 익절 ──
+    if (body.action === 'partialClose' && position.status === 'OPEN') {
+      const closeMargin = parseFloat(body.closeMargin)
+      if (isNaN(closeMargin) || closeMargin <= 0) {
+        return NextResponse.json({ error: '유효한 금액을 입력하세요.' }, { status: 400 })
+      }
+
+      const totalMargin = position.amount / position.leverage
+      if (closeMargin >= totalMargin) {
+        return NextResponse.json({ error: '전체 마진 이상 입력 시 전체 청산 버튼을 사용하세요.' }, { status: 400 })
+      }
+
+      const ratio = closeMargin / totalMargin
+      const closeQty = position.quantity * ratio
+      const closeAmount = position.amount * ratio
+
+      // 현재가 조회 (시장가 청산)
+      const priceRes = await fetch(
+        `https://api.binance.com/api/v3/ticker/price?symbol=${position.symbol}`
+      )
+      const priceData = await priceRes.json()
+      const currentPrice = parseFloat(priceData.price)
+
+      // 청산 부분 PnL 계산
+      let rawPnl: number
+      if (position.side === 'LONG') {
+        rawPnl = (currentPrice - position.entryPrice) * closeQty
+      } else {
+        rawPnl = (position.entryPrice - currentPrice) * closeQty
+      }
+      const entryFeePortion = (position.entryFee || 0) * ratio
+      const closeFee = closeQty * currentPrice * TAKER_FEE_RATE
+      const pnl = rawPnl - entryFeePortion - closeFee
+
+      // 부분 청산 이력을 새 CLOSED 포지션으로 생성
+      await prisma.position.create({
+        data: {
+          userId: position.userId,
+          symbol: position.symbol,
+          side: position.side,
+          leverage: position.leverage,
+          entryPrice: position.entryPrice,
+          inputPrice: position.inputPrice,
+          amount: closeAmount,
+          quantity: closeQty,
+          marginMode: position.marginMode,
+          orderType: position.orderType,
+          entryFee: entryFeePortion,
+          status: 'CLOSED_MANUAL',
+          closedAt: new Date(),
+          closedPrice: currentPrice,
+          pnl,
+          entryTime: position.entryTime,
+        }
+      })
+
+      // 원본 포지션 감소
+      const updated = await prisma.position.update({
+        where: { id: params.id },
+        data: {
+          amount: position.amount - closeAmount,
+          quantity: position.quantity - closeQty,
+          entryFee: (position.entryFee || 0) - entryFeePortion,
+        }
+      })
+
+      return NextResponse.json(updated)
     }
 
     const updateData: any = {}

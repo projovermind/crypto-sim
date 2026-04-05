@@ -7,7 +7,7 @@ import SharePopup from '@/components/SharePopup'
 
 interface PositionTableProps {
   positions: PositionWithLive[]
-  onClose: (id: string) => void
+  onClose: (id: string, partialMargin?: number) => void
   onEdit: (id: string, data: { takeProfit?: number | null; stopLoss?: number | null; leverage?: number }) => void
   onSelect: (position: PositionWithLive) => void
   selectedId?: string
