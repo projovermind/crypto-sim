@@ -71,40 +71,60 @@ export default function OrderForm({
 }: OrderFormProps) {
   const base = symbol.replace('USDT', '')
   const [showQtyDropdown, setShowQtyDropdown] = useState(false)
-  const entryPriceDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const priceMatchRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [priceMatches, setPriceMatches] = useState<Array<{ time: string; timestamp: number }>>([])
+  const [showMatchList, setShowMatchList] = useState(false)
 
-  // entryPrice 변경 시 자동 진입시간 계산 (Limit 모드만)
+  // entryPrice 변경 시 3개월치 1h 캔들에서 가격 도달 이력 검색 (Limit 모드만)
   useEffect(() => {
     if (orderType !== 'Limit') return
     const price = parseFloat(entryPrice)
-    if (!price || price <= 0) return
+    if (!price || price <= 0) {
+      setPriceMatches([])
+      setShowMatchList(false)
+      return
+    }
 
-    if (entryPriceDebounceRef.current) clearTimeout(entryPriceDebounceRef.current)
-    entryPriceDebounceRef.current = setTimeout(async () => {
+    if (priceMatchRef.current) clearTimeout(priceMatchRef.current)
+    priceMatchRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/klines?symbol=${symbol}&interval=1m&limit=720`)
-        if (!res.ok) return
-        const klines: { time: number; open: number; high: number; low: number; close: number }[] = await res.json()
-        // entryPrice가 캔들 범위 내에 있는 것 필터
-        const matches = klines.filter(k => k.low <= price && price <= k.high)
-        if (matches.length > 0) {
-          // 가장 최근 캔들 (time 내림차순)
-          const latest = matches.reduce((a, b) => (a.time > b.time ? a : b))
-          const dt = new Date(latest.time * 1000) // API returns time in seconds
-          // datetime-local 포맷: YYYY-MM-DDTHH:mm
-          const pad = (n: number) => String(n).padStart(2, '0')
-          const localStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
-          setEntryTime(localStr)
-        }
+        const now = Date.now()
+        const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000
+        const startTime1 = now - ninetyDaysMs
+        const startTime2 = startTime1 + 1500 * 60 * 60 * 1000
+
+        const [res1, res2] = await Promise.all([
+          fetch(`/api/klines?symbol=${symbol}&interval=1h&limit=1500&startTime=${startTime1}`),
+          fetch(`/api/klines?symbol=${symbol}&interval=1h&limit=1500&startTime=${startTime2}`),
+        ])
+
+        const klines1: { time: number; open: number; high: number; low: number; close: number }[] = res1.ok ? await res1.json() : []
+        const klines2: { time: number; open: number; high: number; low: number; close: number }[] = res2.ok ? await res2.json() : []
+        const allKlines = [...klines1, ...klines2]
+
+        // entryPrice가 캔들 low~high 범위 내인 것 필터
+        const matches = allKlines
+          .filter(k => k.low <= price && price <= k.high)
+          .map(k => {
+            const dt = new Date(k.time * 1000) // API returns time in seconds
+            const pad = (n: number) => String(n).padStart(2, '0')
+            const localStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
+            return { time: localStr, timestamp: k.time }
+          })
+          .sort((a, b) => b.timestamp - a.timestamp) // 최신순
+
+        setPriceMatches(matches)
+        setShowMatchList(true)
       } catch {
-        // API 실패 시 무시
+        setPriceMatches([])
+        setShowMatchList(false)
       }
     }, 500)
 
     return () => {
-      if (entryPriceDebounceRef.current) clearTimeout(entryPriceDebounceRef.current)
+      if (priceMatchRef.current) clearTimeout(priceMatchRef.current)
     }
-  }, [entryPrice, symbol, orderType, setEntryTime])
+  }, [entryPrice, symbol, orderType])
 
   useEffect(() => {
     if (currentPrice) {
@@ -356,6 +376,39 @@ export default function OrderForm({
               className={`${inputClass} cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-70 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:invert`}
             />
           </div>
+          {/* 가격 도달 이력 리스트 */}
+          {showMatchList && orderType === 'Limit' && parseFloat(entryPrice) > 0 && (
+            priceMatches.length > 0 ? (
+              <div className="mt-1 max-h-[160px] overflow-y-auto bg-binance-bg border border-binance-border rounded">
+                {priceMatches.slice(0, 20).map((m, i) => {
+                  const matchDate = new Date(m.time)
+                  const now = new Date()
+                  const diffMs = now.getTime() - matchDate.getTime()
+                  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+                  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+                  let ago = ''
+                  if (diffDays > 0) ago = `(${diffDays}일 전)`
+                  else if (diffHours > 0) ago = `(${diffHours}시간 전)`
+                  else ago = '(1시간 이내)'
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => { setEntryTime(m.time); setShowMatchList(false) }}
+                      className="w-full text-left px-2 py-1.5 text-[11px] text-binance-text hover:bg-binance-border/40 transition-colors flex justify-between items-center"
+                    >
+                      <span className="font-mono">{m.time.replace('T', ' ')}</span>
+                      <span className="text-binance-text-dim text-[10px]">{ago}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="mt-1 text-[10px] text-binance-red bg-binance-bg border border-binance-border rounded px-2 py-1.5">
+                해당 가격 도달 이력 없음
+              </div>
+            )
+          )}
           {fundingInfo && fundingInfo.hoursDiff > 0 && (
             <div className="mt-1 text-[10px] bg-binance-bg rounded px-2 py-1.5 space-y-0.5">
               <div className="flex justify-between">
