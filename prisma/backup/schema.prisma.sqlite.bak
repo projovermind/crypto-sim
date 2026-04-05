@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique  // 아이디 (username)로 사용
+  name      String
+  password  String
+  role      String     @default("USER")    // "USER" | "MANAGER" | "ADMIN"
+  status    String     @default("PENDING")  // "PENDING" | "APPROVED" | "SUSPENDED"
+  createdAt DateTime   @default(now())
+  positions Position[]
+}
+
+model Position {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol      String   // e.g. "BTCUSDT"
+  side        String   // "LONG" or "SHORT"
+  leverage    Int      // 1, 2, 5, 10, 25, 50, 100, 125
+  entryPrice  Float
+  amount      Float    // Position size in USDT
+  quantity    Float    // Coin quantity (amount / entryPrice)
+  marginMode  String   @default("CROSS") // "CROSS" or "ISOLATED"
+  orderType   String   @default("MARKET") // "MARKET" or "LIMIT"
+  entryFee    Float    @default(0) // Opening fee in USDT
+  takeProfit  Float?   // TP price
+  stopLoss    Float?   // SL price
+  status      String   @default("OPEN") // "OPEN", "CLOSED_TP", "CLOSED_SL", "CLOSED_MANUAL"
+  closedAt    DateTime?
+  closedPrice Float?
+  pnl         Float?
+  entryTime   DateTime
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

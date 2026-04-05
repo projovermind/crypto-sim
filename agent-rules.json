@@ -1,0 +1,132 @@
+{
+  "project": "posi",
+  "name": "포시 (포지션 시뮬레이터)",
+  "path": "💻 Projects/CryptoSim/",
+  "description": "크립토 선물 포지션 시뮬레이터 — 가상 트레이딩으로 포지션 연습",
+  "tech_stack": {
+    "framework": "Next.js 14 (App Router)",
+    "language": "TypeScript",
+    "database": "PostgreSQL (Prisma ORM)",
+    "auth": "NextAuth.js (Credentials)",
+    "state": "Zustand",
+    "chart": "Lightweight Charts v5",
+    "styling": "Tailwind CSS",
+    "deploy": "Vercel (ICN1 리전)"
+  },
+  "structure": {
+    "src/app/": "App Router 페이지 (dashboard, login, admin, api)",
+    "src/app/api/": "API 라우트 (auth, positions CRUD, admin, share)",
+    "src/app/dashboard/": "메인 대시보드 (트레이드 뷰)",
+    "src/app/admin/": "관리자 패널 (유저 승인/관리)",
+    "src/app/login/": "로그인 페이지",
+    "src/components/": "UI 컴포넌트",
+    "src/components/trade/": "트레이드 패널 관련",
+    "src/components/position/": "포지션 카드/테이블 관련",
+    "src/components/SharePopup.tsx": "포지션 공유 팝업 (이미지 생성)",
+    "src/components/MarketHeader.tsx": "마켓 헤더 (실시간 가격)",
+    "src/components/PositionChart.tsx": "포지션 차트 (Lightweight Charts)",
+    "src/components/PositionForm.tsx": "포지션 입력 폼",
+    "src/components/OrderBook.tsx": "오더북 뷰",
+    "src/lib/auth.ts": "NextAuth 설정",
+    "src/lib/calculations.ts": "PnL/수수료/청산가 계산 로직",
+    "src/lib/hooks.ts": "커스텀 React 훅",
+    "src/lib/prisma.ts": "Prisma 클라이언트",
+    "prisma/schema.prisma": "DB 스키마 (User, Position)"
+  },
+  "models": {
+    "User": "id, email(아이디), name, password, role(USER/MANAGER/ADMIN), status(PENDING/APPROVED/SUSPENDED)",
+    "Position": "id, userId, symbol, side(LONG/SHORT), leverage, entryPrice, amount, quantity, marginMode, orderType, entryFee, takeProfit, stopLoss, status(OPEN/CLOSED_*), closedAt, closedPrice, pnl, entryTime"
+  },
+  "features": [
+    "크립토 선물 포지션 시뮬레이션 (롱/숏, 레버리지 1~125x)",
+    "실시간 Binance 가격 연동",
+    "PnL 계산 (수수료, 청산가 포함)",
+    "포지션 공유 (이미지 생성)",
+    "관리자 패널 (유저 승인/정지/역할 관리)",
+    "Lightweight Charts 차트 뷰"
+  ],
+  "vercel": {
+    "project_id": "projovermind-3556",
+    "region": "icn1",
+    "plan": "Pro ($20/월 포함크레딧, On-Demand $200 한도)"
+  },
+  "agents": {
+    "ps.dashboard": {
+      "role": "총괄 에이전트",
+      "scope": "프로젝트 전체 (프론트엔드 + API + DB)"
+    },
+    "ps.frontend": {
+      "role": "프론트엔드 UI",
+      "scope": "React 컴포넌트, App Router 페이지, 커스텀 훅, 타입 정의",
+      "files": [
+        "src/components/**/*.tsx",
+        "src/components/**/*.ts",
+        "src/app/**/page.tsx",
+        "src/app/layout.tsx",
+        "src/hooks/**/*.ts",
+        "src/types/**/*.ts"
+      ],
+      "examples": [
+        "src/components/PositionForm.tsx — 포지션 입력 폼",
+        "src/components/position/HistoryRow.tsx — 히스토리 행 (입력가/체결가 표시)",
+        "src/components/position/PositionRow.tsx — 오픈 포지션 행",
+        "src/components/position/PositionHistory.tsx — 포지션 히스토리 테이블",
+        "src/components/position/PositionTable.tsx — 오픈 포지션 테이블",
+        "src/components/TimeSearchModal.tsx — 캔들 기반 시간 검색 모달",
+        "src/components/SharePopup.tsx — 포지션 공유 팝업",
+        "src/components/trade/TradePanel.tsx — 트레이드 패널",
+        "src/components/trade/OrderForm.tsx — 주문 폼",
+        "src/components/trade/WalletBar.tsx — 지갑 바",
+        "src/components/trade/LeverageSelector.tsx — 레버리지 선택",
+        "src/components/trade/TradeButtons.tsx — 롱/숏 버튼",
+        "src/components/MarketHeader.tsx — 마켓 헤더",
+        "src/components/NavBar.tsx — 네비게이션 바",
+        "src/components/OrderBook.tsx — 오더북",
+        "src/components/RecentTrades.tsx — 최근 체결",
+        "src/components/SettingsModal.tsx — 설정 모달",
+        "src/components/PositionChart.tsx — 포지션 차트"
+      ]
+    },
+    "ps.api": {
+      "role": "API 백엔드",
+      "scope": "API 라우트, DB 스키마, 계산 로직, 외부 API 연동",
+      "files": [
+        "src/app/api/**/*.ts",
+        "prisma/schema.prisma",
+        "src/lib/**/*.ts"
+      ],
+      "examples": [
+        "src/app/api/positions/route.ts — 포지션 CRUD (POST/GET)",
+        "src/app/api/positions/[id]/route.ts — 포지션 단건 (PATCH/DELETE)",
+        "src/app/api/positions/delete-history/route.ts — 히스토리 삭제",
+        "src/app/api/positions/trash/route.ts — 휴지통",
+        "src/app/api/klines/route.ts — 바이낸스 캔들 데이터",
+        "src/app/api/price/[symbol]/route.ts — 실시간 가격",
+        "src/app/api/depth/[symbol]/route.ts — 오더북 깊이",
+        "src/app/api/trades/[symbol]/route.ts — 최근 체결",
+        "src/app/api/auth/[...nextauth]/route.ts — 인증",
+        "src/app/api/register/route.ts — 회원가입",
+        "src/app/api/admin/users/route.ts — 관리자 유저 관리",
+        "src/app/api/account/route.ts — 계정 API",
+        "src/lib/calculations.ts — PnL/수수료/청산가 계산",
+        "src/lib/auth.ts — NextAuth 설정",
+        "src/lib/prisma.ts — Prisma 클라이언트",
+        "src/lib/hooks.ts — 공용 커스텀 훅",
+        "prisma/schema.prisma — DB 스키마 (Teledit과 공유!)"
+      ],
+      "critical_notes": [
+        "⛔ CryptoSim과 Teledit은 동일 Supabase DB 공유. schema.prisma 수정 시 반드시 Teledit/prisma/schema.prisma도 동기화!",
+        "⛔ 스키마 변경 후 npx prisma db push + npx prisma generate 필수"
+      ]
+    }
+  },
+  "critical_rules": [
+    "⛔⛔⛔ [공유 DB] CryptoSim과 Teledit은 동일한 Supabase DB를 공유함. schema.prisma 수정 시 반드시 Teledit/prisma/schema.prisma도 동일하게 수정할 것! 한쪽만 수정하고 db push하면 다른 쪽 컬럼/테이블이 삭제되어 전체 서비스 장애 발생.",
+    "⛔ prisma/schema.prisma 수정 시 반드시 `npx prisma db push` 실행 후 검증할 것. 미실행 시 User 테이블 전체 API(로그인, 유저 목록 등)가 500 에러로 터짐.",
+    "⛔ DB 스키마 변경 후 Prisma Client 재생성 필수 (`npx prisma generate`). db push는 generate를 자동 포함하지만, 수동 변경 시 누락 주의.",
+    "⛔ 스키마에 새 컬럼/모델 추가 시: 1) CryptoSim + Teledit 양쪽 schema.prisma 동시 수정 → 2) npx prisma db push → 3) 양쪽 npx prisma generate → 4) 관련 API/UI 코드 수정."
+  ],
+  "channels": {
+    "ps.dashboard": "📊-포시 — 포시 프로젝트 전체 작업 채널"
+  }
+}

@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// === Shared: CryptoSim + Teledit (동일 DB 공유 — 양쪽 스키마 반드시 동기화!) ===
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique  // 아이디 (username)로 사용
+  name      String
+  password  String
+  role              String     @default("USER")    // "USER" | "MANAGER" | "ADMIN"
+  status            String     @default("PENDING")  // "PENDING" | "APPROVED" | "SUSPENDED"
+  teledditTemplate  String?    // Teledit 메시지 템플릿
+  createdAt         DateTime   @default(now())
+  positions         Position[]
+  telegramAccount   TelegramAccount?
+  telegramChannels  TelegramChannel[]
+  messageOverrides  MessageOverride[]
+}
+
+model Position {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol      String   // e.g. "BTCUSDT"
+  side        String   // "LONG" or "SHORT"
+  leverage    Int      // 1, 2, 5, 10, 25, 50, 100, 125
+  entryPrice  Float
+  inputPrice  Float?   // 사용자가 입력한 원래 가격 (슬리피지 적용 전)
+  amount      Float    // Position size in USDT
+  quantity    Float    // Coin quantity (amount / entryPrice)
+  marginMode  String   @default("CROSS") // "CROSS" or "ISOLATED"
+  orderType   String   @default("MARKET") // "MARKET" or "LIMIT"
+  entryFee    Float    @default(0) // Opening fee in USDT
+  takeProfit  Float?   // TP price
+  stopLoss    Float?   // SL price
+  status      String   @default("OPEN") // "OPEN", "CLOSED_TP", "CLOSED_SL", "CLOSED_MANUAL"
+  closedAt    DateTime?
+  closedPrice Float?
+  pnl         Float?
+  entryTime   DateTime
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  overrides   MessageOverride[]
+}
+
+// === Teledit 전용 모델 (DB 공유로 인해 CryptoSim에도 선언 필수) ===
+model TelegramConfig {
+  id        String   @id @default(cuid())
+  apiId     String
+  apiHash   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TelegramAccount {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone           String
+  sessionString   String   @db.Text
+  firstName       String?
+  lastName        String?
+  username        String?
+  telegramUserId  BigInt?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model TelegramChannel {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  telegramId      BigInt   @unique
+  title           String
+  type            String   @default("channel")
+  avatarUrl       String?
+  memberCount     Int      @default(0)
+  isMonitoring    Boolean  @default(true)
+  lastFetchedAt   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  messages        TelegramMessage[]
+}
+
+model TelegramMessage {
+  id              String   @id @default(cuid())
+  channelId       String
+  channel         TelegramChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  telegramMsgId   Int
+  senderName      String
+  senderAvatar    String?
+  content         String   @db.Text
+  mediaUrl        String?
+  mediaType       String?
+  replyToMsgId    Int?
+  viewCount       Int      @default(0)
+  sentAt          DateTime
+  createdAt       DateTime @default(now())
+  override        MessageOverride?
+
+  @@unique([channelId, telegramMsgId])
+  @@index([channelId, sentAt])
+}
+
+model MessageOverride {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId       String?  @unique
+  message         TelegramMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  positionId      String?
+  position        Position? @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  type            String
+  channelId       String?
+  content         String   @db.Text
+  senderName      String?
+  views           Int?
+  insertAt        DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
