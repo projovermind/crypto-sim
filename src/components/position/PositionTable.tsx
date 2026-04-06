@@ -54,11 +54,11 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
   }
 
   return (
-    <div className="bg-binance-card border-t border-binance-border flex">
+    <div className="bg-binance-card border-t border-binance-border flex flex-nowrap overflow-hidden">
       {/* Left: main table area */}
       <div style={{ width: 1607, flexShrink: 0 }}>
         {/* Header row */}
-        <div className="flex items-center px-4 py-0 border-b border-binance-border w-[1607px]">
+        <div className="flex items-center px-4 py-0 border-b border-binance-border" style={{ width: 1607 }}>
           <span className="px-3 py-2 text-xs font-medium text-binance-text border-b-2 border-white">
             Positions ({openPositions.length})
           </span>
@@ -126,18 +126,18 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
 
       {/* Right: Teledit sidebar (only in non-popup) */}
       {!isPopup && (
-        <div className="border-l border-binance-border flex flex-col" style={{ minWidth: 120 }}>
+        <div className="border-l border-binance-border flex flex-col" style={{ flex: '1 1 0%', minWidth: 0, overflow: 'hidden' }}>
           {/* Control bar header - same height as control bar row */}
-          <div className="flex items-center px-3 py-2 border-b border-binance-border">
-            <span className="text-xs font-medium text-binance-text">Teledit</span>
+          <div className="flex items-center px-4 py-0 border-b border-binance-border">
+            <span className="text-xs font-medium text-binance-text py-2">Teledit</span>
           </div>
           {/* Column header row - same height as table headers (py-2.5) */}
-          <div className="flex items-center px-3 py-2.5 border-b border-binance-border">
+          <div className="flex items-center px-4 py-2.5 border-b border-binance-border">
             <span className="text-[11px] text-binance-text-dim">포지션 자동 입력</span>
           </div>
           {/* Per-position checkboxes - match td height 57px */}
           {openPositions.map(p => (
-            <div key={p.id} className="flex items-center justify-center border-b border-binance-border/50" style={{ height: 57 }}>
+            <div key={p.id} className="flex items-center px-4 border-b border-binance-border/50" style={{ height: 57 }}>
               <input
                 type="checkbox"
                 checked={tdChecked.has(p.id)}
@@ -154,8 +154,9 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
                     return next
                   })
                 }}
-                className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow"
+                className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow mr-2"
               />
+              <span className="text-[11px] text-binance-text-dim truncate">{p.symbol}</span>
             </div>
           ))}
         </div>
