@@ -55,7 +55,7 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
   return (
     <div className="bg-binance-card border-t border-binance-border">
       {/* Header row */}
-      <div className="flex items-center px-4 py-0 border-b border-binance-border max-w-[1607px] mx-auto">
+      <div className="flex items-center px-4 py-0 border-b border-binance-border max-w-[1607px]">
         <span className="px-3 py-2 text-xs font-medium text-binance-text border-b-2 border-white">
           Positions ({openPositions.length})
         </span>
@@ -88,7 +88,7 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
       </div>
 
       {/* Position list */}
-      <div className="overflow-x-auto px-2">
+      <div className={isPopup ? 'px-2' : 'overflow-x-auto px-2'}>
         {openPositions.length === 0 ? (
           <div className="flex items-center justify-center py-8 text-sm text-binance-text-dim">
             열린 포지션 없음
