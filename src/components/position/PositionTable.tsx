@@ -91,7 +91,7 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
         </div>
 
         {/* Position list */}
-        <div className={isPopup ? 'px-2' : 'overflow-x-auto px-2'}>
+        <div className={isPopup ? 'px-2' : 'overflow-x-auto'}>
           {openPositions.length === 0 ? (
             <div className="flex items-center justify-center py-8 text-sm text-binance-text-dim">
               열린 포지션 없음
