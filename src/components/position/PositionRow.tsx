@@ -34,7 +34,6 @@ interface PositionRowProps {
   onClose: (id: string, options?: number | { closeMargin?: number; closeQuantity?: number }) => void
   onEdit: (id: string, data: { takeProfit?: number | null; stopLoss?: number | null; leverage?: number }) => void
   onShare: (p: PositionWithLive) => void
-  onTeledditToggle?: (p: PositionWithLive, checked: boolean) => void
 }
 
 function formatMarginMode(mode: string | undefined): string {
@@ -44,13 +43,12 @@ function formatMarginMode(mode: string | undefined): string {
 
 const ICON_COLOR = 'rgb(129, 134, 147)'
 
-export default function PositionRow({ position: p, isSelected, onSelect, onClose, onEdit, onShare, onTeledditToggle }: PositionRowProps) {
+export default function PositionRow({ position: p, isSelected, onSelect, onClose, onEdit, onShare }: PositionRowProps) {
   const [editingTPSL, setEditingTPSL] = useState(false)
   const [editTP, setEditTP] = useState('')
   const [editSL, setEditSL] = useState('')
   const [editingLev, setEditingLev] = useState(false)
   const [editLev, setEditLev] = useState('')
-  const [teledditChecked, setTeledditChecked] = useState(false)
   const [closeQuantity, setCloseQuantity] = useState('')
   const [userEditedClose, setUserEditedClose] = useState(false)
   const [showPctPopup, setShowPctPopup] = useState(false)
@@ -162,22 +160,6 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
                 />
                 <span className="font-bold" style={{ fontSize: 12, color: p.side === 'LONG' ? 'rgb(0, 191, 117)' : 'rgb(234, 57, 67)' }}>X</span>
                 <button onClick={saveLev} className="text-binance-yellow hover:underline" style={{ fontSize: 10 }}>OK</button>
-                <label className="flex items-center gap-0.5 select-none cursor-pointer" style={{ fontSize: 10, color: ICON_COLOR, marginLeft: 2 }}>
-                  <input
-                    type="checkbox"
-                    checked={teledditChecked}
-                    onChange={e => {
-                      e.stopPropagation()
-                      const next = e.target.checked
-                      setTeledditChecked(next)
-                      onTeledditToggle?.(p, next)
-                    }}
-                    onClick={e => e.stopPropagation()}
-                    className="accent-binance-yellow"
-                    style={{ width: 12, height: 12 }}
-                  />
-                  <span>TD</span>
-                </label>
               </div>
             ) : (
               <>

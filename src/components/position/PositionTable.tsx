@@ -45,6 +45,7 @@ const TABLE_HEADERS = (
 export default function PositionTable({ positions, onClose, onEdit, onSelect, selectedId, isPopup = false, onTeledditToggle }: PositionTableProps) {
   const [hideOtherPairs, setHideOtherPairs] = useState(false)
   const [sharePosition, setSharePosition] = useState<PositionWithLive | null>(null)
+  const [tdChecked, setTdChecked] = useState<Set<string>>(new Set())
 
   const openPositions = positions.filter(p => p.status === 'OPEN')
 
@@ -53,73 +54,112 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
   }
 
   return (
-    <div className="bg-binance-card border-t border-binance-border">
-      {/* Header row */}
-      <div className="flex items-center px-4 py-0 border-b border-binance-border max-w-[1607px]">
-        <span className="px-3 py-2 text-xs font-medium text-binance-text border-b-2 border-white">
-          Positions ({openPositions.length})
-        </span>
-        {!isPopup && (
-          <div className="ml-auto flex items-center gap-3">
-            <button
-              onClick={openInNewWindow}
-              className="text-[10px] text-binance-text-dim hover:text-binance-text transition-colors"
-              title="새창에서 보기"
-            >
-              &#x2197; 새창
-            </button>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hideOtherPairs}
-                onChange={e => setHideOtherPairs(e.target.checked)}
-                className="w-3 h-3 rounded border-binance-border accent-binance-yellow"
-              />
-              <span className="text-[10px] text-binance-text-dim">다른 페어 숨기기</span>
-            </label>
-            <span
-              className="text-xs text-binance-red cursor-pointer hover:underline"
-              onClick={() => { if (confirm('모든 포지션을 청산하시겠습니까?')) openPositions.forEach(p => onClose(p.id)) }}
-            >
-              전체 청산
-            </span>
-          </div>
-        )}
+    <div className="bg-binance-card border-t border-binance-border flex">
+      {/* Left: main table area */}
+      <div style={{ width: 1607, flexShrink: 0 }}>
+        {/* Header row */}
+        <div className="flex items-center px-4 py-0 border-b border-binance-border w-[1607px]">
+          <span className="px-3 py-2 text-xs font-medium text-binance-text border-b-2 border-white">
+            Positions ({openPositions.length})
+          </span>
+          {!isPopup && (
+            <div className="ml-auto flex items-center gap-3">
+              <button
+                onClick={openInNewWindow}
+                className="text-[10px] text-binance-text-dim hover:text-binance-text transition-colors"
+                title="새창에서 보기"
+              >
+                &#x2197; 새창
+              </button>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hideOtherPairs}
+                  onChange={e => setHideOtherPairs(e.target.checked)}
+                  className="w-3 h-3 rounded border-binance-border accent-binance-yellow"
+                />
+                <span className="text-[10px] text-binance-text-dim">다른 페어 숨기기</span>
+              </label>
+              <span
+                className="text-xs text-binance-red cursor-pointer hover:underline"
+                onClick={() => { if (confirm('모든 포지션을 청산하시겠습니까?')) openPositions.forEach(p => onClose(p.id)) }}
+              >
+                전체 청산
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Position list */}
+        <div className={isPopup ? 'px-2' : 'overflow-x-auto px-2'}>
+          {openPositions.length === 0 ? (
+            <div className="flex items-center justify-center py-8 text-sm text-binance-text-dim">
+              열린 포지션 없음
+            </div>
+          ) : (
+            <div>
+              <table style={{ tableLayout: 'fixed', width: COL_WIDTHS.reduce((a, b) => a + b, 0), whiteSpace: 'nowrap', fontSize: 12, fontFamily: 'Inter, sans-serif' }}>
+                <colgroup>
+                  {COL_WIDTHS.map((w, i) => (
+                    <col key={i} style={{ width: w }} />
+                  ))}
+                </colgroup>
+                {TABLE_HEADERS}
+                <tbody>
+                  {openPositions.map(p => (
+                    <PositionRow
+                      key={p.id}
+                      position={p}
+                      isSelected={selectedId === p.id}
+                      onSelect={onSelect}
+                      onClose={onClose}
+                      onEdit={onEdit}
+                      onShare={setSharePosition}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Position list */}
-      <div className={isPopup ? 'px-2' : 'overflow-x-auto px-2'}>
-        {openPositions.length === 0 ? (
-          <div className="flex items-center justify-center py-8 text-sm text-binance-text-dim">
-            열린 포지션 없음
+      {/* Right: Teledit sidebar (only in non-popup) */}
+      {!isPopup && (
+        <div className="border-l border-binance-border flex flex-col" style={{ minWidth: 120 }}>
+          {/* Control bar header - same height as control bar row */}
+          <div className="flex items-center px-3 py-2 border-b border-binance-border">
+            <span className="text-xs font-medium text-binance-text">Teledit</span>
           </div>
-        ) : (
-          <div>
-            <table style={{ tableLayout: 'fixed', width: COL_WIDTHS.reduce((a, b) => a + b, 0), whiteSpace: 'nowrap', fontSize: 12, fontFamily: 'Inter, sans-serif' }}>
-              <colgroup>
-                {COL_WIDTHS.map((w, i) => (
-                  <col key={i} style={{ width: w }} />
-                ))}
-              </colgroup>
-              {TABLE_HEADERS}
-              <tbody>
-                {openPositions.map(p => (
-                  <PositionRow
-                    key={p.id}
-                    position={p}
-                    isSelected={selectedId === p.id}
-                    onSelect={onSelect}
-                    onClose={onClose}
-                    onEdit={onEdit}
-                    onShare={setSharePosition}
-                    onTeledditToggle={onTeledditToggle}
-                  />
-                ))}
-              </tbody>
-            </table>
+          {/* Column header row - same height as table headers (py-2.5) */}
+          <div className="flex items-center px-3 py-2.5 border-b border-binance-border">
+            <span className="text-[11px] text-binance-text-dim">포지션 자동 입력</span>
           </div>
-        )}
-      </div>
+          {/* Per-position checkboxes - match td height 57px */}
+          {openPositions.map(p => (
+            <div key={p.id} className="flex items-center justify-center border-b border-binance-border/50" style={{ height: 57 }}>
+              <input
+                type="checkbox"
+                checked={tdChecked.has(p.id)}
+                onChange={() => {
+                  setTdChecked(prev => {
+                    const next = new Set(prev)
+                    if (next.has(p.id)) {
+                      next.delete(p.id)
+                      onTeledditToggle?.(p, false)
+                    } else {
+                      next.add(p.id)
+                      onTeledditToggle?.(p, true)
+                    }
+                    return next
+                  })
+                }}
+                className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow"
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       {sharePosition && (
         <SharePopup position={sharePosition} onClose={() => setSharePosition(null)} />
