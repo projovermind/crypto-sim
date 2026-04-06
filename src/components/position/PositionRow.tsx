@@ -35,6 +35,7 @@ interface PositionRowProps {
   onEdit: (id: string, data: { takeProfit?: number | null; stopLoss?: number | null; leverage?: number }) => void
   onShare: (p: PositionWithLive) => void
   onTeledditToggle?: (p: PositionWithLive, checked: boolean) => void
+  onReverse?: (id: string) => void
 }
 
 function formatMarginMode(mode: string | undefined): string {
@@ -44,19 +45,34 @@ function formatMarginMode(mode: string | undefined): string {
 
 const ICON_COLOR = 'rgb(129, 134, 147)'
 
-export default function PositionRow({ position: p, isSelected, onSelect, onClose, onEdit, onShare, onTeledditToggle }: PositionRowProps) {
+export default function PositionRow({ position: p, isSelected, onSelect, onClose, onEdit, onShare, onTeledditToggle, onReverse }: PositionRowProps) {
   const [editingTPSL, setEditingTPSL] = useState(false)
   const [editTP, setEditTP] = useState('')
   const [editSL, setEditSL] = useState('')
   const [editingLev, setEditingLev] = useState(false)
   const [editLev, setEditLev] = useState('')
   const [teledditChecked, setTeledditChecked] = useState(false)
-  const [closeQuantity, setCloseQuantity] = useState(() => {
-    const defaultUsdt = p.quantity * (p.currentPrice || p.entryPrice)
-    return String(Math.round(defaultUsdt * 100) / 100)
-  })
+  const [closeQuantity, setCloseQuantity] = useState('')
+  const [userEditedClose, setUserEditedClose] = useState(false)
   const [showPctPopup, setShowPctPopup] = useState(false)
   const pctPopupRef = useRef<HTMLDivElement>(null)
+
+  const price = p.currentPrice
+  const pnlData = calculatePnL(p.side, p.entryPrice, price, p.leverage, p.amount, p.quantity, p.entryFee)
+  const pnlColor = pnlData.pnl >= 0 ? 'text-binance-green' : 'text-binance-red'
+  const sideColor = p.side === 'LONG' ? 'text-binance-green' : 'text-binance-red'
+  const margin = p.amount / p.leverage
+  const holding = p.quantity
+  const base = p.symbol.replace('USDT', '')
+  const positionValue = holding * price
+  const positionEquity = p.amount + pnlData.pnl  // 포지션 규모(명목가치) + 미실현 PnL
+
+  // 실시간: positionEquity(명목가치 + PnL) 추적 — 사용자 수동 입력 전까지 자동 갱신
+  useEffect(() => {
+    if (userEditedClose) return
+    const equity = p.amount + pnlData.pnl
+    setCloseQuantity(String(Math.round(equity * 100) / 100))
+  }, [p.amount, pnlData.pnl, userEditedClose])
 
   // ESC to close % popup
   useEffect(() => {
@@ -77,15 +93,6 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showPctPopup])
-
-  const price = p.currentPrice
-  const pnlData = calculatePnL(p.side, p.entryPrice, price, p.leverage, p.amount, p.quantity, p.entryFee)
-  const pnlColor = pnlData.pnl >= 0 ? 'text-binance-green' : 'text-binance-red'
-  const sideColor = p.side === 'LONG' ? 'text-binance-green' : 'text-binance-red'
-  const margin = p.amount / p.leverage
-  const holding = p.quantity
-  const base = p.symbol.replace('USDT', '')
-  const positionValue = holding * price
 
   const startEdit = () => {
     setEditingTPSL(true)
@@ -245,76 +252,86 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
         </button>
       </td>
 
-      {/* Operation — 종료 가격 + 종료 규모 (USDT) */}
+      {/* Operation — 한 줄: 종료 가격(실시간) + 종료 규모(USDT 입력) + Close 버튼 */}
       <td className="py-1.5 px-2 relative" onClick={e => e.stopPropagation()}>
-        <div className="flex flex-col gap-1">
-          {/* 1번째 줄: 종료 가격 (readOnly, 실시간 마크프라이스) */}
-          <input
-            type="text"
-            readOnly
-            value={price ? formatPrice(price) : ''}
-            placeholder="Market"
-            className="bg-transparent border border-binance-border rounded-sm text-center text-binance-text w-full"
-            style={{ height: 28, fontSize: 12 }}
-          />
-          {/* 2번째 줄: 종료 규모 USDT 입력 + %팝업 + Close */}
-          <div className="flex items-center gap-1">
-            <div className="relative flex-1">
-              <input
-                type="number"
-                step="any"
-                min="0"
-                value={closeQuantity}
-                onChange={e => setCloseQuantity(e.target.value)}
-                onFocus={() => setShowPctPopup(true)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') { submitClose(); setShowPctPopup(false) }
-                  if (e.key === 'Escape') setShowPctPopup(false)
-                }}
-                className="bg-transparent border border-binance-border rounded-sm text-center text-binance-text w-full"
-                style={{ height: 28, fontSize: 12 }}
-                placeholder="USDT"
-              />
-              {showPctPopup && (
-                <div
-                  ref={pctPopupRef}
-                  className="absolute left-full top-0 z-50 ml-1 bg-binance-card border border-binance-border rounded p-2"
-                  style={{ minWidth: 160 }}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div className="grid grid-cols-3 gap-1">
-                    {[10, 25, 33, 50, 75, 100].map(pct => (
-                      <button
-                        key={pct}
-                        onClick={() => {
-                          const usdtVal = holding * price * (pct / 100)
-                          setCloseQuantity(String(Math.round(usdtVal * 100) / 100))
-                          setShowPctPopup(false)
-                        }}
-                        className="rounded text-center font-medium transition-colors hover:opacity-80"
-                        style={{
-                          padding: '6px 0',
-                          fontSize: 12,
-                          backgroundColor: pct === 100 ? 'rgb(234, 57, 67)' : '#2C2D31',
-                          color: '#fff',
-                        }}
-                      >
-                        {pct}%
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <button
-              onClick={() => { submitClose(); setShowPctPopup(false) }}
-              className="rounded transition-colors hover:opacity-80 shrink-0"
-              style={{ padding: '6px 14px', backgroundColor: '#2C2D31', color: '#fff', fontSize: 12, fontWeight: 500 }}
-            >
-              Close
-            </button>
+        <div className="flex items-center gap-1">
+          {/* Box 1: 종료 가격 (현재 시장가, 실시간 업데이트, readOnly) */}
+          <div
+            className="flex items-center justify-center rounded-sm border border-binance-border bg-transparent"
+            style={{ width: 90, height: 32, fontSize: 12, flexShrink: 0 }}
+          >
+            <span className="text-binance-text" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatPrice(price)}</span>
           </div>
+          {/* Box 2: 종료 규모 (USDT 입력, % 팝업) */}
+          <div className="relative" style={{ width: 100, flexShrink: 0 }}>
+            <input
+              type="number"
+              step="any"
+              min="0"
+              value={closeQuantity}
+              onChange={e => { setCloseQuantity(e.target.value); setUserEditedClose(true) }}
+              onFocus={() => setShowPctPopup(true)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { submitClose(); setShowPctPopup(false) }
+                if (e.key === 'Escape') setShowPctPopup(false)
+              }}
+              className="bg-transparent border border-binance-border rounded-sm text-center text-binance-text w-full"
+              style={{ height: 32, fontSize: 12 }}
+              placeholder="USDT"
+            />
+            {showPctPopup && (
+              <div
+                ref={pctPopupRef}
+                className="absolute left-full top-0 z-50 ml-1 bg-binance-card border border-binance-border rounded p-2"
+                style={{ minWidth: 160 }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="grid grid-cols-3 gap-1">
+                  {[10, 25, 33, 50, 75, 100].map(pct => (
+                    <button
+                      key={pct}
+                      onClick={() => {
+                        const usdtVal = positionEquity * (pct / 100)
+                        setCloseQuantity(String(Math.round(usdtVal * 100) / 100))
+                        setUserEditedClose(pct !== 100)
+                        setShowPctPopup(false)
+                      }}
+                      className="rounded text-center font-medium transition-colors hover:opacity-80"
+                      style={{
+                        padding: '6px 0',
+                        fontSize: 12,
+                        backgroundColor: pct === 100 ? 'rgb(234, 57, 67)' : '#2C2D31',
+                        color: '#fff',
+                      }}
+                    >
+                      {pct}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Close 버튼 */}
+          <button
+            onClick={() => { submitClose(); setShowPctPopup(false) }}
+            className="rounded transition-colors hover:opacity-80 shrink-0"
+            style={{ padding: '6px 14px', height: 32, backgroundColor: '#2C2D31', color: '#fff', fontSize: 12, fontWeight: 500 }}
+          >
+            Close
+          </button>
         </div>
+      </td>
+
+      {/* Reverse — 탭비트 스타일 반전 버튼 */}
+      <td className="py-1.5 px-2" onClick={e => e.stopPropagation()}>
+        <button
+          onClick={() => onReverse?.(p.id)}
+          className="rounded hover:opacity-80 transition-colors flex items-center justify-center"
+          style={{ padding: '6px 10px', height: 32, backgroundColor: '#2C2D31', color: '#fff', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}
+          title="Reverse position"
+        >
+          Reverse
+        </button>
       </td>
 
       {/* TP/SL */}

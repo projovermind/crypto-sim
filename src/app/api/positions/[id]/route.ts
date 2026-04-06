@@ -174,6 +174,88 @@ export async function PATCH(
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
+    // ── Reverse: 현재 포지션 청산 + 반대 방향 신규 진입 ──
+    if (body.action === 'reverse' && position.status === 'OPEN') {
+      // 1) 현재가 조회 (슬리피지 적용)
+      const priceRes = await fetch(
+        `https://api.binance.com/api/v3/ticker/price?symbol=${position.symbol}`
+      )
+      const priceData = await priceRes.json()
+      const binancePrice = parseFloat(priceData.price)
+      // 청산 시 불리 슬리피지
+      const closePrice = applySlippage(binancePrice, position.side as 'LONG' | 'SHORT')
+
+      // 2) 기존 포지션 청산 PnL 계산
+      let rawPnl: number
+      if (position.side === 'LONG') {
+        rawPnl = (closePrice - position.entryPrice) * position.quantity
+      } else {
+        rawPnl = (position.entryPrice - closePrice) * position.quantity
+      }
+      const entryFee = position.entryFee || 0
+      const closeFee = position.quantity * closePrice * TAKER_FEE_RATE
+      const pnl = rawPnl - entryFee - closeFee
+
+      // 3) 기존 포지션 CLOSED_MANUAL 처리
+      await prisma.position.update({
+        where: { id: params.id },
+        data: {
+          status: 'CLOSED_MANUAL',
+          closedAt: new Date(),
+          closedPrice: closePrice,
+          pnl,
+        },
+      })
+
+      // 4) 반대 방향 신규 포지션 생성 (동일 마진, 동일 레버리지)
+      const newSide = position.side === 'LONG' ? 'SHORT' : 'LONG'
+      const margin = position.amount / position.leverage
+      const newAmount = margin * position.leverage  // 동일 명목가치
+      // 진입 시 불리 슬리피지
+      const { applySlippage: applyEntrySlippage } = await import('@/lib/calculations')
+      const newEntryPrice = applyEntrySlippage(binancePrice, newSide)
+      const newQuantity = newAmount / newEntryPrice
+      const newEntryFee = newAmount * TAKER_FEE_RATE
+
+      // TP/SL 반전: LONG의 TP는 SHORT의 SL, LONG의 SL은 SHORT의 TP
+      let newTP: number | null = null
+      let newSL: number | null = null
+      if (position.takeProfit != null || position.stopLoss != null) {
+        // TP/SL은 진입가 기준 비율로 저장 → 새 진입가에 동일 비율 적용
+        if (position.takeProfit != null) {
+          const tpRatio = position.takeProfit / position.entryPrice
+          // 반대 방향에서 TP는 같은 방향의 비율 유지
+          newTP = Math.round(newEntryPrice * tpRatio * 100) / 100
+        }
+        if (position.stopLoss != null) {
+          const slRatio = position.stopLoss / position.entryPrice
+          newSL = Math.round(newEntryPrice * slRatio * 100) / 100
+        }
+      }
+
+      const newPosition = await prisma.position.create({
+        data: {
+          userId: position.userId,
+          symbol: position.symbol,
+          side: newSide,
+          leverage: position.leverage,
+          inputPrice: binancePrice,
+          entryPrice: newEntryPrice,
+          amount: newAmount,
+          quantity: newQuantity,
+          marginMode: position.marginMode,
+          orderType: 'MARKET',
+          entryFee: newEntryFee,
+          takeProfit: newTP,
+          stopLoss: newSL,
+          status: 'OPEN',
+          entryTime: new Date(),
+        },
+      })
+
+      return NextResponse.json({ type: 'reverse', closed: { id: params.id, pnl }, opened: newPosition })
+    }
+
     // ── Partial close: 마진 또는 수량 기준 부분 익절 ──
     if (body.action === 'partialClose' && position.status === 'OPEN') {
       let ratio: number

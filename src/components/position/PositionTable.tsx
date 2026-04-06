@@ -13,6 +13,7 @@ interface PositionTableProps {
   selectedId?: string
   isPopup?: boolean
   onTeledditToggle?: (position: PositionWithLive, checked: boolean) => void
+  onReverse?: (id: string) => void
 }
 
 const TABLE_COLS = (
@@ -25,8 +26,9 @@ const TABLE_COLS = (
     <col style={{ width: 100 }} />{/* Unrealized PNL (ROE) */}
     <col style={{ width: 60 }} />{/* Realized PNL */}
     <col style={{ width: 65 }} />{/* Liq. Price */}
-    <col style={{ width: 75 }} />{/* Market */}
-    <col style={{ width: 220 }} />{/* Operation */}
+    <col style={{ width: 105 }} />{/* Market */}
+    <col style={{ width: 280 }} />{/* Operation */}
+    <col style={{ width: 86 }} />{/* Reverse */}
     <col style={{ width: 45 }} />{/* TP/SL */}
     <col style={{ width: 75 }} />{/* Position TP/SL */}
     <col style={{ width: 35 }} />{/* ADL */}
@@ -46,6 +48,7 @@ const TABLE_HEADERS = (
       <th className="text-left py-1.5 px-2 font-normal">Liq. Price</th>
       <th className="text-left py-1.5 px-2 font-normal">Market</th>
       <th className="text-left py-1.5 px-2 font-normal">Operation</th>
+      <th className="text-left py-1.5 px-2 font-normal">Reverse</th>
       <th className="text-left py-1.5 px-2 font-normal">TP/SL</th>
       <th className="text-left py-1.5 px-2 font-normal">Position TP/SL</th>
       <th className="text-left py-1.5 px-2 font-normal">ADL</th>
@@ -53,14 +56,14 @@ const TABLE_HEADERS = (
   </thead>
 )
 
-export default function PositionTable({ positions, onClose, onEdit, onSelect, selectedId, isPopup = false, onTeledditToggle }: PositionTableProps) {
+export default function PositionTable({ positions, onClose, onEdit, onSelect, selectedId, isPopup = false, onTeledditToggle, onReverse }: PositionTableProps) {
   const [hideOtherPairs, setHideOtherPairs] = useState(false)
   const [sharePosition, setSharePosition] = useState<PositionWithLive | null>(null)
 
   const openPositions = positions.filter(p => p.status === 'OPEN')
 
   const openInNewWindow = () => {
-    window.open('/dashboard/positions', '_blank', 'width=1200,height=500,scrollbars=yes')
+    window.open('/dashboard/positions', '_blank', 'width=1400,height=500,scrollbars=yes')
   }
 
   return (
@@ -105,7 +108,7 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
             열린 포지션 없음
           </div>
         ) : (
-          <div style={{ minWidth: 1200 }}>
+          <div style={{ minWidth: 1320 }}>
             <table style={{ tableLayout: 'fixed', width: '100%', fontSize: 12, fontFamily: 'Inter, sans-serif' }}>
               {TABLE_COLS}
               {TABLE_HEADERS}
@@ -120,6 +123,7 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
                     onEdit={onEdit}
                     onShare={setSharePosition}
                     onTeledditToggle={onTeledditToggle}
+                    onReverse={onReverse}
                   />
                 ))}
               </tbody>

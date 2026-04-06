@@ -58,6 +58,7 @@ export interface UseDashboardReturn {
   handleCreatePosition: (data: any) => Promise<void>
   handleClosePosition: (id: string, options?: number | { closeMargin?: number; closeQuantity?: number }) => Promise<void>
   handleEditPosition: (id: string, data: { takeProfit?: number | null; stopLoss?: number | null }) => Promise<void>
+  handleReversePosition: (id: string) => Promise<void>
   handleEditHistory: (id: string, data: { entryPrice?: number; closedPrice?: number; amount?: number; leverage?: number; entryTime?: string; closedAt?: string }) => Promise<void>
   handleDeleteHistory: (ids: string[]) => Promise<void>
   handleDeleteAllHistory: () => Promise<void>
@@ -315,6 +316,26 @@ export function useDashboard(): UseDashboardReturn {
     if (res.ok) fetchPositions()
   }, [fetchPositions])
 
+  // ─── Handler: reverse position (청산 + 반대 진입) ────────
+  const handleReversePosition = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/positions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reverse' }),
+      })
+      if (res.ok) {
+        fetchPositions()
+        setSelectedPosition(null)
+      } else {
+        const err = await res.json()
+        alert(err.error || '리버스 실패')
+      }
+    } catch {
+      alert('리버스 중 오류가 발생했습니다.')
+    }
+  }, [fetchPositions])
+
   // ─── Handler: edit history ──────────────────────────────
   const handleEditHistory = useCallback(async (id: string, data: { entryPrice?: number; closedPrice?: number; amount?: number; leverage?: number; entryTime?: string; closedAt?: string }) => {
     const res = await fetch(`/api/positions/${id}`, {
@@ -450,6 +471,7 @@ export function useDashboard(): UseDashboardReturn {
     handleCreatePosition,
     handleClosePosition,
     handleEditPosition,
+    handleReversePosition,
     handleEditHistory,
     handleDeleteHistory,
     handleDeleteAllHistory,

@@ -94,6 +94,7 @@ export default function DashboardPage() {
             onSelect={d.handleSelectPosition}
             selectedId={d.selectedPosition?.id}
             onTeledditToggle={d.handleTeledditToggle}
+            onReverse={d.handleReversePosition}
           />
         </div>
       </div>
