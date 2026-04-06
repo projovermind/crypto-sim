@@ -86,7 +86,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Bottom: Current Positions */}
-        <div className="overflow-auto border-t border-binance-border" style={{ height: '40%' }}>
+        <div className="overflow-hidden border-t border-binance-border" style={{ height: '40%' }}>
           <PositionTable
             positions={d.positionsWithLive}
             onClose={d.handleClosePosition}

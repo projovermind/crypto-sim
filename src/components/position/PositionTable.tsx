@@ -54,7 +54,7 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
   }
 
   return (
-    <div className="bg-binance-card border-t border-binance-border flex flex-nowrap overflow-hidden">
+    <div className="bg-binance-card border-t border-binance-border flex flex-nowrap overflow-hidden" style={{ width: '100%' }}>
       {/* Left: main table area */}
       <div style={{ width: 1607, flexShrink: 0 }}>
         {/* Header row */}
@@ -129,11 +129,11 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
         <div className="border-l border-binance-border flex flex-col" style={{ flex: '1 1 0%', minWidth: 0, overflow: 'hidden' }}>
           {/* Control bar header - same height as control bar row */}
           <div className="flex items-center px-4 py-0 border-b border-binance-border">
-            <span className="text-xs font-medium text-binance-text py-2">Teledit</span>
+            <span className="text-xs font-medium text-binance-text py-2 border-b-2 border-transparent">Teledit</span>
           </div>
-          {/* Column header row - same height as table headers (py-2.5) */}
-          <div className="flex items-center px-4 py-2.5 border-b border-binance-border">
-            <span className="text-[11px] text-binance-text-dim">포지션 자동 입력</span>
+          {/* Column header row - same height as table headers (py-2.5, fontSize: 12) */}
+          <div className="flex items-center px-4 py-2.5 border-b border-binance-border" style={{ fontSize: 12 }}>
+            <span className="text-binance-text-dim font-normal">포지션 자동 입력</span>
           </div>
           {/* Per-position checkboxes - match td height 57px */}
           {openPositions.map(p => (
