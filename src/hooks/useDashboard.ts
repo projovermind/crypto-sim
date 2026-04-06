@@ -144,6 +144,39 @@ export function useDashboard(): UseDashboardReturn {
     if (session) fetchPositions()
   }, [session, fetchPositions])
 
+  // ─── useEffect 5.5: REST fallback for missing/stale prices ────
+  useEffect(() => {
+    const openPositions = positions.filter(p => p.status === 'OPEN')
+    if (openPositions.length === 0) return
+
+    const fetchMissing = () => {
+      const currentPrices = usePriceStore.getState().prices
+      const missingSymbols = openPositions
+        .map(p => p.symbol)
+        .filter((sym, i, arr) => arr.indexOf(sym) === i && !currentPrices[sym])
+
+      if (missingSymbols.length === 0) return
+
+      missingSymbols.forEach(async sym => {
+        try {
+          const res = await fetch(`/api/price/${sym}`)
+          const data = await res.json()
+          if (data?.price) {
+            usePriceStore.getState().setPrice(sym, data.price)
+          }
+        } catch {
+          // silent — WebSocket may catch up later
+        }
+      })
+    }
+
+    // 즉시 실행
+    fetchMissing()
+    // 3초 후 재시도 (WebSocket이 아직 연결 안 됐을 때)
+    const timer = setTimeout(fetchMissing, 3000)
+    return () => clearTimeout(timer)
+  }, [positions])
+
   // ─── useEffect 6: Load account info (teledditTemplate) ──
   useEffect(() => {
     if (!session) return
