@@ -35,7 +35,6 @@ interface PositionRowProps {
   onEdit: (id: string, data: { takeProfit?: number | null; stopLoss?: number | null; leverage?: number }) => void
   onShare: (p: PositionWithLive) => void
   onTeledditToggle?: (p: PositionWithLive, checked: boolean) => void
-  onReverse?: (id: string) => void
 }
 
 function formatMarginMode(mode: string | undefined): string {
@@ -45,7 +44,7 @@ function formatMarginMode(mode: string | undefined): string {
 
 const ICON_COLOR = 'rgb(129, 134, 147)'
 
-export default function PositionRow({ position: p, isSelected, onSelect, onClose, onEdit, onShare, onTeledditToggle, onReverse }: PositionRowProps) {
+export default function PositionRow({ position: p, isSelected, onSelect, onClose, onEdit, onShare, onTeledditToggle }: PositionRowProps) {
   const [editingTPSL, setEditingTPSL] = useState(false)
   const [editTP, setEditTP] = useState('')
   const [editSL, setEditSL] = useState('')
@@ -320,18 +319,6 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
             Close
           </button>
         </div>
-      </td>
-
-      {/* Reverse — 탭비트 스타일 반전 버튼 */}
-      <td className="py-1.5 px-2" onClick={e => e.stopPropagation()}>
-        <button
-          onClick={() => onReverse?.(p.id)}
-          className="rounded hover:opacity-80 transition-colors flex items-center justify-center"
-          style={{ padding: '6px 10px', height: 32, backgroundColor: '#2C2D31', color: '#fff', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}
-          title="Reverse position"
-        >
-          Reverse
-        </button>
       </td>
 
       {/* TP/SL */}

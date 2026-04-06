@@ -95,26 +95,10 @@ export default function PositionsPopupPage() {
     } catch {}
   }
 
-  const handleReverse = async (id: string) => {
-    try {
-      const res = await fetch(`/api/positions/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reverse' }),
-      })
-      if (res.ok) {
-        fetchPositions()
-      } else {
-        const err = await res.json()
-        alert(err.error || '리버스 실패')
-      }
-    } catch {}
-  }
-
   if (status === 'loading') return null
 
   return (
-    <div className="bg-binance-bg min-h-screen">
+    <div className="bg-binance-bg min-h-screen min-w-[1607px] overflow-x-auto">
       <PositionTable
         positions={positionsWithLive}
         onClose={handleClose}
@@ -122,7 +106,6 @@ export default function PositionsPopupPage() {
         onSelect={(p) => setSelectedId(p.id)}
         selectedId={selectedId}
         isPopup
-        onReverse={handleReverse}
       />
     </div>
   )
