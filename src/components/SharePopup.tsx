@@ -251,13 +251,13 @@ export default function SharePopup({ position, onClose }: SharePopupProps) {
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: 12, lineHeight: '16px', color: '#fff', opacity: 0.8, marginBottom: 0 }}>ROE</div>
                   <div style={{ fontSize: 44, lineHeight: '44px', color: pnlColor, fontWeight: 600 }}>
-                    {hideProfit ? '****' : `${isProfit ? '+' : ''}${formatNumber(pnlData.roe)}%`}
+                    {`${isProfit ? '+' : ''}${formatNumber(pnlData.roe)}%`}
                   </div>
                 </div>
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 12, lineHeight: '16px', color: '#fff', opacity: 0.8, marginBottom: 0 }}>PNL(USDT)</div>
-                  <div style={{ fontSize: 44, lineHeight: '44px', color: pnlColor, fontWeight: 600 }}>
-                    {hideProfit ? '****' : `${isProfit ? '+' : ''}${formatNumber(pnlData.pnl)}`}
+                  <div style={{ fontSize: 12, lineHeight: '16px', color: hideProfit ? 'transparent' : '#fff', opacity: hideProfit ? 1 : 0.8, marginBottom: 0 }}>PNL(USDT)</div>
+                  <div style={{ fontSize: 44, lineHeight: '44px', color: hideProfit ? 'transparent' : pnlColor, fontWeight: 600 }}>
+                    {`${isProfit ? '+' : ''}${formatNumber(pnlData.pnl)}`}
                   </div>
                 </div>
               </div>
