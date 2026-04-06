@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { TAKER_FEE_RATE } from '@/lib/calculations'
+import { TAKER_FEE_RATE, applySlippage } from '@/lib/calculations'
 
 // DELETE /api/positions/[id] - 포지션 수동 청산 (전체/부분 익절)
 // Body (optional): { partialMargin?: number } — 부분 청산 시 마진 금액
@@ -47,7 +47,9 @@ export async function DELETE(
       `https://api.binance.com/api/v3/ticker/price?symbol=${position.symbol}`
     )
     const priceData = await priceRes.json()
-    const currentPrice = parseFloat(priceData.price)
+    const binancePrice = parseFloat(priceData.price)
+    // Flash Close / 전체 청산 시 슬리피지 적용: LONG은 가격 상승(불리), SHORT은 가격 하락(불리)
+    const currentPrice = applySlippage(binancePrice, position.side as 'LONG' | 'SHORT')
 
     const totalMargin = position.amount / position.leverage
 

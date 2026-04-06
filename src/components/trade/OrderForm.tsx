@@ -139,12 +139,16 @@ export default function OrderForm({
     if (currentPrice) {
       if (orderType === 'Market') {
         setEntryPrice(String(currentPrice))
+        // 시장가: 진입시간을 현재 시간으로 고정
+        const now = new Date()
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+        setEntryTime(now.toISOString().slice(0, 16))
       } else if (!entryPrice) {
         // Limit 주문 시에도 현재가로 초기값 세팅
         setEntryPrice(String(currentPrice))
       }
     }
-  }, [orderType, currentPrice, setEntryPrice])
+  }, [orderType, currentPrice, setEntryPrice, setEntryTime])
 
   const applyLastPrice = () => {
     if (currentPrice) setEntryPrice(String(currentPrice))
@@ -368,7 +372,7 @@ export default function OrderForm({
         {/* Entry Time */}
         <div>
           <label className="text-xs text-binance-text-dim mb-0.5 block">
-            진입 시간 <span className="text-[10px] text-binance-yellow">(가격 도달 시각 선택)</span>
+            진입 시간 {orderType === 'Limit' && <span className="text-[10px] text-binance-yellow">(가격 도달 시각 선택)</span>}
           </label>
           {entryTime && (
             <div className="text-sm text-binance-text mb-1">{entryTime.replace('T', ' ')}</div>
@@ -447,12 +451,9 @@ export default function OrderForm({
             )
           )}
           {orderType === 'Market' && (
-            <input
-              type="datetime-local"
-              value={entryTime}
-              onChange={e => setEntryTime(e.target.value)}
-              className={`${inputClass} text-[11px] [color-scheme:dark]`}
-            />
+            <div className={`${inputClass} text-[11px] flex items-center text-binance-text-dim cursor-not-allowed`} style={{ opacity: 0.7 }}>
+              🕐 현재 시간 (시장가 즉시 체결)
+            </div>
           )}
           {fundingInfo && fundingInfo.hoursDiff > 0 && (
             <div className="mt-1 text-[10px] bg-binance-bg rounded px-2 py-1.5 space-y-0.5">

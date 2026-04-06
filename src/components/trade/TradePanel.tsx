@@ -29,7 +29,7 @@ export default function TradePanel({ symbol, currentPrice, onSubmit }: TradePane
   const [showTPSL, setShowTPSL] = useState(false)
   const [loading, setLoading] = useState(false)
   const [sliderValue, setSliderValue] = useState(0)
-  const [qtyUnit, setQtyUnit] = useState<string>('BTC')
+  const [qtyUnit, setQtyUnit] = useState<string>('USDT')
   const [entryTime, setEntryTime] = useState('')
   const [volatileMode, setVolatileMode] = useState(false)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
@@ -62,7 +62,7 @@ export default function TradePanel({ symbol, currentPrice, onSubmit }: TradePane
   const base = symbol.replace('USDT', '')
 
   useEffect(() => {
-    setQtyUnit(prev => prev === 'USDT' ? 'USDT' : base)
+    setQtyUnit('USDT')
   }, [base])
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function TradePanel({ symbol, currentPrice, onSubmit }: TradePane
         orderType: orderType === 'Market' ? 'MARKET' : 'LIMIT',
         takeProfit: takeProfit ? parseFloat(takeProfit) : null,
         stopLoss: stopLoss ? parseFloat(stopLoss) : null,
-        entryTime: entryTime ? new Date(entryTime).toISOString() : new Date().toISOString(),
+        entryTime: orderType === 'Market' ? new Date().toISOString() : (entryTime ? new Date(entryTime).toISOString() : new Date().toISOString()),
         volatileMode,
       })
       setAmount('')
