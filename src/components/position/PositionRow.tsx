@@ -51,7 +51,10 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
   const [editingLev, setEditingLev] = useState(false)
   const [editLev, setEditLev] = useState('')
   const [teledditChecked, setTeledditChecked] = useState(false)
-  const [closeQuantity, setCloseQuantity] = useState(String(p.quantity))
+  const [closeQuantity, setCloseQuantity] = useState(() => {
+    const defaultUsdt = p.quantity * (p.currentPrice || p.entryPrice)
+    return String(Math.round(defaultUsdt * 100) / 100)
+  })
   const [showPctPopup, setShowPctPopup] = useState(false)
   const pctPopupRef = useRef<HTMLDivElement>(null)
 
@@ -112,10 +115,11 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
   }
 
   const submitClose = () => {
-    const val = parseFloat(closeQuantity)
-    if (!val || val <= 0) return
-    if (val < holding) {
-      onClose(p.id, { closeQuantity: val })
+    const usdtVal = parseFloat(closeQuantity)
+    if (!usdtVal || usdtVal <= 0 || !price) return
+    const coinQty = usdtVal / price
+    if (coinQty < holding) {
+      onClose(p.id, { closeQuantity: coinQty })
     } else {
       onClose(p.id)
     }
@@ -235,69 +239,81 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
         <button
           onClick={() => onClose(p.id)}
           className="rounded hover:opacity-80 transition-colors"
-          style={{ padding: '4px 10px', backgroundColor: '#2C2D31', color: 'rgb(200, 200, 200)', fontSize: 12 }}
+          style={{ padding: '8px 12px', height: 32, backgroundColor: '#2C2D31', color: 'rgb(200, 200, 200)', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}
         >
           Flash Close
         </button>
       </td>
 
-      {/* Operation — 수량 입력 + % 팝업 */}
-      <td className="py-2 px-2 relative" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <input
-              type="number"
-              step="any"
-              min="0"
-              value={closeQuantity}
-              onChange={e => setCloseQuantity(e.target.value)}
-              onFocus={() => setShowPctPopup(true)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') { submitClose(); setShowPctPopup(false) }
-                if (e.key === 'Escape') setShowPctPopup(false)
-              }}
-              className="bg-binance-bg border border-binance-border rounded-sm text-center text-binance-text"
-              style={{ width: 100, height: 32, paddingLeft: 6, fontSize: 12 }}
-              placeholder="Quantity"
-            />
-            {showPctPopup && (
-              <div
-                ref={pctPopupRef}
-                className="absolute left-full top-0 z-50 ml-1 bg-binance-card border border-binance-border rounded p-2"
-                style={{ minWidth: 160 }}
-                onClick={e => e.stopPropagation()}
-              >
-                <div className="grid grid-cols-3 gap-1">
-                  {[10, 25, 33, 50, 75, 100].map(pct => (
-                    <button
-                      key={pct}
-                      onClick={() => {
-                        const qty = holding * (pct / 100)
-                        setCloseQuantity(String(Math.round(qty * 100000) / 100000))
-                        setShowPctPopup(false)
-                      }}
-                      className="rounded text-center font-medium transition-colors hover:opacity-80"
-                      style={{
-                        padding: '6px 0',
-                        fontSize: 12,
-                        backgroundColor: pct === 100 ? 'rgb(234, 57, 67)' : '#2C2D31',
-                        color: '#fff',
-                      }}
-                    >
-                      {pct}%
-                    </button>
-                  ))}
+      {/* Operation — 종료 가격 + 종료 규모 (USDT) */}
+      <td className="py-1.5 px-2 relative" onClick={e => e.stopPropagation()}>
+        <div className="flex flex-col gap-1">
+          {/* 1번째 줄: 종료 가격 (readOnly, 실시간 마크프라이스) */}
+          <input
+            type="text"
+            readOnly
+            value={price ? formatPrice(price) : ''}
+            placeholder="Market"
+            className="bg-transparent border border-binance-border rounded-sm text-center text-binance-text w-full"
+            style={{ height: 28, fontSize: 12 }}
+          />
+          {/* 2번째 줄: 종료 규모 USDT 입력 + %팝업 + Close */}
+          <div className="flex items-center gap-1">
+            <div className="relative flex-1">
+              <input
+                type="number"
+                step="any"
+                min="0"
+                value={closeQuantity}
+                onChange={e => setCloseQuantity(e.target.value)}
+                onFocus={() => setShowPctPopup(true)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { submitClose(); setShowPctPopup(false) }
+                  if (e.key === 'Escape') setShowPctPopup(false)
+                }}
+                className="bg-transparent border border-binance-border rounded-sm text-center text-binance-text w-full"
+                style={{ height: 28, fontSize: 12 }}
+                placeholder="USDT"
+              />
+              {showPctPopup && (
+                <div
+                  ref={pctPopupRef}
+                  className="absolute left-full top-0 z-50 ml-1 bg-binance-card border border-binance-border rounded p-2"
+                  style={{ minWidth: 160 }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="grid grid-cols-3 gap-1">
+                    {[10, 25, 33, 50, 75, 100].map(pct => (
+                      <button
+                        key={pct}
+                        onClick={() => {
+                          const usdtVal = holding * price * (pct / 100)
+                          setCloseQuantity(String(Math.round(usdtVal * 100) / 100))
+                          setShowPctPopup(false)
+                        }}
+                        className="rounded text-center font-medium transition-colors hover:opacity-80"
+                        style={{
+                          padding: '6px 0',
+                          fontSize: 12,
+                          backgroundColor: pct === 100 ? 'rgb(234, 57, 67)' : '#2C2D31',
+                          color: '#fff',
+                        }}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+            <button
+              onClick={() => { submitClose(); setShowPctPopup(false) }}
+              className="rounded transition-colors hover:opacity-80 shrink-0"
+              style={{ padding: '6px 14px', backgroundColor: '#2C2D31', color: '#fff', fontSize: 12, fontWeight: 500 }}
+            >
+              Close
+            </button>
           </div>
-          <button
-            onClick={() => { submitClose(); setShowPctPopup(false) }}
-            className="rounded transition-colors hover:opacity-80"
-            style={{ padding: '6px 14px', backgroundColor: 'rgb(0, 191, 117)', color: '#fff', fontSize: 12, fontWeight: 500 }}
-          >
-            Close
-          </button>
         </div>
       </td>
 
