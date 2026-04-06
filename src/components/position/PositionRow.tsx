@@ -132,6 +132,7 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
   return (
     <tr
       onClick={() => onSelect(p)}
+      style={{ height: 59 }}
       className={`border-b border-binance-border/50 hover:bg-binance-border/20 cursor-pointer transition-colors ${
         isSelected ? 'bg-binance-yellow/5' : ''
       }`}

@@ -98,7 +98,7 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
             </div>
           ) : (
             <div>
-              <table style={{ tableLayout: 'fixed', width: COL_WIDTHS.reduce((a, b) => a + b, 0), whiteSpace: 'nowrap', fontSize: 12, fontFamily: 'Inter, sans-serif' }}>
+              <table style={{ tableLayout: 'fixed', borderCollapse: 'collapse', width: COL_WIDTHS.reduce((a, b) => a + b, 0), whiteSpace: 'nowrap', fontSize: 12, fontFamily: 'Inter, sans-serif' }}>
                 <colgroup>
                   {COL_WIDTHS.map((w, i) => (
                     <col key={i} style={{ width: w }} />
