@@ -56,7 +56,7 @@ export interface UseDashboardReturn {
   // Handlers
   fetchPositions: () => Promise<void>
   handleCreatePosition: (data: any) => Promise<void>
-  handleClosePosition: (id: string, partialMargin?: number) => Promise<void>
+  handleClosePosition: (id: string, options?: number | { closeMargin?: number; closeQuantity?: number }) => Promise<void>
   handleEditPosition: (id: string, data: { takeProfit?: number | null; stopLoss?: number | null }) => Promise<void>
   handleEditHistory: (id: string, data: { entryPrice?: number; closedPrice?: number; amount?: number; leverage?: number; entryTime?: string; closedAt?: string }) => Promise<void>
   handleDeleteHistory: (ids: string[]) => Promise<void>
@@ -245,14 +245,19 @@ export function useDashboard(): UseDashboardReturn {
   }, [fetchPositions])
 
   // ─── Handler: close position (전체/부분 익절) ────────────
-  const handleClosePosition = useCallback(async (id: string, partialMargin?: number) => {
+  const handleClosePosition = useCallback(async (id: string, options?: number | { closeMargin?: number; closeQuantity?: number }) => {
     let res: Response
-    if (partialMargin != null && partialMargin > 0) {
+    // 정방향 호환: 숫자면 closeMargin으로 처리
+    const opts = typeof options === 'number' ? { closeMargin: options } : options
+    if (opts && (opts.closeMargin != null || opts.closeQuantity != null)) {
       // 부분 익절: PATCH + action=partialClose
+      const body: Record<string, unknown> = { action: 'partialClose' }
+      if (opts.closeQuantity != null) body.closeQuantity = opts.closeQuantity
+      if (opts.closeMargin != null) body.closeMargin = opts.closeMargin
       res = await fetch(`/api/positions/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'partialClose', closeMargin: partialMargin }),
+        body: JSON.stringify(body),
       })
     } else {
       // 전체 청산: DELETE

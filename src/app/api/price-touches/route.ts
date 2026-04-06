@@ -121,10 +121,10 @@ export async function GET(request: Request) {
 
           if (price >= low && price <= high && !dedupSet.has(ts)) {
             dedupSet.add(ts)
-            const d = new Date(ts * 1000)
+            const d = new Date(ts * 1000 + 9 * 3600 * 1000)
             const pad = (n: number) => String(n).padStart(2, '0')
             minuteMatches.push({
-              time: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`,
+              time: `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`,
               timestamp: ts,
             })
           }

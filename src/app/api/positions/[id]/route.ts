@@ -172,19 +172,35 @@ export async function PATCH(
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
     }
 
-    // ── Partial close: 마진 기준 부분 익절 ──
+    // ── Partial close: 마진 또는 수량 기준 부분 익절 ──
     if (body.action === 'partialClose' && position.status === 'OPEN') {
-      const closeMargin = parseFloat(body.closeMargin)
-      if (isNaN(closeMargin) || closeMargin <= 0) {
-        return NextResponse.json({ error: '유효한 금액을 입력하세요.' }, { status: 400 })
+      let ratio: number
+
+      if (body.closeQuantity != null) {
+        // 수량 기준 부분 청산
+        const closeQuantity = parseFloat(body.closeQuantity)
+        if (isNaN(closeQuantity) || closeQuantity <= 0) {
+          return NextResponse.json({ error: '유효한 수량을 입력하세요.' }, { status: 400 })
+        }
+        if (closeQuantity >= position.quantity) {
+          return NextResponse.json({ error: '전체 수량 이상 입력 시 전체 청산 버튼을 사용하세요.' }, { status: 400 })
+        }
+        ratio = closeQuantity / position.quantity
+      } else if (body.closeMargin != null) {
+        // 마진 기준 부분 청산 (기존 로직)
+        const closeMargin = parseFloat(body.closeMargin)
+        if (isNaN(closeMargin) || closeMargin <= 0) {
+          return NextResponse.json({ error: '유효한 금액을 입력하세요.' }, { status: 400 })
+        }
+        const totalMargin = position.amount / position.leverage
+        if (closeMargin >= totalMargin) {
+          return NextResponse.json({ error: '전체 마진 이상 입력 시 전체 청산 버튼을 사용하세요.' }, { status: 400 })
+        }
+        ratio = closeMargin / totalMargin
+      } else {
+        return NextResponse.json({ error: 'closeQuantity 또는 closeMargin 중 하나를 입력하세요.' }, { status: 400 })
       }
 
-      const totalMargin = position.amount / position.leverage
-      if (closeMargin >= totalMargin) {
-        return NextResponse.json({ error: '전체 마진 이상 입력 시 전체 청산 버튼을 사용하세요.' }, { status: 400 })
-      }
-
-      const ratio = closeMargin / totalMargin
       const closeQty = position.quantity * ratio
       const closeAmount = position.amount * ratio
 

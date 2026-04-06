@@ -7,7 +7,7 @@ import SharePopup from '@/components/SharePopup'
 
 interface PositionTableProps {
   positions: PositionWithLive[]
-  onClose: (id: string, partialMargin?: number) => void
+  onClose: (id: string, options?: number | { closeMargin?: number; closeQuantity?: number }) => void
   onEdit: (id: string, data: { takeProfit?: number | null; stopLoss?: number | null; leverage?: number }) => void
   onSelect: (position: PositionWithLive) => void
   selectedId?: string
@@ -26,7 +26,7 @@ const TABLE_COLS = (
     <col style={{ width: 60 }} />{/* Realized PNL */}
     <col style={{ width: 65 }} />{/* Liq. Price */}
     <col style={{ width: 75 }} />{/* Market */}
-    <col style={{ width: 280 }} />{/* Operation */}
+    <col style={{ width: 160 }} />{/* Operation */}
     <col style={{ width: 45 }} />{/* TP/SL */}
     <col style={{ width: 75 }} />{/* Position TP/SL */}
     <col style={{ width: 35 }} />{/* ADL */}

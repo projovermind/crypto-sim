@@ -59,18 +59,20 @@ export default function PositionsPopupPage() {
       return { ...p, currentPrice, pnlLive: pnl.pnl, roeLive: pnl.roe, liquidationPrice: pnl.liquidationPrice, hitTP: tpsl.hitTP, hitSL: tpsl.hitSL }
     })
 
-  const handleClose = async (id: string, partialMargin?: number) => {
+  const handleClose = async (id: string, options?: number | { closeMargin?: number; closeQuantity?: number }) => {
     try {
       let res: Response
-      if (partialMargin != null && partialMargin > 0) {
-        // 부분 익절
+      const opts = typeof options === 'number' ? { closeMargin: options } : options
+      if (opts && (opts.closeMargin != null || opts.closeQuantity != null)) {
+        const body: Record<string, unknown> = { action: 'partialClose' }
+        if (opts.closeQuantity != null) body.closeQuantity = opts.closeQuantity
+        if (opts.closeMargin != null) body.closeMargin = opts.closeMargin
         res = await fetch(`/api/positions/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'partialClose', closeMargin: partialMargin }),
+          body: JSON.stringify(body),
         })
       } else {
-        // 전체 청산
         res = await fetch(`/api/positions/${id}`, { method: 'DELETE' })
       }
       if (res.ok) {

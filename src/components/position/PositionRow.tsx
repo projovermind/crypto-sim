@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { PositionWithLive } from '@/types'
 import { formatPrice, formatPnL, formatNumber, calculatePnL } from '@/lib/calculations'
 import ADLIndicator from './ADLIndicator'
@@ -31,7 +31,7 @@ interface PositionRowProps {
   position: PositionWithLive
   isSelected: boolean
   onSelect: (p: PositionWithLive) => void
-  onClose: (id: string, partialMargin?: number) => void
+  onClose: (id: string, options?: number | { closeMargin?: number; closeQuantity?: number }) => void
   onEdit: (id: string, data: { takeProfit?: number | null; stopLoss?: number | null; leverage?: number }) => void
   onShare: (p: PositionWithLive) => void
   onTeledditToggle?: (p: PositionWithLive, checked: boolean) => void
@@ -51,8 +51,29 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
   const [editingLev, setEditingLev] = useState(false)
   const [editLev, setEditLev] = useState('')
   const [teledditChecked, setTeledditChecked] = useState(false)
-  const [showCloseForm, setShowCloseForm] = useState(false)
-  const [closeMargin, setCloseMargin] = useState('')
+  const [closeQuantity, setCloseQuantity] = useState(String(p.quantity))
+  const [showFlashPopup, setShowFlashPopup] = useState(false)
+  const flashPopupRef = useRef<HTMLDivElement>(null)
+
+  // ESC to close flash popup
+  useEffect(() => {
+    if (!showFlashPopup) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowFlashPopup(false) }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [showFlashPopup])
+
+  // Click outside to close flash popup
+  useEffect(() => {
+    if (!showFlashPopup) return
+    const handler = (e: MouseEvent) => {
+      if (flashPopupRef.current && !flashPopupRef.current.contains(e.target as Node)) {
+        setShowFlashPopup(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showFlashPopup])
 
   const price = p.currentPrice
   const pnlData = calculatePnL(p.side, p.entryPrice, price, p.leverage, p.amount, p.quantity, p.entryFee)
@@ -90,20 +111,14 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
     setEditingLev(false)
   }
 
-  const startCloseForm = () => {
-    setCloseMargin(String(Math.round(margin * 100) / 100))
-    setShowCloseForm(true)
-  }
-
   const submitClose = () => {
-    const val = parseFloat(closeMargin)
+    const val = parseFloat(closeQuantity)
     if (!val || val <= 0) return
-    if (val >= margin) {
-      onClose(p.id)
+    if (val < holding) {
+      onClose(p.id, { closeQuantity: val })
     } else {
-      onClose(p.id, val)
+      onClose(p.id)
     }
-    setShowCloseForm(false)
   }
 
   return (
@@ -215,76 +230,75 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
         {formatPrice(pnlData.liquidationPrice)}
       </td>
 
-      {/* Market */}
-      <td className="py-1.5 px-2">
+      {/* Market — Flash Close with ratio popup */}
+      <td className="py-1.5 px-2 relative" onClick={e => e.stopPropagation()}>
         <button
-          onClick={e => { e.stopPropagation(); if (confirm('Flash close this position?')) onClose(p.id) }}
+          onClick={() => setShowFlashPopup(true)}
           className="rounded hover:opacity-80 transition-colors"
           style={{ padding: '4px 10px', backgroundColor: '#2C2D31', color: 'rgb(200, 200, 200)', fontSize: 12 }}
         >
           Flash Close
         </button>
+        {showFlashPopup && (
+          <div
+            ref={flashPopupRef}
+            className="absolute right-0 top-full z-50 mt-1 bg-binance-card border border-binance-border rounded p-2"
+            style={{ minWidth: 160 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="grid grid-cols-3 gap-1">
+              {[10, 25, 33, 50, 75, 100].map(pct => (
+                <button
+                  key={pct}
+                  onClick={() => {
+                    if (pct === 100) {
+                      onClose(p.id)
+                    } else {
+                      const ratio = pct / 100
+                      onClose(p.id, ratio * margin)
+                    }
+                    setShowFlashPopup(false)
+                  }}
+                  className="rounded text-center font-medium transition-colors hover:opacity-80"
+                  style={{
+                    padding: '6px 0',
+                    fontSize: 12,
+                    backgroundColor: pct === 100 ? 'rgb(234, 57, 67)' : '#2C2D31',
+                    color: '#fff',
+                  }}
+                >
+                  {pct}%
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </td>
 
       {/* Operation */}
       <td className="py-2 px-2" onClick={e => e.stopPropagation()}>
-        {showCloseForm ? (
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              step="any"
-              min="0"
-              value={closeMargin}
-              onChange={e => setCloseMargin(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') submitClose()
-                if (e.key === 'Escape') setShowCloseForm(false)
-              }}
-              autoFocus
-              className="bg-binance-bg border border-binance-yellow/50 rounded-sm text-center"
-              style={{ width: 90, height: 28, paddingLeft: 6, color: 'rgb(255, 187, 0)', fontSize: 12 }}
-              placeholder="Margin"
-            />
-            <button
-              onClick={submitClose}
-              className="rounded transition-colors hover:opacity-80"
-              style={{ padding: '4px 10px', backgroundColor: 'rgb(0, 191, 117)', color: '#fff', fontSize: 11, fontWeight: 500 }}
-            >
-              ✓
-            </button>
-            <button
-              onClick={() => setShowCloseForm(false)}
-              className="rounded transition-colors hover:opacity-80"
-              style={{ padding: '4px 6px', backgroundColor: '#2C2D31', color: 'rgb(200, 200, 200)', fontSize: 11 }}
-            >
-              ✕
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              defaultValue={formatPrice(price)}
-              className="bg-transparent border border-binance-border rounded-sm"
-              style={{ width: 108, height: 32, paddingLeft: 12, color: ICON_COLOR, fontSize: 12 }}
-              placeholder="Price"
-            />
-            <input
-              type="text"
-              defaultValue={formatPrice(positionValue)}
-              className="bg-transparent border border-binance-border rounded-sm"
-              style={{ width: 108, height: 32, paddingLeft: 12, color: ICON_COLOR, fontSize: 12 }}
-              placeholder={formatPrice(positionValue)}
-            />
-            <button
-              onClick={startCloseForm}
-              className="rounded transition-colors hover:opacity-80"
-              style={{ padding: '4px 12px', backgroundColor: 'rgb(0, 191, 117)', color: '#fff', fontSize: 12, fontWeight: 500 }}
-            >
-              Close
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            step="any"
+            min="0"
+            value={closeQuantity}
+            onChange={e => setCloseQuantity(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') submitClose()
+            }}
+            className="bg-transparent border border-binance-border rounded-sm text-center"
+            style={{ width: 100, height: 32, paddingLeft: 6, color: 'rgb(255, 187, 0)', fontSize: 12 }}
+            placeholder="Quantity"
+          />
+          <button
+            onClick={submitClose}
+            className="rounded transition-colors hover:opacity-80"
+            style={{ padding: '6px 14px', backgroundColor: 'rgb(0, 191, 117)', color: '#fff', fontSize: 12, fontWeight: 500 }}
+          >
+            Close
+          </button>
+        </div>
       </td>
 
       {/* TP/SL */}
