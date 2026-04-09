@@ -203,22 +203,22 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
               <colgroup>
                 <col style={{ width: 90 }} />
                 <col style={{ width: 85 }} />
-                <col style={{ width: 120 }} />
-                <col style={{ width: 80 }} />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 70 }} />
                 <col style={{ width: 55 }} />
                 <col style={{ width: 45 }} />
                 <col style={{ width: 65 }} />
                 <col style={{ width: 90 }} />
                 <col style={{ width: 90 }} />
                 <col style={{ width: 260 }} />
-                <col style={{ width: 110 }} />
+                <col style={{ width: 140 }} />
               </colgroup>
               <thead>
                 <tr className="text-binance-text-dim border-b border-binance-border" style={{ fontSize: 12 }}>
                   <SortHeader label="생성 시간" sortKeyName="createdAt" className="pl-3 pr-2" />
                   <th className="text-left py-1.5 px-2 font-normal">페어</th>
-                  <th className="text-left py-1.5 px-2 font-normal">진입가(입력/체결)</th>
-                  <th className="text-left py-1.5 px-2 font-normal">청산가</th>
+                  <th className="text-left py-1.5 px-1 font-normal">진입가(입력/체결)</th>
+                  <th className="text-left py-1.5 px-1 font-normal">청산가</th>
                   <th className="text-left py-1.5 px-2 font-normal">수량(USDT)</th>
                   <th className="text-left py-1.5 px-2 font-normal">배율</th>
                   <th className="text-left py-1.5 px-2 font-normal">규모</th>

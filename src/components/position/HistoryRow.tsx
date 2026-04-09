@@ -34,7 +34,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
   const [searchingClosedTime, setSearchingClosedTime] = useState(false)
   const [manualClosedTime, setManualClosedTime] = useState(false)
   const prevClosedPriceRef = useRef('')
-  const [teledditChecked, setTeledditChecked] = useState(false)
+  const [teledditChecked, setTeledditChecked] = useState(true)
   const [selYearMonth, setSelYearMonth] = useState<string | null>(null)
   const [selDay, setSelDay] = useState<number | null>(null)
   const [selHour, setSelHour] = useState<number | null>(null)
@@ -248,7 +248,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
           </div>
         </td>
         {/* Entry Price (read-only) */}
-        <td className="py-2 px-2">
+        <td className="py-2 px-1">
           {p.inputPrice != null && p.inputPrice !== p.entryPrice ? (
             <>
               <div className="text-binance-text leading-tight">
@@ -265,7 +265,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
           )}
         </td>
         {/* Closed Price */}
-        <td className="py-1 px-2">
+        <td className="py-1 px-1">
           <input type="number" step="any" value={editClosedPrice} onChange={e => setEditClosedPrice(e.target.value)} className={editInputClass} />
         </td>
         {/* Quantity USDT (수량 = 증거금, read-only preview) */}
@@ -406,7 +406,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         </div>
       </td>
       {/* Entry Price (입력가 + 체결가) */}
-      <td className="py-2 px-2">
+      <td className="py-2 px-1">
         {p.inputPrice != null && p.inputPrice !== p.entryPrice ? (
           <>
             <div className="text-binance-text leading-tight">
@@ -423,7 +423,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         )}
       </td>
       {/* Closed Price */}
-      <td className="py-2 px-2 text-binance-text">{formatPrice(closedPrice)}</td>
+      <td className="py-2 px-1 text-binance-text">{formatPrice(closedPrice)}</td>
       {/* Quantity (수량 USDT = 증거금) */}
       <td className="py-2 px-2 text-binance-text">{formatNumber(p.amount / p.leverage)}</td>
       {/* Leverage (배율) */}
@@ -453,6 +453,17 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
           >
             Share
           </button>
+          <input
+            type="checkbox"
+            checked={teledditChecked}
+            onChange={() => {
+              const next = !teledditChecked
+              setTeledditChecked(next)
+              onTeledditToggle?.(p, next)
+            }}
+            className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow"
+            title="Teledit"
+          />
         </div>
       </td>
     </tr>

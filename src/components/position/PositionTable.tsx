@@ -45,7 +45,8 @@ const TABLE_HEADERS = (
 export default function PositionTable({ positions, onClose, onEdit, onSelect, selectedId, isPopup = false, onTeledditToggle }: PositionTableProps) {
   const [hideOtherPairs, setHideOtherPairs] = useState(false)
   const [sharePosition, setSharePosition] = useState<PositionWithLive | null>(null)
-  const [tdChecked, setTdChecked] = useState<Set<string>>(new Set())
+  // unchecked 셋: 기본 체크 상태 → 해제된 것만 추적
+  const [tdUnchecked, setTdUnchecked] = useState<Set<string>>(new Set())
 
   const openPositions = positions.filter(p => p.status === 'OPEN')
 
@@ -131,34 +132,38 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
           <div className="flex items-center px-4 py-0 border-b border-binance-border">
             <span className="text-xs font-medium text-binance-text py-2 border-b-2 border-transparent">Teledit</span>
           </div>
-          {/* Column header row - same height as table headers (py-2.5, fontSize: 12) */}
-          <div className="flex items-center px-4 py-2.5 border-b border-binance-border" style={{ fontSize: 12 }}>
-            <span className="text-binance-text-dim font-normal">포지션 자동 입력</span>
-          </div>
-          {/* Per-position checkboxes - match td height 57px */}
-          {openPositions.map(p => (
-            <div key={p.id} className="flex items-center px-4 border-b border-binance-border/50" style={{ height: 57 }}>
-              <input
-                type="checkbox"
-                checked={tdChecked.has(p.id)}
-                onChange={() => {
-                  setTdChecked(prev => {
-                    const next = new Set(prev)
-                    if (next.has(p.id)) {
-                      next.delete(p.id)
-                      onTeledditToggle?.(p, false)
-                    } else {
-                      next.add(p.id)
-                      onTeledditToggle?.(p, true)
-                    }
-                    return next
-                  })
-                }}
-                className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow mr-2"
-              />
-              <span className="text-[11px] text-binance-text-dim truncate">{p.symbol}</span>
-            </div>
-          ))}
+          {openPositions.length > 0 && (
+            <>
+              {/* Column header row - same height as table headers (py-2.5, fontSize: 12) */}
+              <div className="flex items-center px-4 py-2.5 border-b border-binance-border" style={{ fontSize: 12 }}>
+                <span className="text-binance-text-dim font-normal">포지션 자동 입력</span>
+              </div>
+              {/* Per-position checkboxes - match td height 59px */}
+              {openPositions.map(p => (
+                <div key={p.id} className="flex items-center px-4 border-b border-binance-border/50" style={{ height: 59 }}>
+                  <input
+                    type="checkbox"
+                    checked={!tdUnchecked.has(p.id)}
+                    onChange={() => {
+                      setTdUnchecked(prev => {
+                        const next = new Set(prev)
+                        if (next.has(p.id)) {
+                          next.delete(p.id)
+                          onTeledditToggle?.(p, true)
+                        } else {
+                          next.add(p.id)
+                          onTeledditToggle?.(p, false)
+                        }
+                        return next
+                      })
+                    }}
+                    className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow mr-2"
+                  />
+                  <span className="text-[11px] text-binance-text-dim truncate">{p.symbol}</span>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
 

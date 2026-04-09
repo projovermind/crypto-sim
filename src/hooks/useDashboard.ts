@@ -7,10 +7,60 @@ import { calculatePnL, checkTPSL } from '@/lib/calculations'
 
 
 const DEFAULT_TEMPLATE = '🟢 {{symbol}} {{side}} {{leverage}}x | 진입 ${{entryPrice}}'
+const DEFAULT_CLOSE_TEMPLATE = '🔴 {{symbol}} {{side}} 청산 | PnL {{pnl}}USDT ({{roe}}%)'
+const DEFAULT_PROFIT_TEMPLATE = '💰 수익 인증\n{{symbol}} {{side}} {{leverage}}x\n진입 ${{entryPrice}} → 청산 ${{closePrice}}\nPnL {{pnl}}USDT ({{roe}}%)'
 
-export { DEFAULT_TEMPLATE }
+export { DEFAULT_TEMPLATE, DEFAULT_CLOSE_TEMPLATE, DEFAULT_PROFIT_TEMPLATE }
+
+// ─── Teledit Auth Helpers (module-level) ────────────────
+let _teleditToken: string | null = null
+
+async function teleditLogin(baseUrl: string, email?: string, password?: string): Promise<string> {
+  const _email = email || process.env.NEXT_PUBLIC_TELEDIT_EMAIL
+  const _password = password || process.env.NEXT_PUBLIC_TELEDIT_PASSWORD
+  if (!_email || !_password) throw new Error('Teledit 인증 정보가 설정되지 않았습니다.')
+
+  const res = await fetch(`${baseUrl}/api/extension/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: _email, password: _password }),
+  })
+  if (!res.ok) throw new Error('Teledit 로그인 실패')
+  const data = await res.json()
+  _teleditToken = data.token
+  return _teleditToken!
+}
+
+async function teleditFetch(
+  url: string,
+  options: RequestInit = {},
+  baseUrl: string,
+  email?: string,
+  password?: string,
+): Promise<Response> {
+  if (!_teleditToken) await teleditLogin(baseUrl, email, password)
+
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+    Authorization: `Bearer ${_teleditToken}`,
+  }
+
+  let res = await fetch(url, { ...options, headers })
+
+  // 401 → 토큰 재발급 후 1회 retry
+  if (res.status === 401) {
+    _teleditToken = null
+    await teleditLogin(baseUrl, email, password)
+    headers.Authorization = `Bearer ${_teleditToken}`
+    res = await fetch(url, { ...options, headers })
+  }
+
+  return res
+}
 
 export function applyTemplate(template: string, position: PositionWithLive | Position): string {
+  const roe = 'roeLive' in position && position.roeLive != null ? position.roeLive.toFixed(2) : 'N/A'
+  const closePrice = position.closedPrice != null ? String(position.closedPrice) : 'N/A'
   return template
     .replace(/\{\{symbol\}\}/g, position.symbol)
     .replace(/\{\{side\}\}/g, position.side)
@@ -18,6 +68,8 @@ export function applyTemplate(template: string, position: PositionWithLive | Pos
     .replace(/\{\{entryPrice\}\}/g, String(position.entryPrice))
     .replace(/\{\{amount\}\}/g, String(position.amount))
     .replace(/\{\{pnl\}\}/g, position.pnl != null ? position.pnl.toFixed(2) : 'N/A')
+    .replace(/\{\{roe\}\}/g, roe)
+    .replace(/\{\{closePrice\}\}/g, closePrice)
 }
 
 export interface UseDashboardReturn {
@@ -41,6 +93,13 @@ export interface UseDashboardReturn {
   newPwConfirm: string
   pwMsg: string
   savingPw: boolean
+  teleditApiUrl: string
+  teleditEmail: string
+  teleditPassword: string
+  savingTeledit: boolean
+  teleditMsg: string
+  closeTemplateInput: string
+  profitTemplateInput: string
 
   // Computed
   positionsWithLive: PositionWithLive[]
@@ -52,6 +111,11 @@ export interface UseDashboardReturn {
   setCurrentPw: (v: string) => void
   setNewPw: (v: string) => void
   setNewPwConfirm: (v: string) => void
+  setTeleditApiUrl: (v: string) => void
+  setTeleditEmail: (v: string) => void
+  setTeleditPassword: (v: string) => void
+  setCloseTemplateInput: (v: string) => void
+  setProfitTemplateInput: (v: string) => void
 
   // Handlers
   fetchPositions: () => Promise<void>
@@ -66,6 +130,7 @@ export interface UseDashboardReturn {
   handleTeledditToggle: (position: PositionWithLive | Position, checked: boolean) => Promise<void>
   handleChangePassword: () => Promise<void>
   handleSaveTemplate: () => Promise<void>
+  handleSaveTeledit: () => Promise<void>
   handleSelectPosition: (position: PositionWithLive) => void
   handleSymbolChange: (newSymbol: string) => void
   setSharePosition: (v: PositionWithLive | null) => void
@@ -91,6 +156,13 @@ export function useDashboard(): UseDashboardReturn {
   const [newPwConfirm, setNewPwConfirm] = useState('')
   const [pwMsg, setPwMsg] = useState('')
   const [savingPw, setSavingPw] = useState(false)
+  const [teleditApiUrl, setTeleditApiUrl] = useState('')
+  const [teleditEmail, setTeleditEmail] = useState('')
+  const [teleditPassword, setTeleditPassword] = useState('')
+  const [savingTeledit, setSavingTeledit] = useState(false)
+  const [teleditMsg, setTeleditMsg] = useState('')
+  const [closeTemplateInput, setCloseTemplateInput] = useState(DEFAULT_CLOSE_TEMPLATE)
+  const [profitTemplateInput, setProfitTemplateInput] = useState(DEFAULT_PROFIT_TEMPLATE)
 
   // Price store
   const prices = usePriceStore(s => s.prices)
@@ -178,14 +250,20 @@ export function useDashboard(): UseDashboardReturn {
     return () => clearTimeout(timer)
   }, [positions])
 
-  // ─── useEffect 6: Load account info (teledditTemplate) ──
+  // ─── useEffect 6: Load account info (teledditTemplate + teledit) ──
   useEffect(() => {
     if (!session) return
     fetch('/api/account').then(r => r.ok ? r.json() : null).then(data => {
-      if (data?.teledditTemplate) {
+      if (!data) return
+      if (data.teledditTemplate) {
         setTeledditTemplate(data.teledditTemplate)
         setTemplateInput(data.teledditTemplate)
       }
+      if (data.teleditApiUrl) setTeleditApiUrl(data.teleditApiUrl)
+      if (data.teleditEmail) setTeleditEmail(data.teleditEmail)
+      if (data.teleditPassword) setTeleditPassword(data.teleditPassword)
+      if (data.teleditCloseTemplate) setCloseTemplateInput(data.teleditCloseTemplate)
+      if (data.teleditProfitTemplate) setProfitTemplateInput(data.teleditProfitTemplate)
     }).catch(() => {})
   }, [session])
 
@@ -262,6 +340,34 @@ export function useDashboard(): UseDashboardReturn {
       setSavingTemplate(false)
     }
   }, [templateInput])
+
+  // ─── Handler: save teledit settings ─────────────────────
+  const handleSaveTeledit = useCallback(async () => {
+    setSavingTeledit(true)
+    setTeleditMsg('')
+    try {
+      const res = await fetch('/api/account', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teleditApiUrl: teleditApiUrl || null,
+          teleditEmail: teleditEmail || null,
+          teleditPassword: teleditPassword || null,
+          teledditTemplate: templateInput,
+          teleditCloseTemplate: closeTemplateInput || null,
+          teleditProfitTemplate: profitTemplateInput || null,
+        }),
+      })
+      if (!res.ok) throw new Error('저장 실패')
+      setTeledditTemplate(templateInput)
+      setTeleditMsg('저장되었습니다.')
+      setTimeout(() => setTeleditMsg(''), 3000)
+    } catch (err) {
+      setTeleditMsg(`오류: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setSavingTeledit(false)
+    }
+  }, [teleditApiUrl, teleditEmail, teleditPassword, templateInput, closeTemplateInput, profitTemplateInput])
 
   // ─── Handler: create position ───────────────────────────
   const handleCreatePosition = useCallback(async (data: any) => {
@@ -382,22 +488,24 @@ export function useDashboard(): UseDashboardReturn {
 
   // ─── Handler: teleddit toggle ───────────────────────────
   const handleTeledditToggle = useCallback(async (position: PositionWithLive | Position, checked: boolean) => {
-    const baseUrl = process.env.NEXT_PUBLIC_TELEDIT_API_URL
+    const baseUrl = teleditApiUrl || process.env.NEXT_PUBLIC_TELEDIT_API_URL
     if (!baseUrl) {
       alert('TELEDIT_API_URL이 설정되지 않았습니다.')
       return
     }
+    const _email = teleditEmail || undefined
+    const _password = teleditPassword || undefined
 
     try {
-      const chRes = await fetch(`${baseUrl}/api/telegram/channels`)
+      const chRes = await teleditFetch(`${baseUrl}/api/telegram/channels`, {}, baseUrl, _email, _password)
       if (!chRes.ok) throw new Error('채널 목록 조회 실패')
-      const channels = await chRes.json()
-      const channelId = channels?.[0]?.id
+      const data = await chRes.json()
+      const channelId = data?.channels?.[0]?.dbId
       if (!channelId) throw new Error('연결된 텔레그램 채널이 없습니다.')
 
       if (checked) {
         const content = applyTemplate(teledditTemplate, position)
-        const res = await fetch(`${baseUrl}/api/telegram/overrides`, {
+        const res = await teleditFetch(`${baseUrl}/api/telegram/overrides`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -408,18 +516,18 @@ export function useDashboard(): UseDashboardReturn {
             insertAt: position.entryTime,
             positionId: position.id,
           }),
-        })
+        }, baseUrl, _email, _password)
         if (!res.ok) throw new Error('Teledit INSERT 실패')
       } else {
-        const res = await fetch(`${baseUrl}/api/telegram/overrides/${position.id}`, {
+        const res = await teleditFetch(`${baseUrl}/api/telegram/overrides/${position.id}`, {
           method: 'DELETE',
-        })
+        }, baseUrl, _email, _password)
         if (!res.ok) throw new Error('Teledit DELETE 실패')
       }
     } catch (err) {
       alert(`Teledit 오류: ${err instanceof Error ? err.message : String(err)}`)
     }
-  }, [teledditTemplate])
+  }, [teledditTemplate, teleditApiUrl, teleditEmail, teleditPassword])
 
   // ─── Handler: select position ───────────────────────────
   const handleSelectPosition = useCallback((position: PositionWithLive) => {
@@ -454,6 +562,13 @@ export function useDashboard(): UseDashboardReturn {
     newPwConfirm,
     pwMsg,
     savingPw,
+    teleditApiUrl,
+    teleditEmail,
+    teleditPassword,
+    savingTeledit,
+    teleditMsg,
+    closeTemplateInput,
+    profitTemplateInput,
 
     // Computed
     positionsWithLive,
@@ -465,6 +580,11 @@ export function useDashboard(): UseDashboardReturn {
     setCurrentPw,
     setNewPw,
     setNewPwConfirm,
+    setTeleditApiUrl,
+    setTeleditEmail,
+    setTeleditPassword,
+    setCloseTemplateInput,
+    setProfitTemplateInput,
 
     // Handlers
     fetchPositions,
@@ -479,6 +599,7 @@ export function useDashboard(): UseDashboardReturn {
     handleTeledditToggle,
     handleChangePassword,
     handleSaveTemplate,
+    handleSaveTeledit,
     handleSelectPosition,
     handleSymbolChange,
     setSharePosition,

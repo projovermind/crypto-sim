@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   const data = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true, createdAt: true },
+    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true, teleditApiUrl: true, teleditEmail: true, teleditPassword: true, teleditCloseTemplate: true, teleditProfitTemplate: true, createdAt: true },
   })
 
   if (!data) {
@@ -30,7 +30,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { email, name, currentPassword, newPassword, teledditTemplate } = body
+  const { email, name, currentPassword, newPassword, teledditTemplate, teleditApiUrl, teleditEmail, teleditPassword, teleditCloseTemplate, teleditProfitTemplate } = body
 
   const user = await prisma.user.findUnique({ where: { id: authUser.id } })
   if (!user) {
@@ -79,6 +79,13 @@ export async function PATCH(request: NextRequest) {
     updateData.teledditTemplate = teledditTemplate || null
   }
 
+  // Teledit 연결 정보 변경
+  if (teleditApiUrl !== undefined) updateData.teleditApiUrl = teleditApiUrl || null
+  if (teleditEmail !== undefined) updateData.teleditEmail = teleditEmail || null
+  if (teleditPassword !== undefined) updateData.teleditPassword = teleditPassword || null
+  if (teleditCloseTemplate !== undefined) updateData.teleditCloseTemplate = teleditCloseTemplate || null
+  if (teleditProfitTemplate !== undefined) updateData.teleditProfitTemplate = teleditProfitTemplate || null
+
   if (Object.keys(updateData).length === 0) {
     return NextResponse.json({ error: '변경할 내용이 없습니다.' }, { status: 400 })
   }
@@ -86,7 +93,7 @@ export async function PATCH(request: NextRequest) {
   const updated = await prisma.user.update({
     where: { id: authUser.id },
     data: updateData,
-    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true },
+    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true, teleditApiUrl: true, teleditEmail: true, teleditPassword: true, teleditCloseTemplate: true, teleditProfitTemplate: true },
   })
 
   return NextResponse.json({ ...updated, message: '계정 정보가 수정되었습니다.' })

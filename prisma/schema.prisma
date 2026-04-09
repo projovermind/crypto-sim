@@ -17,6 +17,12 @@ model User {
   role              String     @default("USER")    // "USER" | "MANAGER" | "ADMIN"
   status            String     @default("PENDING")  // "PENDING" | "APPROVED" | "SUSPENDED"
   teledditTemplate  String?    // Teledit 메시지 템플릿
+  // TODO: Teledit DB 공유 중 — 아래 필드 추가 시 Teledit 스키마와 반드시 동기화 후 prisma db push
+  teleditApiUrl        String?    // Teledit 서버 URL
+  teleditEmail         String?    // Teledit 로그인 이메일
+  teleditPassword      String?    // Teledit 로그인 비밀번호 (평문 저장)
+  teleditCloseTemplate  String?    // 청산 메시지 템플릿
+  teleditProfitTemplate String?    // 수익 인증 메시지 템플릿
   createdAt         DateTime   @default(now())
   positions         Position[]
   telegramAccount   TelegramAccount?

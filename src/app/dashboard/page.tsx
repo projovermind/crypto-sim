@@ -45,6 +45,10 @@ export default function DashboardPage() {
         onTemplateChange={d.setTemplateInput}
         savingTemplate={d.savingTemplate}
         onSaveTemplate={d.handleSaveTemplate}
+        closeTemplateInput={d.closeTemplateInput}
+        onCloseTemplateChange={d.setCloseTemplateInput}
+        profitTemplateInput={d.profitTemplateInput}
+        onProfitTemplateChange={d.setProfitTemplateInput}
         currentPw={d.currentPw}
         newPw={d.newPw}
         newPwConfirm={d.newPwConfirm}
@@ -54,6 +58,15 @@ export default function DashboardPage() {
         onNewPwChange={d.setNewPw}
         onNewPwConfirmChange={d.setNewPwConfirm}
         onPasswordChange={d.handleChangePassword}
+        teleditApiUrl={d.teleditApiUrl}
+        teleditEmail={d.teleditEmail}
+        teleditPassword={d.teleditPassword}
+        onTeleditApiUrlChange={d.setTeleditApiUrl}
+        onTeleditEmailChange={d.setTeleditEmail}
+        onTeleditPasswordChange={d.setTeleditPassword}
+        savingTeledit={d.savingTeledit}
+        teleditMsg={d.teleditMsg}
+        onSaveTeledit={d.handleSaveTeledit}
       />
 
       {/* Main Area */}
