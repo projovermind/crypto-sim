@@ -63,7 +63,8 @@ model User {
 }
 
 model Position {
-  id          String   @id @default(cuid())
+  id             String   @id @default(cuid())
+  positionNumber Int      @default(autoincrement())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   symbol      String   // e.g. "BTCUSDT"

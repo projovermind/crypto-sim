@@ -1,5 +1,6 @@
 export interface Position {
   id: string
+  positionNumber?: number
   userId: string
   symbol: string
   side: 'LONG' | 'SHORT'
