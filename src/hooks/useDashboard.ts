@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { PositionWithLive, Position } from '@/types'
@@ -61,15 +61,46 @@ async function teleditFetch(
 export function applyTemplate(template: string, position: PositionWithLive | Position): string {
   const roe = 'roeLive' in position && position.roeLive != null ? position.roeLive.toFixed(2) : 'N/A'
   const closePrice = position.closedPrice != null ? String(position.closedPrice) : 'N/A'
+  const pnlValue = position.pnl != null
+    ? position.pnl
+    : ('pnlLive' in position && position.pnlLive != null ? position.pnlLive : null)
   return template
     .replace(/\{\{symbol\}\}/g, position.symbol)
     .replace(/\{\{side\}\}/g, position.side)
     .replace(/\{\{leverage\}\}/g, String(position.leverage))
     .replace(/\{\{entryPrice\}\}/g, String(position.entryPrice))
     .replace(/\{\{amount\}\}/g, String(position.amount))
-    .replace(/\{\{pnl\}\}/g, position.pnl != null ? position.pnl.toFixed(2) : 'N/A')
+    .replace(/\{\{pnl\}\}/g, pnlValue != null ? pnlValue.toFixed(2) : 'N/A')
     .replace(/\{\{roe\}\}/g, roe)
     .replace(/\{\{closePrice\}\}/g, closePrice)
+}
+
+// ─── Teledit Delayed Message Helper ────────────────────────
+async function scheduleTeleditMessage(
+  baseUrl: string,
+  email: string | undefined,
+  password: string | undefined,
+  template: string,
+  position: Position,
+  delayMs: number,
+): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, delayMs))
+  try {
+    const chRes = await teleditFetch(`${baseUrl}/api/telegram/channels`, {}, baseUrl, email, password)
+    if (!chRes.ok) return
+    const channels = await chRes.json()
+    if (!Array.isArray(channels) || channels.length === 0) return
+    const content = applyTemplate(template, position)
+    for (const channel of channels) {
+      await teleditFetch(`${baseUrl}/api/telegram/overrides`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ positionId: position.id, channelId: channel.id, content, active: true }),
+      }, baseUrl, email, password)
+    }
+  } catch {
+    // silent — 딜레이 메시지 실패는 무시
+  }
 }
 
 export interface UseDashboardReturn {
@@ -163,6 +194,12 @@ export function useDashboard(): UseDashboardReturn {
   const [teleditMsg, setTeleditMsg] = useState('')
   const [closeTemplateInput, setCloseTemplateInput] = useState(DEFAULT_CLOSE_TEMPLATE)
   const [profitTemplateInput, setProfitTemplateInput] = useState(DEFAULT_PROFIT_TEMPLATE)
+  const [teleditPreEntryTemplate, setTeleditPreEntryTemplate] = useState('⏳ {{symbol}} {{side}} {{leverage}}x | 진입 예정 ${{entryPrice}}')
+  const [teleditPreCloseTemplate, setTeleditPreCloseTemplate] = useState('⏳ {{symbol}} {{side}} | 청산 예정 PnL {{pnl}}USDT ({{roe}}%)')
+  const [preEntryMinSec, setPreEntryMinSec] = useState(60)
+  const [preEntryMaxSec, setPreEntryMaxSec] = useState(120)
+  const [preCloseMinSec, setPreCloseMinSec] = useState(60)
+  const [preCloseMaxSec, setPreCloseMaxSec] = useState(120)
 
   // Price store
   const prices = usePriceStore(s => s.prices)
@@ -264,6 +301,12 @@ export function useDashboard(): UseDashboardReturn {
       if (data.teleditPassword) setTeleditPassword(data.teleditPassword)
       if (data.teleditCloseTemplate) setCloseTemplateInput(data.teleditCloseTemplate)
       if (data.teleditProfitTemplate) setProfitTemplateInput(data.teleditProfitTemplate)
+      if (data.teleditPreEntryTemplate) setTeleditPreEntryTemplate(data.teleditPreEntryTemplate)
+      if (data.teleditPreCloseTemplate) setTeleditPreCloseTemplate(data.teleditPreCloseTemplate)
+      if (data.preEntryMinSec != null) setPreEntryMinSec(data.preEntryMinSec)
+      if (data.preEntryMaxSec != null) setPreEntryMaxSec(data.preEntryMaxSec)
+      if (data.preCloseMinSec != null) setPreCloseMinSec(data.preCloseMinSec)
+      if (data.preCloseMaxSec != null) setPreCloseMaxSec(data.preCloseMaxSec)
     }).catch(() => {})
   }, [session])
 
@@ -272,6 +315,9 @@ export function useDashboard(): UseDashboardReturn {
     const openSymbols = positions.filter(p => p.status === 'OPEN').map(p => p.symbol)
     if (openSymbols.length > 0) subscribeSymbols(openSymbols)
   }, [positions])
+
+  // ─── Ref: positionsWithLive (stale-closure 방지용) ───────
+  const positionsWithLiveRef = useRef<PositionWithLive[]>([])
 
   // ─── Computed: positionsWithLive ────────────────────────
   const positionsWithLive: PositionWithLive[] = useMemo(() =>
@@ -291,6 +337,9 @@ export function useDashboard(): UseDashboardReturn {
     }),
     [positions, prices]
   )
+
+  // ─── Sync ref ────────────────────────────────────────────
+  positionsWithLiveRef.current = positionsWithLive
 
   // ─── Computed: currentPrice ─────────────────────────────
   const currentPrice = prices[symbol] || marketData?.price || 0
@@ -377,15 +426,25 @@ export function useDashboard(): UseDashboardReturn {
       body: JSON.stringify(data),
     })
     if (res.ok) {
+      const newPosition = await res.json()
       fetchPositions()
+      const baseUrl = teleditApiUrl || process.env.NEXT_PUBLIC_TELEDIT_API_URL
+      if (baseUrl && teleditPreEntryTemplate && newPosition?.id) {
+        const range = Math.max(0, preEntryMaxSec - preEntryMinSec)
+        const delayMs = (preEntryMinSec + Math.random() * range) * 1000
+        scheduleTeleditMessage(baseUrl, teleditEmail || undefined, teleditPassword || undefined, teleditPreEntryTemplate, newPosition, delayMs)
+      }
     } else {
       const err = await res.json()
       alert(err.error || 'Position creation failed')
     }
-  }, [fetchPositions])
+  }, [fetchPositions, teleditApiUrl, teleditEmail, teleditPassword, teleditPreEntryTemplate, preEntryMinSec, preEntryMaxSec])
 
   // ─── Handler: close position (전체/부분 익절) ────────────
   const handleClosePosition = useCallback(async (id: string, options?: number | { closeMargin?: number; closeQuantity?: number }) => {
+    // preClose 메시지용 포지션 스냅샷 (청산 전에 캡처)
+    const positionSnap = positionsWithLiveRef.current.find(p => p.id === id)
+
     let res: Response
     // 정방향 호환: 숫자면 closeMargin으로 처리
     const opts = typeof options === 'number' ? { closeMargin: options } : options
@@ -406,11 +465,17 @@ export function useDashboard(): UseDashboardReturn {
     if (res.ok) {
       fetchPositions()
       setSelectedPosition(prev => prev?.id === id ? null : prev)
+      const baseUrl = teleditApiUrl || process.env.NEXT_PUBLIC_TELEDIT_API_URL
+      if (baseUrl && positionSnap && teleditPreCloseTemplate) {
+        const range = Math.max(0, preCloseMaxSec - preCloseMinSec)
+        const delayMs = (preCloseMinSec + Math.random() * range) * 1000
+        scheduleTeleditMessage(baseUrl, teleditEmail || undefined, teleditPassword || undefined, teleditPreCloseTemplate, positionSnap, delayMs)
+      }
     } else {
       const err = await res.json()
       alert(err.error || '청산 실패')
     }
-  }, [fetchPositions])
+  }, [fetchPositions, teleditApiUrl, teleditEmail, teleditPassword, teleditPreCloseTemplate, preCloseMinSec, preCloseMaxSec])
 
   // ─── Handler: edit position ─────────────────────────────
   const handleEditPosition = useCallback(async (id: string, data: { takeProfit?: number | null; stopLoss?: number | null }) => {

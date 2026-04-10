@@ -214,15 +214,30 @@ export default function SettingsPage() {
                       onChange={s.updateTemplate}
                       onReset={s.resetTemplate}
                       mockType="entry"
+                      enabled={s.templateEnabled.teleditPreEntryTemplate}
+                      onToggleEnabled={s.updateEnabled}
                     />
                     <div className="border-t border-binance-border" />
                     <TemplateSection
-                      title="진입"
-                      templateKey="teledditTemplate"
-                      value={s.templates.teledditTemplate}
+                      title="진입 (LONG)"
+                      templateKey="teledditLongTemplate"
+                      value={s.templates.teledditLongTemplate}
                       onChange={s.updateTemplate}
                       onReset={s.resetTemplate}
                       mockType="entry"
+                      enabled={s.templateEnabled.teledditLongTemplate}
+                      onToggleEnabled={s.updateEnabled}
+                    />
+                    <div className="border-t border-binance-border" />
+                    <TemplateSection
+                      title="진입 (SHORT)"
+                      templateKey="teledditShortTemplate"
+                      value={s.templates.teledditShortTemplate}
+                      onChange={s.updateTemplate}
+                      onReset={s.resetTemplate}
+                      mockType="entry"
+                      enabled={s.templateEnabled.teledditShortTemplate}
+                      onToggleEnabled={s.updateEnabled}
                     />
                     <div className="border-t border-binance-border" />
                     <TemplateSection
@@ -232,6 +247,8 @@ export default function SettingsPage() {
                       onChange={s.updateTemplate}
                       onReset={s.resetTemplate}
                       mockType="entry"
+                      enabled={s.templateEnabled.teleditPostEntry1Template}
+                      onToggleEnabled={s.updateEnabled}
                     />
                     <TemplateSection
                       title="진입 N분 후 2"
@@ -240,6 +257,8 @@ export default function SettingsPage() {
                       onChange={s.updateTemplate}
                       onReset={s.resetTemplate}
                       mockType="entry"
+                      enabled={s.templateEnabled.teleditPostEntry2Template}
+                      onToggleEnabled={s.updateEnabled}
                     />
                     <TemplateSection
                       title="진입 N분 후 3"
@@ -248,6 +267,8 @@ export default function SettingsPage() {
                       onChange={s.updateTemplate}
                       onReset={s.resetTemplate}
                       mockType="entry"
+                      enabled={s.templateEnabled.teleditPostEntry3Template}
+                      onToggleEnabled={s.updateEnabled}
                     />
                   </div>
                 </div>
@@ -291,6 +312,8 @@ export default function SettingsPage() {
                       onChange={s.updateTemplate}
                       onReset={s.resetTemplate}
                       mockType="close"
+                      enabled={s.templateEnabled.teleditPreCloseTemplate}
+                      onToggleEnabled={s.updateEnabled}
                     />
                     <div className="border-t border-binance-border" />
                     <TemplateSection
@@ -300,6 +323,8 @@ export default function SettingsPage() {
                       onChange={s.updateTemplate}
                       onReset={s.resetTemplate}
                       mockType="close"
+                      enabled={s.templateEnabled.teleditCloseTemplate}
+                      onToggleEnabled={s.updateEnabled}
                     />
                     <div className="border-t border-binance-border" />
                     <TemplateSection
@@ -309,6 +334,8 @@ export default function SettingsPage() {
                       onChange={s.updateTemplate}
                       onReset={s.resetTemplate}
                       mockType="close"
+                      enabled={s.templateEnabled.teleditPostClose1Template}
+                      onToggleEnabled={s.updateEnabled}
                     />
                     <TemplateSection
                       title="종료 N분 후 2"
@@ -317,6 +344,8 @@ export default function SettingsPage() {
                       onChange={s.updateTemplate}
                       onReset={s.resetTemplate}
                       mockType="close"
+                      enabled={s.templateEnabled.teleditPostClose2Template}
+                      onToggleEnabled={s.updateEnabled}
                     />
                     <TemplateSection
                       title="종료 N분 후 3"
@@ -325,6 +354,8 @@ export default function SettingsPage() {
                       onChange={s.updateTemplate}
                       onReset={s.resetTemplate}
                       mockType="close"
+                      enabled={s.templateEnabled.teleditPostClose3Template}
+                      onToggleEnabled={s.updateEnabled}
                     />
                     <div className="border-t border-binance-border" />
                     <TemplateSection
@@ -334,6 +365,8 @@ export default function SettingsPage() {
                       onChange={s.updateTemplate}
                       onReset={s.resetTemplate}
                       mockType="close"
+                      enabled={s.templateEnabled.teleditProfitTemplate}
+                      onToggleEnabled={s.updateEnabled}
                     />
                   </div>
                 </div>

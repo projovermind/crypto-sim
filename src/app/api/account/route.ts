@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   const data = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true, teleditApiUrl: true, teleditEmail: true, teleditPassword: true, teleditCloseTemplate: true, teleditProfitTemplate: true, teleditPreEntryTemplate: true, teleditPostEntry1Template: true, teleditPostEntry2Template: true, teleditPostEntry3Template: true, teleditPreCloseTemplate: true, teleditPostClose1Template: true, teleditPostClose2Template: true, teleditPostClose3Template: true, preEntryMinSec: true, preEntryMaxSec: true, preCloseMinSec: true, preCloseMaxSec: true, createdAt: true },
+    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true, teledditLongTemplate: true, teledditShortTemplate: true, teledditEnabled: true, teledditLongEnabled: true, teledditShortEnabled: true, teleditApiUrl: true, teleditEmail: true, teleditPassword: true, teleditCloseTemplate: true, teleditCloseEnabled: true, teleditProfitTemplate: true, teleditProfitEnabled: true, teleditPreEntryTemplate: true, teleditPreEntryEnabled: true, teleditPostEntry1Template: true, teleditPostEntry1Enabled: true, teleditPostEntry2Template: true, teleditPostEntry2Enabled: true, teleditPostEntry3Template: true, teleditPostEntry3Enabled: true, teleditPreCloseTemplate: true, teleditPreCloseEnabled: true, teleditPostClose1Template: true, teleditPostClose1Enabled: true, teleditPostClose2Template: true, teleditPostClose2Enabled: true, teleditPostClose3Template: true, teleditPostClose3Enabled: true, preEntryMinSec: true, preEntryMaxSec: true, preCloseMinSec: true, preCloseMaxSec: true, createdAt: true },
   })
 
   if (!data) {
@@ -30,7 +30,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { email, name, currentPassword, newPassword, teledditTemplate, teleditApiUrl, teleditEmail, teleditPassword, teleditCloseTemplate, teleditProfitTemplate, teleditPreEntryTemplate, teleditPostEntry1Template, teleditPostEntry2Template, teleditPostEntry3Template, teleditPreCloseTemplate, teleditPostClose1Template, teleditPostClose2Template, teleditPostClose3Template, preEntryMinSec, preEntryMaxSec, preCloseMinSec, preCloseMaxSec } = body
+  const { email, name, currentPassword, newPassword, teledditTemplate, teledditLongTemplate, teledditShortTemplate, teledditEnabled, teledditLongEnabled, teledditShortEnabled, teleditApiUrl, teleditEmail, teleditPassword, teleditCloseTemplate, teleditCloseEnabled, teleditProfitTemplate, teleditProfitEnabled, teleditPreEntryTemplate, teleditPreEntryEnabled, teleditPostEntry1Template, teleditPostEntry1Enabled, teleditPostEntry2Template, teleditPostEntry2Enabled, teleditPostEntry3Template, teleditPostEntry3Enabled, teleditPreCloseTemplate, teleditPreCloseEnabled, teleditPostClose1Template, teleditPostClose1Enabled, teleditPostClose2Template, teleditPostClose2Enabled, teleditPostClose3Template, teleditPostClose3Enabled, preEntryMinSec, preEntryMaxSec, preCloseMinSec, preCloseMaxSec } = body
 
   const user = await prisma.user.findUnique({ where: { id: authUser.id } })
   if (!user) {
@@ -75,9 +75,24 @@ export async function PATCH(request: NextRequest) {
   }
 
   // 텔레딧 템플릿 변경
-  if (teledditTemplate !== undefined) {
-    updateData.teledditTemplate = teledditTemplate || null
-  }
+  if (teledditTemplate !== undefined) updateData.teledditTemplate = teledditTemplate || null
+  if (teledditLongTemplate !== undefined) updateData.teledditLongTemplate = teledditLongTemplate || null
+  if (teledditShortTemplate !== undefined) updateData.teledditShortTemplate = teledditShortTemplate || null
+
+  // 활성화 토글
+  if (teledditEnabled !== undefined) updateData.teledditEnabled = Boolean(teledditEnabled)
+  if (teledditLongEnabled !== undefined) updateData.teledditLongEnabled = Boolean(teledditLongEnabled)
+  if (teledditShortEnabled !== undefined) updateData.teledditShortEnabled = Boolean(teledditShortEnabled)
+  if (teleditPreEntryEnabled !== undefined) updateData.teleditPreEntryEnabled = Boolean(teleditPreEntryEnabled)
+  if (teleditPostEntry1Enabled !== undefined) updateData.teleditPostEntry1Enabled = Boolean(teleditPostEntry1Enabled)
+  if (teleditPostEntry2Enabled !== undefined) updateData.teleditPostEntry2Enabled = Boolean(teleditPostEntry2Enabled)
+  if (teleditPostEntry3Enabled !== undefined) updateData.teleditPostEntry3Enabled = Boolean(teleditPostEntry3Enabled)
+  if (teleditCloseEnabled !== undefined) updateData.teleditCloseEnabled = Boolean(teleditCloseEnabled)
+  if (teleditPreCloseEnabled !== undefined) updateData.teleditPreCloseEnabled = Boolean(teleditPreCloseEnabled)
+  if (teleditPostClose1Enabled !== undefined) updateData.teleditPostClose1Enabled = Boolean(teleditPostClose1Enabled)
+  if (teleditPostClose2Enabled !== undefined) updateData.teleditPostClose2Enabled = Boolean(teleditPostClose2Enabled)
+  if (teleditPostClose3Enabled !== undefined) updateData.teleditPostClose3Enabled = Boolean(teleditPostClose3Enabled)
+  if (teleditProfitEnabled !== undefined) updateData.teleditProfitEnabled = Boolean(teleditProfitEnabled)
 
   // Teledit 연결 정보 변경
   if (teleditApiUrl !== undefined) updateData.teleditApiUrl = teleditApiUrl || null
@@ -109,7 +124,7 @@ export async function PATCH(request: NextRequest) {
   const updated = await prisma.user.update({
     where: { id: authUser.id },
     data: updateData,
-    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true, teleditApiUrl: true, teleditEmail: true, teleditPassword: true, teleditCloseTemplate: true, teleditProfitTemplate: true, teleditPreEntryTemplate: true, teleditPostEntry1Template: true, teleditPostEntry2Template: true, teleditPostEntry3Template: true, teleditPreCloseTemplate: true, teleditPostClose1Template: true, teleditPostClose2Template: true, teleditPostClose3Template: true, preEntryMinSec: true, preEntryMaxSec: true, preCloseMinSec: true, preCloseMaxSec: true },
+    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true, teledditLongTemplate: true, teledditShortTemplate: true, teledditEnabled: true, teledditLongEnabled: true, teledditShortEnabled: true, teleditApiUrl: true, teleditEmail: true, teleditPassword: true, teleditCloseTemplate: true, teleditCloseEnabled: true, teleditProfitTemplate: true, teleditProfitEnabled: true, teleditPreEntryTemplate: true, teleditPreEntryEnabled: true, teleditPostEntry1Template: true, teleditPostEntry1Enabled: true, teleditPostEntry2Template: true, teleditPostEntry2Enabled: true, teleditPostEntry3Template: true, teleditPostEntry3Enabled: true, teleditPreCloseTemplate: true, teleditPreCloseEnabled: true, teleditPostClose1Template: true, teleditPostClose1Enabled: true, teleditPostClose2Template: true, teleditPostClose2Enabled: true, teleditPostClose3Template: true, teleditPostClose3Enabled: true, preEntryMinSec: true, preEntryMaxSec: true, preCloseMinSec: true, preCloseMaxSec: true },
   })
 
   return NextResponse.json({ ...updated, message: '계정 정보가 수정되었습니다.' })

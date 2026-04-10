@@ -16,7 +16,9 @@ model User {
   password  String
   role              String     @default("USER")    // "USER" | "MANAGER" | "ADMIN"
   status            String     @default("PENDING")  // "PENDING" | "APPROVED" | "SUSPENDED"
-  teledditTemplate  String?    // Teledit 메시지 템플릿
+  teledditTemplate      String?    // Teledit 메시지 템플릿
+  teledditLongTemplate  String?    // 롱 포지션 전용 템플릿
+  teledditShortTemplate String?    // 숏 포지션 전용 템플릿
   // TODO: Teledit DB 공유 중 — 아래 필드 추가 시 Teledit 스키마와 반드시 동기화 후 prisma db push
   teleditApiUrl        String?    // Teledit 서버 URL
   teleditEmail         String?    // Teledit 로그인 이메일
@@ -35,6 +37,20 @@ model User {
   teleditPostClose1Template String?    // 종료 N분 후 1
   teleditPostClose2Template String?    // 종료 N분 후 2
   teleditPostClose3Template String?    // 종료 N분 후 3
+  // --- 활성화 토글 (각 템플릿별 on/off) ---
+  teledditEnabled          Boolean    @default(true)  // 진입 메시지 활성화
+  teledditLongEnabled      Boolean    @default(true)  // 롱 전용 템플릿 활성화
+  teledditShortEnabled     Boolean    @default(true)  // 숏 전용 템플릿 활성화
+  teleditPreEntryEnabled   Boolean    @default(true)  // 진입 전 알림 활성화
+  teleditPostEntry1Enabled Boolean    @default(true)  // 진입 후 1 활성화
+  teleditPostEntry2Enabled Boolean    @default(true)  // 진입 후 2 활성화
+  teleditPostEntry3Enabled Boolean    @default(true)  // 진입 후 3 활성화
+  teleditCloseEnabled      Boolean    @default(true)  // 청산 메시지 활성화
+  teleditPreCloseEnabled   Boolean    @default(true)  // 종료 전 알림 활성화
+  teleditPostClose1Enabled Boolean    @default(true)  // 종료 후 1 활성화
+  teleditPostClose2Enabled Boolean    @default(true)  // 종료 후 2 활성화
+  teleditPostClose3Enabled Boolean    @default(true)  // 종료 후 3 활성화
+  teleditProfitEnabled     Boolean    @default(true)  // 수익 인증 활성화
   preEntryMinSec    Int        @default(60)   // 진입 전 알림 최소(초)
   preEntryMaxSec    Int        @default(120)  // 진입 전 알림 최대(초)
   preCloseMinSec    Int        @default(60)   // 종료 전 알림 최소(초)

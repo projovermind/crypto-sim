@@ -8,6 +8,8 @@ import { applyTemplate } from '@/hooks/useDashboard'
 // ─── Default templates ────────────────────────────────────────
 export const DEFAULT_TEMPLATES = {
   teledditTemplate: '🟢 {{symbol}} {{side}} {{leverage}}x | 진입 ${{entryPrice}}',
+  teledditLongTemplate: '🟢 {{symbol}} LONG {{leverage}}x | 진입 ${{entryPrice}}',
+  teledditShortTemplate: '🔴 {{symbol}} SHORT {{leverage}}x | 진입 ${{entryPrice}}',
   teleditPreEntryTemplate: '⏳ {{symbol}} {{side}} {{leverage}}x | 진입 예정 ${{entryPrice}}',
   teleditPostEntry1Template: '📊 {{symbol}} {{side}} {{leverage}}x | 진입 완료 ${{entryPrice}} (1분 후)',
   teleditPostEntry2Template: '📊 {{symbol}} {{side}} {{leverage}}x | 진입 완료 ${{entryPrice}} (5분 후)',
@@ -21,6 +23,23 @@ export const DEFAULT_TEMPLATES = {
 } as const
 
 export type TemplateKey = keyof typeof DEFAULT_TEMPLATES
+
+// ─── Default enabled states (all on by default) ───────────────
+export const DEFAULT_ENABLED: Record<TemplateKey, boolean> = {
+  teledditTemplate: true,
+  teledditLongTemplate: true,
+  teledditShortTemplate: true,
+  teleditPreEntryTemplate: true,
+  teleditPostEntry1Template: true,
+  teleditPostEntry2Template: true,
+  teleditPostEntry3Template: true,
+  teleditCloseTemplate: true,
+  teleditPreCloseTemplate: true,
+  teleditPostClose1Template: true,
+  teleditPostClose2Template: true,
+  teleditPostClose3Template: true,
+  teleditProfitTemplate: true,
+}
 
 // ─── Mock data for preview ────────────────────────────────────
 export const MOCK_ENTRY = {
@@ -63,6 +82,7 @@ export function useSettings() {
 
   // Templates
   const [templates, setTemplates] = useState<Record<TemplateKey, string>>({ ...DEFAULT_TEMPLATES })
+  const [templateEnabled, setTemplateEnabled] = useState<Record<TemplateKey, boolean>>({ ...DEFAULT_ENABLED })
   const [savingTeledit, setSavingTeledit] = useState(false)
   const [teleditMsg, setTeleditMsg] = useState('')
 
@@ -82,6 +102,8 @@ export function useSettings() {
         setTemplates(prev => ({
           ...prev,
           teledditTemplate: data.teledditTemplate || DEFAULT_TEMPLATES.teledditTemplate,
+          teledditLongTemplate: data.teledditLongTemplate || DEFAULT_TEMPLATES.teledditLongTemplate,
+          teledditShortTemplate: data.teledditShortTemplate || DEFAULT_TEMPLATES.teledditShortTemplate,
           teleditPreEntryTemplate: data.teleditPreEntryTemplate || DEFAULT_TEMPLATES.teleditPreEntryTemplate,
           teleditPostEntry1Template: data.teleditPostEntry1Template || DEFAULT_TEMPLATES.teleditPostEntry1Template,
           teleditPostEntry2Template: data.teleditPostEntry2Template || DEFAULT_TEMPLATES.teleditPostEntry2Template,
@@ -100,6 +122,15 @@ export function useSettings() {
         if (data.preEntryMaxSec != null) setPreEntryMaxSec(data.preEntryMaxSec)
         if (data.preCloseMinSec != null) setPreCloseMinSec(data.preCloseMinSec)
         if (data.preCloseMaxSec != null) setPreCloseMaxSec(data.preCloseMaxSec)
+        // Load enabled states
+        const enabledUpdate: Partial<Record<TemplateKey, boolean>> = {}
+        for (const key of Object.keys(DEFAULT_ENABLED) as TemplateKey[]) {
+          const apiKey = key.replace('Template', 'Enabled')
+          if (data[apiKey] != null) enabledUpdate[key] = data[apiKey]
+        }
+        if (Object.keys(enabledUpdate).length > 0) {
+          setTemplateEnabled(prev => ({ ...prev, ...enabledUpdate }))
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -113,6 +144,11 @@ export function useSettings() {
   // ─── Reset single template to default ────────────────────
   const resetTemplate = useCallback((key: TemplateKey) => {
     setTemplates(prev => ({ ...prev, [key]: DEFAULT_TEMPLATES[key] }))
+  }, [])
+
+  // ─── Toggle single template enabled ──────────────────────
+  const updateEnabled = useCallback((key: TemplateKey, value: boolean) => {
+    setTemplateEnabled(prev => ({ ...prev, [key]: value }))
   }, [])
 
   // ─── Change password ─────────────────────────────────────
@@ -161,6 +197,10 @@ export function useSettings() {
           preCloseMinSec,
           preCloseMaxSec,
           ...templates,
+          ...Object.fromEntries(
+            (Object.entries(templateEnabled) as [TemplateKey, boolean][])
+              .map(([k, v]) => [k.replace('Template', 'Enabled'), v])
+          ),
         }),
       })
       if (!res.ok) {
@@ -192,6 +232,7 @@ export function useSettings() {
     teleditPassword, setTeleditPassword,
     // Templates
     templates, updateTemplate, resetTemplate,
+    templateEnabled, updateEnabled,
     // Timing
     preEntryMinSec, setPreEntryMinSec,
     preEntryMaxSec, setPreEntryMaxSec,
