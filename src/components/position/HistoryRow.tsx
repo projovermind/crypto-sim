@@ -255,10 +255,13 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         {/* 생성 시간 */}
         <td className="py-2 pl-3 pr-2 text-binance-text-dim">{createdDate}</td>
         {/* Pair */}
-        <td className="py-2 px-2">
-          <div className="flex items-center gap-1">
-            <span className={`font-bold ${sideColor}`}>{p.side}</span>
-            <span className="text-binance-text font-bold">{base}</span>
+        <td className="py-2 px-3">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1">
+              <span className={`font-bold ${sideColor}`}>{p.side}</span>
+              <span className="text-binance-text font-bold">{base}</span>
+            </div>
+            <span className="text-binance-text-dim text-[10px]">{p.leverage}x</span>
           </div>
         </td>
         {/* Entry Price (read-only) */}
@@ -414,11 +417,13 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
       {/* 생성 시간 */}
       <td className="py-2 pl-3 pr-2 text-binance-text-dim">{createdDate}</td>
       {/* Pair */}
-      <td className="py-2 px-2">
-        <div className="flex items-center gap-1">
-          <span className={`font-bold ${sideColor}`}>{p.side}</span>
-          <span className="text-binance-text font-bold">{base}</span>
-          <span className="text-binance-text-dim text-[11px]">{p.leverage}x</span>
+      <td className="py-2 px-3">
+        <div className="flex flex-col">
+          <div className="flex items-center gap-1">
+            <span className={`font-bold ${sideColor}`}>{p.side}</span>
+            <span className="text-binance-text font-bold">{base}</span>
+          </div>
+          <span className="text-binance-text-dim text-[10px]">{p.leverage}x</span>
         </div>
       </td>
       {/* Entry Price (입력가 + 체결가) */}

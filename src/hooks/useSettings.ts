@@ -11,34 +11,26 @@ export const DEFAULT_TEMPLATES = {
   teledditLongTemplate: '🟢 {{symbol}} LONG {{leverage}}x | 진입 ${{entryPrice}}',
   teledditShortTemplate: '🔴 {{symbol}} SHORT {{leverage}}x | 진입 ${{entryPrice}}',
   teleditPreEntryTemplate: '⏳ {{symbol}} {{side}} {{leverage}}x | 진입 예정 ${{entryPrice}}',
-  teleditPostEntry1Template: '📊 {{symbol}} {{side}} {{leverage}}x | 진입 완료 ${{entryPrice}} (1분 후)',
-  teleditPostEntry2Template: '📊 {{symbol}} {{side}} {{leverage}}x | 진입 완료 ${{entryPrice}} (5분 후)',
-  teleditPostEntry3Template: '📊 {{symbol}} {{side}} {{leverage}}x | 진입 완료 ${{entryPrice}} (15분 후)',
-  teleditCloseTemplate: '🔴 {{symbol}} {{side}} 청산 | PnL {{pnl}}USDT ({{roe}}%)',
+  teleditPostEntryTemplate: '📊 {{symbol}} {{side}} {{leverage}}x | 진입 완료 ${{entryPrice}}',
   teleditPreCloseTemplate: '⏳ {{symbol}} {{side}} | 청산 예정 PnL {{pnl}}USDT ({{roe}}%)',
-  teleditPostClose1Template: '📊 {{symbol}} {{side}} | 청산 완료 PnL {{pnl}}USDT ({{roe}}%) (1분 후)',
-  teleditPostClose2Template: '📊 {{symbol}} {{side}} | 청산 완료 PnL {{pnl}}USDT ({{roe}}%) (5분 후)',
-  teleditPostClose3Template: '📊 {{symbol}} {{side}} | 청산 완료 PnL {{pnl}}USDT ({{roe}}%) (15분 후)',
+  teleditCloseTemplate: '🔴 {{symbol}} {{side}} 청산 | PnL {{pnl}}USDT ({{roe}}%)',
   teleditProfitTemplate: '💰 수익 인증\n{{symbol}} {{side}} {{leverage}}x\n진입 ${{entryPrice}} → 청산 ${{closePrice}}\nPnL {{pnl}}USDT ({{roe}}%)',
+  teleditProfitTemplate2: '📈 수익 인증\n{{symbol}} {{side}} {{leverage}}x\nPnL {{pnl}}USDT ({{roe}}%)',
 } as const
 
 export type TemplateKey = keyof typeof DEFAULT_TEMPLATES
 
-// ─── Default enabled states (all on by default) ───────────────
+// ─── Default enabled states ───────────────────────────────────
 export const DEFAULT_ENABLED: Record<TemplateKey, boolean> = {
   teledditTemplate: true,
   teledditLongTemplate: true,
   teledditShortTemplate: true,
   teleditPreEntryTemplate: true,
-  teleditPostEntry1Template: true,
-  teleditPostEntry2Template: true,
-  teleditPostEntry3Template: true,
-  teleditCloseTemplate: true,
+  teleditPostEntryTemplate: true,
   teleditPreCloseTemplate: true,
-  teleditPostClose1Template: true,
-  teleditPostClose2Template: true,
-  teleditPostClose3Template: true,
+  teleditCloseTemplate: true,
   teleditProfitTemplate: true,
+  teleditProfitTemplate2: true,
 }
 
 // ─── Mock data for preview ────────────────────────────────────
@@ -59,7 +51,6 @@ export function useSettings() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
-  // Loading
   const [loading, setLoading] = useState(true)
 
   // Password form
@@ -77,8 +68,12 @@ export function useSettings() {
   // Timing settings (seconds)
   const [preEntryMinSec, setPreEntryMinSec] = useState(60)
   const [preEntryMaxSec, setPreEntryMaxSec] = useState(120)
+  const [postEntryMinSec, setPostEntryMinSec] = useState(30)
+  const [postEntryMaxSec, setPostEntryMaxSec] = useState(60)
   const [preCloseMinSec, setPreCloseMinSec] = useState(60)
   const [preCloseMaxSec, setPreCloseMaxSec] = useState(120)
+  const [profit2MinSec, setProfit2MinSec] = useState(30)
+  const [profit2MaxSec, setProfit2MaxSec] = useState(60)
 
   // Templates
   const [templates, setTemplates] = useState<Record<TemplateKey, string>>({ ...DEFAULT_TEMPLATES })
@@ -105,23 +100,24 @@ export function useSettings() {
           teledditLongTemplate: data.teledditLongTemplate || DEFAULT_TEMPLATES.teledditLongTemplate,
           teledditShortTemplate: data.teledditShortTemplate || DEFAULT_TEMPLATES.teledditShortTemplate,
           teleditPreEntryTemplate: data.teleditPreEntryTemplate || DEFAULT_TEMPLATES.teleditPreEntryTemplate,
-          teleditPostEntry1Template: data.teleditPostEntry1Template || DEFAULT_TEMPLATES.teleditPostEntry1Template,
-          teleditPostEntry2Template: data.teleditPostEntry2Template || DEFAULT_TEMPLATES.teleditPostEntry2Template,
-          teleditPostEntry3Template: data.teleditPostEntry3Template || DEFAULT_TEMPLATES.teleditPostEntry3Template,
-          teleditCloseTemplate: data.teleditCloseTemplate || DEFAULT_TEMPLATES.teleditCloseTemplate,
+          // migration: teleditPostEntry1Template → teleditPostEntryTemplate
+          teleditPostEntryTemplate: data.teleditPostEntryTemplate || data.teleditPostEntry1Template || DEFAULT_TEMPLATES.teleditPostEntryTemplate,
           teleditPreCloseTemplate: data.teleditPreCloseTemplate || DEFAULT_TEMPLATES.teleditPreCloseTemplate,
-          teleditPostClose1Template: data.teleditPostClose1Template || DEFAULT_TEMPLATES.teleditPostClose1Template,
-          teleditPostClose2Template: data.teleditPostClose2Template || DEFAULT_TEMPLATES.teleditPostClose2Template,
-          teleditPostClose3Template: data.teleditPostClose3Template || DEFAULT_TEMPLATES.teleditPostClose3Template,
+          teleditCloseTemplate: data.teleditCloseTemplate || DEFAULT_TEMPLATES.teleditCloseTemplate,
           teleditProfitTemplate: data.teleditProfitTemplate || DEFAULT_TEMPLATES.teleditProfitTemplate,
+          teleditProfitTemplate2: data.teleditProfitTemplate2 || DEFAULT_TEMPLATES.teleditProfitTemplate2,
         }))
         if (data.teleditApiUrl) setTeleditApiUrl(data.teleditApiUrl)
         if (data.teleditEmail) setTeleditEmail(data.teleditEmail)
         if (data.teleditPassword) setTeleditPassword(data.teleditPassword)
         if (data.preEntryMinSec != null) setPreEntryMinSec(data.preEntryMinSec)
         if (data.preEntryMaxSec != null) setPreEntryMaxSec(data.preEntryMaxSec)
+        if (data.postEntryMinSec != null) setPostEntryMinSec(data.postEntryMinSec)
+        if (data.postEntryMaxSec != null) setPostEntryMaxSec(data.postEntryMaxSec)
         if (data.preCloseMinSec != null) setPreCloseMinSec(data.preCloseMinSec)
         if (data.preCloseMaxSec != null) setPreCloseMaxSec(data.preCloseMaxSec)
+        if (data.profit2MinSec != null) setProfit2MinSec(data.profit2MinSec)
+        if (data.profit2MaxSec != null) setProfit2MaxSec(data.profit2MaxSec)
         // Load enabled states
         const enabledUpdate: Partial<Record<TemplateKey, boolean>> = {}
         for (const key of Object.keys(DEFAULT_ENABLED) as TemplateKey[]) {
@@ -136,17 +132,15 @@ export function useSettings() {
       .finally(() => setLoading(false))
   }, [session])
 
-  // ─── Update single template ──────────────────────────────
+  // ─── Update / reset / toggle template ────────────────────
   const updateTemplate = useCallback((key: TemplateKey, value: string) => {
     setTemplates(prev => ({ ...prev, [key]: value }))
   }, [])
 
-  // ─── Reset single template to default ────────────────────
   const resetTemplate = useCallback((key: TemplateKey) => {
     setTemplates(prev => ({ ...prev, [key]: DEFAULT_TEMPLATES[key] }))
   }, [])
 
-  // ─── Toggle single template enabled ──────────────────────
   const updateEnabled = useCallback((key: TemplateKey, value: boolean) => {
     setTemplateEnabled(prev => ({ ...prev, [key]: value }))
   }, [])
@@ -194,8 +188,12 @@ export function useSettings() {
           teleditPassword: teleditPassword || null,
           preEntryMinSec,
           preEntryMaxSec,
+          postEntryMinSec,
+          postEntryMaxSec,
           preCloseMinSec,
           preCloseMaxSec,
+          profit2MinSec,
+          profit2MaxSec,
           ...templates,
           ...Object.fromEntries(
             (Object.entries(templateEnabled) as [TemplateKey, boolean][])
@@ -214,7 +212,14 @@ export function useSettings() {
     } finally {
       setSavingTeledit(false)
     }
-  }, [teleditApiUrl, teleditEmail, teleditPassword, templates])
+  }, [
+    teleditApiUrl, teleditEmail, teleditPassword,
+    preEntryMinSec, preEntryMaxSec,
+    postEntryMinSec, postEntryMaxSec,
+    preCloseMinSec, preCloseMaxSec,
+    profit2MinSec, profit2MaxSec,
+    templates, templateEnabled,
+  ])
 
   return {
     session,
@@ -236,8 +241,12 @@ export function useSettings() {
     // Timing
     preEntryMinSec, setPreEntryMinSec,
     preEntryMaxSec, setPreEntryMaxSec,
+    postEntryMinSec, setPostEntryMinSec,
+    postEntryMaxSec, setPostEntryMaxSec,
     preCloseMinSec, setPreCloseMinSec,
     preCloseMaxSec, setPreCloseMaxSec,
+    profit2MinSec, setProfit2MinSec,
+    profit2MaxSec, setProfit2MaxSec,
     savingTeledit, teleditMsg,
     handleSaveTeledit,
   }
