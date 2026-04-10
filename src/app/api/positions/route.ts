@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const userId = user.id
     const body = await request.json()
 
-    const { symbol, side, leverage, marginMode, entryPrice, amount, takeProfit, stopLoss, entryTime, orderType: rawOrderType, volatileMode } = body
+    const { symbol, side, leverage, marginMode, entryPrice, inputPrice: rawInputPrice, amount, takeProfit, stopLoss, entryTime, orderType: rawOrderType, volatileMode } = body
     const orderType = rawOrderType === 'LIMIT' ? 'LIMIT' : 'MARKET'
 
     // 숫자 안전 변환
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         symbol: symbol.toUpperCase(),
         side,
         leverage: Math.round(numLeverage),
-        inputPrice: numEntryPrice,
+        inputPrice: rawInputPrice != null ? Number(rawInputPrice) : numEntryPrice,
         entryPrice: finalEntryPrice,
         amount: numAmount,
         quantity,

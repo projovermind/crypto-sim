@@ -16,6 +16,7 @@ export default function PositionForm({ onSubmit, onCancel, defaultSymbol }: Posi
   const [side, setSide] = useState<'LONG' | 'SHORT'>('LONG')
   const [leverage, setLeverage] = useState(10)
   const [entryPrice, setEntryPrice] = useState('')
+  const [inputPrice, setInputPrice] = useState('')
   const [amount, setAmount] = useState('')
   const [takeProfit, setTakeProfit] = useState('')
   const [stopLoss, setStopLoss] = useState('')
@@ -64,6 +65,7 @@ export default function PositionForm({ onSubmit, onCancel, defaultSymbol }: Posi
         side,
         leverage,
         entryPrice: parseFloat(entryPrice),
+        inputPrice: inputPrice ? parseFloat(inputPrice) : null,
         amount: positionSize,
         takeProfit: takeProfit ? parseFloat(takeProfit) : null,
         stopLoss: stopLoss ? parseFloat(stopLoss) : null,
@@ -168,7 +170,7 @@ export default function PositionForm({ onSubmit, onCancel, defaultSymbol }: Posi
 
       {/* Entry Price */}
       <div className="flex items-center gap-3">
-        <label className="text-xs text-binance-text-dim font-medium whitespace-nowrap shrink-0">가격 (USDT)</label>
+        <label className="text-xs text-binance-text-dim font-medium whitespace-nowrap shrink-0">진입가 (USDT)</label>
         <input
           type="number"
           step="any"
@@ -177,6 +179,19 @@ export default function PositionForm({ onSubmit, onCancel, defaultSymbol }: Posi
           placeholder="0.00"
           className="flex-1 bg-binance-bg border border-binance-border rounded-lg px-3 py-2 text-binance-text text-sm focus:outline-none focus:border-binance-yellow transition-colors"
           required
+        />
+      </div>
+
+      {/* Input Price */}
+      <div className="flex items-center gap-3">
+        <label className="text-xs text-binance-text-dim font-medium whitespace-nowrap shrink-0">입력가 (USDT)</label>
+        <input
+          type="number"
+          step="any"
+          value={inputPrice}
+          onChange={e => setInputPrice(e.target.value)}
+          placeholder="선택사항"
+          className="flex-1 bg-binance-bg border border-binance-border rounded-lg px-3 py-2 text-binance-text text-sm focus:outline-none focus:border-binance-yellow transition-colors"
         />
       </div>
 
