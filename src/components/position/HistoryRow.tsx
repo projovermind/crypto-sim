@@ -19,6 +19,18 @@ interface HistoryRowProps {
   onTeledditToggle?: (position: Position, checked: boolean) => void
 }
 
+const ICON_COLOR = 'rgb(129, 134, 147)'
+
+function TapbitShareIcon({ size = 14, color = 'currentColor', className = '' }: { size?: number; color?: string; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 1024 1024" fill={color} className={className}>
+      <g transform="translate(40, 900) scale(1, -1)">
+        <path d="M337 811H433Q450 811 462.5 798.5Q475 786 475.0 768.0Q475 750 462.5 737.5Q450 725 433 725H339Q278 725 258 724Q235 722 223 716Q199 703 186 679Q180 667 178 644Q177 624 177 563V205Q177 143 178 124Q180 101 186 89Q199 65 223 52Q235 46 258 44Q278 43 339 43H697Q759 43 778 44Q801 46 813 52Q838 65 850 89Q856 101 858 124Q859 144 859 205V299Q859 310 865.0 320.0Q871 330 881.0 335.5Q891 341 902.5 341.0Q914 341 923.5 335.5Q933 330 939.0 320.0Q945 310 945 299V203Q945 140 943 117Q940 77 926 51Q901 1 852 -24Q825 -37 785 -41Q762 -43 699 -43H337Q274 -43 251 -41Q211 -37 185 -24Q135 1 110 51Q97 77 93 117Q91 140 91 203V565Q91 628 93 651Q97 691 110 718Q135 767 185 792Q211 806 251 809Q274 811 337 811ZM744 798Q756 811 774.0 811.0Q792 811 804 798L932 670Q945 658 945.0 640.0Q945 622 932 610L804 482Q792 470 774.5 470.0Q757 470 744.5 482.5Q732 495 732.0 512.5Q732 530 744 542L799 597H766Q704 597 685 596Q661 594 650 588Q625 575 613 551Q607 539 605 516Q603 496 603 435V384Q603 366 590.5 353.5Q578 341 560.5 341.0Q543 341 530.5 353.5Q518 366 518 384V437Q518 500 520 523Q523 563 537 589Q562 639 611 664Q638 677 678 681Q701 683 764 683H799L744 738Q731 750 731.0 768.0Q731 786 744 798Z" />
+      </g>
+    </svg>
+  )
+}
+
 function formatDateTime(dateStr: string | null) {
   if (!dateStr) return '-'
   return new Date(dateStr).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -238,6 +250,8 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
   if (editing) {
     return (
       <tr className="border-b border-binance-border/50 bg-binance-yellow/5">
+        {/* 포지션 번호 */}
+        <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[10px] font-mono">#{p.positionNumber ?? '-'}</td>
         {/* 생성 시간 */}
         <td className="py-2 pl-3 pr-2 text-binance-text-dim">{createdDate}</td>
         {/* Pair */}
@@ -395,6 +409,8 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
 
   return (
     <tr className="border-b border-binance-border/50 hover:bg-binance-border/20 transition-colors">
+      {/* 포지션 번호 */}
+      <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[10px] font-mono">#{p.positionNumber ?? '-'}</td>
       {/* 생성 시간 */}
       <td className="py-2 pl-3 pr-2 text-binance-text-dim">{createdDate}</td>
       {/* Pair */}
@@ -432,9 +448,17 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
       <td className="py-2 px-2 text-binance-text">{formatNumber(p.amount)}</td>
       {/* PnL */}
       <td className="py-2 px-2">
-        <div className="flex flex-col" style={{ lineHeight: '16px' }}>
-          <span className={pnlColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>{formatPnL(pnlData.pnl)}</span>
-          <span className={pnlColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>({formatNumber(pnlData.roe)}%)</span>
+        <div className="flex items-center">
+          <div className="flex flex-col" style={{ lineHeight: '16px' }}>
+            <span className={pnlColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>{formatPnL(pnlData.pnl)}</span>
+            <span className={pnlColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>({formatNumber(pnlData.roe)}%)</span>
+          </div>
+          <span
+            className="cursor-pointer hover:opacity-70 transition-opacity shrink-0 ml-2"
+            onClick={e => { e.stopPropagation(); onShare(p) }}
+          >
+            <TapbitShareIcon size={14} color={ICON_COLOR} />
+          </span>
         </div>
       </td>
       {/* 진입 시간 */}
@@ -446,13 +470,6 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         <div className="flex items-center gap-1.5">
           <button onClick={startEdit} className="px-2.5 py-1 text-[13px] text-binance-yellow hover:bg-binance-yellow/10 rounded font-medium">Edit</button>
           <button onClick={() => onDelete(p.id)} className="px-2.5 py-1 text-[13px] text-binance-red hover:bg-binance-red/10 rounded font-medium">Del</button>
-          <button
-            onClick={() => onShare(p)}
-            className="px-2.5 py-1 text-[13px] text-binance-text-dim hover:text-binance-text hover:bg-binance-border/30 rounded font-medium transition-colors"
-            title="공유 포스터"
-          >
-            Share
-          </button>
           <input
             type="checkbox"
             checked={teledditChecked}

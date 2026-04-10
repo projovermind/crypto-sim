@@ -159,7 +159,7 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
                     }}
                     className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow mr-2"
                   />
-                  <span className="text-[11px] text-binance-text-dim truncate">{p.symbol}</span>
+                  <span className="text-[11px] text-binance-text-dim truncate">#{p.positionNumber ?? '-'}</span>
                 </div>
               ))}
             </>
