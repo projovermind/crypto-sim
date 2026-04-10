@@ -3,7 +3,6 @@
 import { signOut } from 'next-auth/react'
 import { useDashboard } from '@/hooks/useDashboard'
 import NavBar from '@/components/NavBar'
-import SettingsModal from '@/components/SettingsModal'
 import MarketHeader from '@/components/MarketHeader'
 import TradePanel from '@/components/trade/TradePanel'
 import PositionTable from '@/components/position/PositionTable'
@@ -34,39 +33,7 @@ export default function DashboardPage() {
     <div className="h-screen flex flex-col bg-binance-bg overflow-auto" style={{ minHeight: 600 }}>
       <NavBar
         session={d.session}
-        onSettingsClick={() => { d.setTemplateInput(d.teledditTemplate); d.setShowSettings(true) }}
         onLogout={() => signOut({ callbackUrl: '/login' })}
-      />
-
-      <SettingsModal
-        showSettings={d.showSettings}
-        onClose={() => d.setShowSettings(false)}
-        templateInput={d.templateInput}
-        onTemplateChange={d.setTemplateInput}
-        savingTemplate={d.savingTemplate}
-        onSaveTemplate={d.handleSaveTemplate}
-        closeTemplateInput={d.closeTemplateInput}
-        onCloseTemplateChange={d.setCloseTemplateInput}
-        profitTemplateInput={d.profitTemplateInput}
-        onProfitTemplateChange={d.setProfitTemplateInput}
-        currentPw={d.currentPw}
-        newPw={d.newPw}
-        newPwConfirm={d.newPwConfirm}
-        pwMsg={d.pwMsg}
-        savingPw={d.savingPw}
-        onCurrentPwChange={d.setCurrentPw}
-        onNewPwChange={d.setNewPw}
-        onNewPwConfirmChange={d.setNewPwConfirm}
-        onPasswordChange={d.handleChangePassword}
-        teleditApiUrl={d.teleditApiUrl}
-        teleditEmail={d.teleditEmail}
-        teleditPassword={d.teleditPassword}
-        onTeleditApiUrlChange={d.setTeleditApiUrl}
-        onTeleditEmailChange={d.setTeleditEmail}
-        onTeleditPasswordChange={d.setTeleditPassword}
-        savingTeledit={d.savingTeledit}
-        teleditMsg={d.teleditMsg}
-        onSaveTeledit={d.handleSaveTeledit}
       />
 
       {/* Main Area */}

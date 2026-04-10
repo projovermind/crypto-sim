@@ -23,6 +23,18 @@ model User {
   teleditPassword      String?    // Teledit 로그인 비밀번호 (평문 저장)
   teleditCloseTemplate  String?    // 청산 메시지 템플릿
   teleditProfitTemplate String?    // 수익 인증 메시지 템플릿
+  // --- 포지션 진입/종료 타이밍 템플릿 (Teledit 동기화 필수) ---
+  // 추가 필드: teleditPreEntryTemplate, teleditPostEntry1Template, teleditPostEntry2Template,
+  //   teleditPostEntry3Template, teleditPreCloseTemplate, teleditPostClose1Template,
+  //   teleditPostClose2Template, teleditPostClose3Template
+  teleditPreEntryTemplate   String?    // 진입 N~N1분 전
+  teleditPostEntry1Template String?    // 진입 N분 후 1
+  teleditPostEntry2Template String?    // 진입 N분 후 2
+  teleditPostEntry3Template String?    // 진입 N분 후 3
+  teleditPreCloseTemplate   String?    // 종료 N~N1분 전
+  teleditPostClose1Template String?    // 종료 N분 후 1
+  teleditPostClose2Template String?    // 종료 N분 후 2
+  teleditPostClose3Template String?    // 종료 N분 후 3
   createdAt         DateTime   @default(now())
   positions         Position[]
   telegramAccount   TelegramAccount?

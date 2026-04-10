@@ -5,11 +5,10 @@ import { signOut } from 'next-auth/react'
 
 interface NavBarProps {
   session: any
-  onSettingsClick: () => void
   onLogout: () => void
 }
 
-export default function NavBar({ session, onSettingsClick, onLogout }: NavBarProps) {
+export default function NavBar({ session, onLogout }: NavBarProps) {
   const router = useRouter()
 
   return (
@@ -35,7 +34,7 @@ export default function NavBar({ session, onSettingsClick, onLogout }: NavBarPro
           </span>
         </div>
         <button
-          onClick={onSettingsClick}
+          onClick={() => router.push('/settings')}
           title="Teledit 설정"
           className="text-binance-text-dim hover:text-binance-yellow transition-colors"
         >

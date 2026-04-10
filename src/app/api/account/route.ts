@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   const data = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true, teleditApiUrl: true, teleditEmail: true, teleditPassword: true, teleditCloseTemplate: true, teleditProfitTemplate: true, createdAt: true },
+    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true, teleditApiUrl: true, teleditEmail: true, teleditPassword: true, teleditCloseTemplate: true, teleditProfitTemplate: true, teleditPreEntryTemplate: true, teleditPostEntry1Template: true, teleditPostEntry2Template: true, teleditPostEntry3Template: true, teleditPreCloseTemplate: true, teleditPostClose1Template: true, teleditPostClose2Template: true, teleditPostClose3Template: true, createdAt: true },
   })
 
   if (!data) {
@@ -30,7 +30,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { email, name, currentPassword, newPassword, teledditTemplate, teleditApiUrl, teleditEmail, teleditPassword, teleditCloseTemplate, teleditProfitTemplate } = body
+  const { email, name, currentPassword, newPassword, teledditTemplate, teleditApiUrl, teleditEmail, teleditPassword, teleditCloseTemplate, teleditProfitTemplate, teleditPreEntryTemplate, teleditPostEntry1Template, teleditPostEntry2Template, teleditPostEntry3Template, teleditPreCloseTemplate, teleditPostClose1Template, teleditPostClose2Template, teleditPostClose3Template } = body
 
   const user = await prisma.user.findUnique({ where: { id: authUser.id } })
   if (!user) {
@@ -86,6 +86,16 @@ export async function PATCH(request: NextRequest) {
   if (teleditCloseTemplate !== undefined) updateData.teleditCloseTemplate = teleditCloseTemplate || null
   if (teleditProfitTemplate !== undefined) updateData.teleditProfitTemplate = teleditProfitTemplate || null
 
+  // 포지션 진입/종료 타이밍 템플릿 변경
+  if (teleditPreEntryTemplate !== undefined) updateData.teleditPreEntryTemplate = teleditPreEntryTemplate || null
+  if (teleditPostEntry1Template !== undefined) updateData.teleditPostEntry1Template = teleditPostEntry1Template || null
+  if (teleditPostEntry2Template !== undefined) updateData.teleditPostEntry2Template = teleditPostEntry2Template || null
+  if (teleditPostEntry3Template !== undefined) updateData.teleditPostEntry3Template = teleditPostEntry3Template || null
+  if (teleditPreCloseTemplate !== undefined) updateData.teleditPreCloseTemplate = teleditPreCloseTemplate || null
+  if (teleditPostClose1Template !== undefined) updateData.teleditPostClose1Template = teleditPostClose1Template || null
+  if (teleditPostClose2Template !== undefined) updateData.teleditPostClose2Template = teleditPostClose2Template || null
+  if (teleditPostClose3Template !== undefined) updateData.teleditPostClose3Template = teleditPostClose3Template || null
+
   if (Object.keys(updateData).length === 0) {
     return NextResponse.json({ error: '변경할 내용이 없습니다.' }, { status: 400 })
   }
@@ -93,7 +103,7 @@ export async function PATCH(request: NextRequest) {
   const updated = await prisma.user.update({
     where: { id: authUser.id },
     data: updateData,
-    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true, teleditApiUrl: true, teleditEmail: true, teleditPassword: true, teleditCloseTemplate: true, teleditProfitTemplate: true },
+    select: { id: true, email: true, name: true, role: true, status: true, teledditTemplate: true, teleditApiUrl: true, teleditEmail: true, teleditPassword: true, teleditCloseTemplate: true, teleditProfitTemplate: true, teleditPreEntryTemplate: true, teleditPostEntry1Template: true, teleditPostEntry2Template: true, teleditPostEntry3Template: true, teleditPreCloseTemplate: true, teleditPostClose1Template: true, teleditPostClose2Template: true, teleditPostClose3Template: true },
   })
 
   return NextResponse.json({ ...updated, message: '계정 정보가 수정되었습니다.' })
