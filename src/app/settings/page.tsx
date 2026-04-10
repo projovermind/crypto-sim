@@ -17,34 +17,31 @@ type TabKey = 'account' | 'teledit'
 
 // ─── TimingRow: inline timing min/max input ───────────────────
 function TimingRow({
-  label,
+  prefix, suffix,
   minVal, onMin,
   maxVal, onMax,
-  unit,
 }: {
-  label: string
+  prefix: string
+  suffix?: string
   minVal: number; onMin: (v: number) => void
   maxVal: number; onMax: (v: number) => void
-  unit: string
 }) {
   return (
     <div className="mb-3 px-3 py-2.5 bg-binance-bg rounded border border-binance-border/50">
-      <p className="text-[10px] font-medium text-binance-text-dim mb-2">{label}</p>
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-binance-text-dim">최소</span>
+      <div className="flex items-center gap-1.5 text-[11px] text-binance-text-dim">
+        <span>{prefix}{suffix ? ` ${suffix}` : ''}</span>
         <input
           type="number" min={0} value={minVal}
           onChange={e => onMin(Number(e.target.value))}
           className={timingInputCls}
         />
-        <span className="text-[10px] text-binance-text-dim">초 ~</span>
-        <span className="text-[10px] text-binance-text-dim">최대</span>
+        <span>초 ~</span>
         <input
           type="number" min={0} value={maxVal}
           onChange={e => onMax(Number(e.target.value))}
           className={timingInputCls}
         />
-        <span className="text-[10px] text-binance-text-dim">{unit}</span>
+        <span>초 사이 난수로 발송</span>
       </div>
     </div>
   )
@@ -291,10 +288,9 @@ export default function SettingsPage() {
                   {/* 1) 포지션 진입 전 */}
                   <MessageCard title="포지션 진입 전" accent="green">
                     <TimingRow
-                      label="발송 타이밍 (진입 N~N초 전)"
+                      prefix="진입" suffix="전"
                       minVal={s.preEntryMinSec} onMin={s.setPreEntryMinSec}
                       maxVal={s.preEntryMaxSec} onMax={s.setPreEntryMaxSec}
-                      unit="초 전"
                     />
                     <TemplateSection
                       title="템플릿"
@@ -308,10 +304,10 @@ export default function SettingsPage() {
                     />
                   </MessageCard>
 
-                  {/* 2) 포지션 진입 — LONG */}
-                  <MessageCard title="포지션 진입 — LONG" accent="green">
+                  {/* 2) 포지션 진입 (LONG + SHORT 통합) */}
+                  <MessageCard title="포지션 진입" accent="green">
                     <TemplateSection
-                      title="템플릿"
+                      title="LONG"
                       templateKey="teledditLongTemplate"
                       value={s.templates.teledditLongTemplate}
                       onChange={s.updateTemplate}
@@ -320,12 +316,9 @@ export default function SettingsPage() {
                       enabled={s.templateEnabled.teledditLongTemplate}
                       onToggleEnabled={s.updateEnabled}
                     />
-                  </MessageCard>
-
-                  {/* 3) 포지션 진입 — SHORT */}
-                  <MessageCard title="포지션 진입 — SHORT" accent="green">
+                    <div className="my-3 border-t border-binance-border/40" />
                     <TemplateSection
-                      title="템플릿"
+                      title="SHORT"
                       templateKey="teledditShortTemplate"
                       value={s.templates.teledditShortTemplate}
                       onChange={s.updateTemplate}
@@ -339,10 +332,9 @@ export default function SettingsPage() {
                   {/* 4) 포지션 진입 후 */}
                   <MessageCard title="포지션 진입 후" accent="green">
                     <TimingRow
-                      label="발송 타이밍 (진입 후 N~N초)"
+                      prefix="진입 후"
                       minVal={s.postEntryMinSec} onMin={s.setPostEntryMinSec}
                       maxVal={s.postEntryMaxSec} onMax={s.setPostEntryMaxSec}
-                      unit="초 후"
                     />
                     <TemplateSection
                       title="템플릿"
@@ -359,10 +351,9 @@ export default function SettingsPage() {
                   {/* 5) 포지션 종료 전 */}
                   <MessageCard title="포지션 종료 전" accent="red">
                     <TimingRow
-                      label="발송 타이밍 (종료 N~N초 전)"
+                      prefix="종료" suffix="전"
                       minVal={s.preCloseMinSec} onMin={s.setPreCloseMinSec}
                       maxVal={s.preCloseMaxSec} onMax={s.setPreCloseMaxSec}
-                      unit="초 전"
                     />
                     <TemplateSection
                       title="템플릿"
@@ -411,10 +402,9 @@ export default function SettingsPage() {
                   {/* 8) 수익 인증 2 */}
                   <MessageCard title="수익 인증 2" accent="yellow">
                     <TimingRow
-                      label="발송 타이밍 (수익인증 1 이후 N~N초)"
+                      prefix="수익인증 1 이후"
                       minVal={s.profit2MinSec} onMin={s.setProfit2MinSec}
                       maxVal={s.profit2MaxSec} onMax={s.setProfit2MaxSec}
-                      unit="초 후"
                     />
                     <TemplateSection
                       title="템플릿"
