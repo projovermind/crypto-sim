@@ -3,12 +3,23 @@ import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { applySlippage, applyLimitSlippage, calculateFee, TAKER_FEE_RATE } from '@/lib/calculations'
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+// CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
+}
+
 // GET /api/positions - 내 포지션 목록
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request)
     if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401, headers: CORS_HEADERS })
     }
 
     const { searchParams } = new URL(request.url)
@@ -26,10 +37,10 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     })
 
-    return NextResponse.json(positions)
+    return NextResponse.json(positions, { headers: CORS_HEADERS })
   } catch (error) {
     console.error('GET /api/positions error:', error)
-    return NextResponse.json({ error: '포지션 조회 중 오류가 발생했습니다.' }, { status: 500 })
+    return NextResponse.json({ error: '포지션 조회 중 오류가 발생했습니다.' }, { status: 500, headers: CORS_HEADERS })
   }
 }
 
