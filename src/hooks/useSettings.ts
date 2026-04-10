@@ -36,10 +36,12 @@ export const DEFAULT_ENABLED: Record<TemplateKey, boolean> = {
 // ─── Mock data for preview ────────────────────────────────────
 export const MOCK_ENTRY = {
   symbol: 'BTCUSDT', side: 'LONG', leverage: 10, entryPrice: 65000, amount: 100, pnl: null, closedPrice: null,
+  inputPrice: 64800, quantity: 0.00154, marginMode: 'ISOLATED', takeProfit: 67000, stopLoss: 63000,
 } as any
 
 export const MOCK_CLOSE = {
   symbol: 'BTCUSDT', side: 'LONG', leverage: 10, entryPrice: 65000, amount: 100, pnl: 12.5, roeLive: 12.5, closedPrice: 66200,
+  inputPrice: 64800, quantity: 0.00154, marginMode: 'ISOLATED', takeProfit: 67000, stopLoss: 63000,
 } as any
 
 // ─── Template variable groups ─────────────────────────────────
@@ -65,6 +67,24 @@ export function useSettings() {
   const [teleditEmail, setTeleditEmail] = useState('')
   const [teleditPassword, setTeleditPassword] = useState('')
 
+  // Comment count settings
+  const [preEntryCommentMin, setPreEntryCommentMin] = useState(0)
+  const [preEntryCommentMax, setPreEntryCommentMax] = useState(0)
+  const [longCommentMin, setLongCommentMin] = useState(0)
+  const [longCommentMax, setLongCommentMax] = useState(0)
+  const [shortCommentMin, setShortCommentMin] = useState(0)
+  const [shortCommentMax, setShortCommentMax] = useState(0)
+  const [postEntryCommentMin, setPostEntryCommentMin] = useState(0)
+  const [postEntryCommentMax, setPostEntryCommentMax] = useState(0)
+  const [preCloseCommentMin, setPreCloseCommentMin] = useState(0)
+  const [preCloseCommentMax, setPreCloseCommentMax] = useState(0)
+  const [closeCommentMin, setCloseCommentMin] = useState(0)
+  const [closeCommentMax, setCloseCommentMax] = useState(0)
+  const [profit1CommentMin, setProfit1CommentMin] = useState(0)
+  const [profit1CommentMax, setProfit1CommentMax] = useState(0)
+  const [profit2CommentMin, setProfit2CommentMin] = useState(0)
+  const [profit2CommentMax, setProfit2CommentMax] = useState(0)
+
   // Timing settings (seconds)
   const [preEntryMinSec, setPreEntryMinSec] = useState(60)
   const [preEntryMaxSec, setPreEntryMaxSec] = useState(120)
@@ -72,6 +92,10 @@ export function useSettings() {
   const [postEntryMaxSec, setPostEntryMaxSec] = useState(60)
   const [preCloseMinSec, setPreCloseMinSec] = useState(60)
   const [preCloseMaxSec, setPreCloseMaxSec] = useState(120)
+  const [profit1MinSec, setProfit1MinSec] = useState(30)
+  const [profit1MaxSec, setProfit1MaxSec] = useState(60)
+  const [varRoundEnabled, setVarRoundEnabled] = useState(false)
+  const [varRoundDecimals, setVarRoundDecimals] = useState(2)
   const [profit2MinSec, setProfit2MinSec] = useState(30)
   const [profit2MaxSec, setProfit2MaxSec] = useState(60)
 
@@ -110,12 +134,32 @@ export function useSettings() {
         if (data.teleditApiUrl) setTeleditApiUrl(data.teleditApiUrl)
         if (data.teleditEmail) setTeleditEmail(data.teleditEmail)
         if (data.teleditPassword) setTeleditPassword(data.teleditPassword)
+        if (data.preEntryCommentMin != null) setPreEntryCommentMin(data.preEntryCommentMin)
+        if (data.preEntryCommentMax != null) setPreEntryCommentMax(data.preEntryCommentMax)
+        if (data.longCommentMin != null) setLongCommentMin(data.longCommentMin)
+        if (data.longCommentMax != null) setLongCommentMax(data.longCommentMax)
+        if (data.shortCommentMin != null) setShortCommentMin(data.shortCommentMin)
+        if (data.shortCommentMax != null) setShortCommentMax(data.shortCommentMax)
+        if (data.postEntryCommentMin != null) setPostEntryCommentMin(data.postEntryCommentMin)
+        if (data.postEntryCommentMax != null) setPostEntryCommentMax(data.postEntryCommentMax)
+        if (data.preCloseCommentMin != null) setPreCloseCommentMin(data.preCloseCommentMin)
+        if (data.preCloseCommentMax != null) setPreCloseCommentMax(data.preCloseCommentMax)
+        if (data.closeCommentMin != null) setCloseCommentMin(data.closeCommentMin)
+        if (data.closeCommentMax != null) setCloseCommentMax(data.closeCommentMax)
+        if (data.profit1CommentMin != null) setProfit1CommentMin(data.profit1CommentMin)
+        if (data.profit1CommentMax != null) setProfit1CommentMax(data.profit1CommentMax)
+        if (data.profit2CommentMin != null) setProfit2CommentMin(data.profit2CommentMin)
+        if (data.profit2CommentMax != null) setProfit2CommentMax(data.profit2CommentMax)
         if (data.preEntryMinSec != null) setPreEntryMinSec(data.preEntryMinSec)
         if (data.preEntryMaxSec != null) setPreEntryMaxSec(data.preEntryMaxSec)
         if (data.postEntryMinSec != null) setPostEntryMinSec(data.postEntryMinSec)
         if (data.postEntryMaxSec != null) setPostEntryMaxSec(data.postEntryMaxSec)
         if (data.preCloseMinSec != null) setPreCloseMinSec(data.preCloseMinSec)
         if (data.preCloseMaxSec != null) setPreCloseMaxSec(data.preCloseMaxSec)
+        if (data.profit1MinSec != null) setProfit1MinSec(data.profit1MinSec)
+        if (data.profit1MaxSec != null) setProfit1MaxSec(data.profit1MaxSec)
+        if (data.varRoundEnabled != null) setVarRoundEnabled(data.varRoundEnabled)
+        if (data.varRoundDecimals != null) setVarRoundDecimals(data.varRoundDecimals)
         if (data.profit2MinSec != null) setProfit2MinSec(data.profit2MinSec)
         if (data.profit2MaxSec != null) setProfit2MaxSec(data.profit2MaxSec)
         // Load enabled states
@@ -186,13 +230,25 @@ export function useSettings() {
           teleditApiUrl: teleditApiUrl || null,
           teleditEmail: teleditEmail || null,
           teleditPassword: teleditPassword || null,
+          preEntryCommentMin, preEntryCommentMax,
+          longCommentMin, longCommentMax,
+          shortCommentMin, shortCommentMax,
+          postEntryCommentMin, postEntryCommentMax,
+          preCloseCommentMin, preCloseCommentMax,
+          closeCommentMin, closeCommentMax,
+          profit1CommentMin, profit1CommentMax,
+          profit2CommentMin, profit2CommentMax,
           preEntryMinSec,
           preEntryMaxSec,
           postEntryMinSec,
           postEntryMaxSec,
           preCloseMinSec,
           preCloseMaxSec,
+          profit1MinSec,
+          profit1MaxSec,
           profit2MinSec,
+          varRoundEnabled,
+          varRoundDecimals,
           profit2MaxSec,
           ...templates,
           ...Object.fromEntries(
@@ -214,10 +270,20 @@ export function useSettings() {
     }
   }, [
     teleditApiUrl, teleditEmail, teleditPassword,
+    preEntryCommentMin, preEntryCommentMax,
+    longCommentMin, longCommentMax,
+    shortCommentMin, shortCommentMax,
+    postEntryCommentMin, postEntryCommentMax,
+    preCloseCommentMin, preCloseCommentMax,
+    closeCommentMin, closeCommentMax,
+    profit1CommentMin, profit1CommentMax,
+    profit2CommentMin, profit2CommentMax,
     preEntryMinSec, preEntryMaxSec,
     postEntryMinSec, postEntryMaxSec,
     preCloseMinSec, preCloseMaxSec,
+    profit1MinSec, profit1MaxSec,
     profit2MinSec, profit2MaxSec,
+    varRoundEnabled, varRoundDecimals,
     templates, templateEnabled,
   ])
 
@@ -238,6 +304,23 @@ export function useSettings() {
     // Templates
     templates, updateTemplate, resetTemplate,
     templateEnabled, updateEnabled,
+    // Comment counts
+    preEntryCommentMin, setPreEntryCommentMin,
+    preEntryCommentMax, setPreEntryCommentMax,
+    longCommentMin, setLongCommentMin,
+    longCommentMax, setLongCommentMax,
+    shortCommentMin, setShortCommentMin,
+    shortCommentMax, setShortCommentMax,
+    postEntryCommentMin, setPostEntryCommentMin,
+    postEntryCommentMax, setPostEntryCommentMax,
+    preCloseCommentMin, setPreCloseCommentMin,
+    preCloseCommentMax, setPreCloseCommentMax,
+    closeCommentMin, setCloseCommentMin,
+    closeCommentMax, setCloseCommentMax,
+    profit1CommentMin, setProfit1CommentMin,
+    profit1CommentMax, setProfit1CommentMax,
+    profit2CommentMin, setProfit2CommentMin,
+    profit2CommentMax, setProfit2CommentMax,
     // Timing
     preEntryMinSec, setPreEntryMinSec,
     preEntryMaxSec, setPreEntryMaxSec,
@@ -245,8 +328,12 @@ export function useSettings() {
     postEntryMaxSec, setPostEntryMaxSec,
     preCloseMinSec, setPreCloseMinSec,
     preCloseMaxSec, setPreCloseMaxSec,
+    profit1MinSec, setProfit1MinSec,
+    profit1MaxSec, setProfit1MaxSec,
     profit2MinSec, setProfit2MinSec,
     profit2MaxSec, setProfit2MaxSec,
+    varRoundEnabled, setVarRoundEnabled,
+    varRoundDecimals, setVarRoundDecimals,
     savingTeledit, teleditMsg,
     handleSaveTeledit,
   }

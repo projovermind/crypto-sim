@@ -67,6 +67,24 @@ model User {
   profit1MaxSec             Int        @default(60)   // 수익 인증 1 최대(초)
   profit2MinSec             Int        @default(30)   // 수익 인증 2 최소(초)
   profit2MaxSec             Int        @default(60)   // 수익 인증 2 최대(초)
+  varRoundEnabled           Boolean    @default(false) // 변수 반올림 활성화
+  varRoundDecimals          Int        @default(2)    // 변수 반올림 소수점 자릿수
+  preEntryCommentMin        Int        @default(0)
+  preEntryCommentMax        Int        @default(0)
+  longCommentMin            Int        @default(0)
+  longCommentMax            Int        @default(0)
+  shortCommentMin           Int        @default(0)
+  shortCommentMax           Int        @default(0)
+  postEntryCommentMin       Int        @default(0)
+  postEntryCommentMax       Int        @default(0)
+  preCloseCommentMin        Int        @default(0)
+  preCloseCommentMax        Int        @default(0)
+  closeCommentMin           Int        @default(0)
+  closeCommentMax           Int        @default(0)
+  profit1CommentMin         Int        @default(0)
+  profit1CommentMax         Int        @default(0)
+  profit2CommentMin         Int        @default(0)
+  profit2CommentMax         Int        @default(0)
   createdAt         DateTime   @default(now())
   positions         Position[]
   telegramAccount   TelegramAccount?

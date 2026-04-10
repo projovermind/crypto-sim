@@ -58,9 +58,18 @@ async function teleditFetch(
   return res
 }
 
-export function applyTemplate(template: string, position: PositionWithLive | Position): string {
+export function applyTemplate(
+  template: string,
+  position: PositionWithLive | Position,
+  options?: { roundEnabled?: boolean; roundDecimals?: number }
+): string {
+  const { roundEnabled = false, roundDecimals = 2 } = options ?? {}
+  const fmt = (val: number): string =>
+    roundEnabled ? val.toFixed(roundDecimals) : String(val)
+  const fmtN = (val: number | null | undefined): string =>
+    val != null ? fmt(val) : 'N/A'
+
   const roe = 'roeLive' in position && position.roeLive != null ? position.roeLive.toFixed(2) : 'N/A'
-  const closePrice = position.closedPrice != null ? String(position.closedPrice) : 'N/A'
   const pnlValue = position.pnl != null
     ? position.pnl
     : ('pnlLive' in position && position.pnlLive != null ? position.pnlLive : null)
@@ -68,11 +77,16 @@ export function applyTemplate(template: string, position: PositionWithLive | Pos
     .replace(/\{\{symbol\}\}/g, position.symbol)
     .replace(/\{\{side\}\}/g, position.side)
     .replace(/\{\{leverage\}\}/g, String(position.leverage))
-    .replace(/\{\{entryPrice\}\}/g, String(position.entryPrice))
-    .replace(/\{\{amount\}\}/g, String(position.amount))
+    .replace(/\{\{entryPrice\}\}/g, fmt(position.entryPrice))
+    .replace(/\{\{inputPrice\}\}/g, fmtN(position.inputPrice))
+    .replace(/\{\{amount\}\}/g, fmt(position.amount))
+    .replace(/\{\{quantity\}\}/g, fmt(position.quantity))
+    .replace(/\{\{marginMode\}\}/g, position.marginMode)
+    .replace(/\{\{takeProfit\}\}/g, fmtN(position.takeProfit))
+    .replace(/\{\{stopLoss\}\}/g, fmtN(position.stopLoss))
     .replace(/\{\{pnl\}\}/g, pnlValue != null ? pnlValue.toFixed(2) : 'N/A')
     .replace(/\{\{roe\}\}/g, roe)
-    .replace(/\{\{closePrice\}\}/g, closePrice)
+    .replace(/\{\{closePrice\}\}/g, fmtN(position.closedPrice))
 }
 
 // ─── Teledit Delayed Message Helper ────────────────────────
@@ -83,6 +97,7 @@ async function scheduleTeleditMessage(
   template: string,
   position: Position,
   delayMs: number,
+  formatOptions?: { roundEnabled?: boolean; roundDecimals?: number },
 ): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, delayMs))
   try {
@@ -90,7 +105,7 @@ async function scheduleTeleditMessage(
     if (!chRes.ok) return
     const channels = await chRes.json()
     if (!Array.isArray(channels) || channels.length === 0) return
-    const content = applyTemplate(template, position)
+    const content = applyTemplate(template, position, formatOptions)
     for (const channel of channels) {
       await teleditFetch(`${baseUrl}/api/telegram/overrides`, {
         method: 'POST',
@@ -200,6 +215,8 @@ export function useDashboard(): UseDashboardReturn {
   const [preEntryMaxSec, setPreEntryMaxSec] = useState(120)
   const [preCloseMinSec, setPreCloseMinSec] = useState(60)
   const [preCloseMaxSec, setPreCloseMaxSec] = useState(120)
+  const [varRoundEnabled, setVarRoundEnabled] = useState(false)
+  const [varRoundDecimals, setVarRoundDecimals] = useState(2)
 
   // Price store
   const prices = usePriceStore(s => s.prices)
@@ -307,6 +324,8 @@ export function useDashboard(): UseDashboardReturn {
       if (data.preEntryMaxSec != null) setPreEntryMaxSec(data.preEntryMaxSec)
       if (data.preCloseMinSec != null) setPreCloseMinSec(data.preCloseMinSec)
       if (data.preCloseMaxSec != null) setPreCloseMaxSec(data.preCloseMaxSec)
+      if (data.varRoundEnabled != null) setVarRoundEnabled(data.varRoundEnabled)
+      if (data.varRoundDecimals != null) setVarRoundDecimals(data.varRoundDecimals)
     }).catch(() => {})
   }, [session])
 
@@ -432,7 +451,7 @@ export function useDashboard(): UseDashboardReturn {
       if (baseUrl && teleditPreEntryTemplate && newPosition?.id) {
         const range = Math.max(0, preEntryMaxSec - preEntryMinSec)
         const delayMs = (preEntryMinSec + Math.random() * range) * 1000
-        scheduleTeleditMessage(baseUrl, teleditEmail || undefined, teleditPassword || undefined, teleditPreEntryTemplate, newPosition, delayMs)
+        scheduleTeleditMessage(baseUrl, teleditEmail || undefined, teleditPassword || undefined, teleditPreEntryTemplate, newPosition, delayMs, { roundEnabled: varRoundEnabled, roundDecimals: varRoundDecimals })
       }
     } else {
       const err = await res.json()
@@ -469,7 +488,7 @@ export function useDashboard(): UseDashboardReturn {
       if (baseUrl && positionSnap && teleditPreCloseTemplate) {
         const range = Math.max(0, preCloseMaxSec - preCloseMinSec)
         const delayMs = (preCloseMinSec + Math.random() * range) * 1000
-        scheduleTeleditMessage(baseUrl, teleditEmail || undefined, teleditPassword || undefined, teleditPreCloseTemplate, positionSnap, delayMs)
+        scheduleTeleditMessage(baseUrl, teleditEmail || undefined, teleditPassword || undefined, teleditPreCloseTemplate, positionSnap, delayMs, { roundEnabled: varRoundEnabled, roundDecimals: varRoundDecimals })
       }
     } else {
       const err = await res.json()
@@ -569,7 +588,7 @@ export function useDashboard(): UseDashboardReturn {
       if (!channelId) throw new Error('연결된 텔레그램 채널이 없습니다.')
 
       if (checked) {
-        const content = applyTemplate(teledditTemplate, position)
+        const content = applyTemplate(teledditTemplate, position, { roundEnabled: varRoundEnabled, roundDecimals: varRoundDecimals })
         const res = await teleditFetch(`${baseUrl}/api/telegram/overrides`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

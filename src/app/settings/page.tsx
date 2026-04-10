@@ -47,6 +47,40 @@ function TimingRow({
   )
 }
 
+const commentInputCls =
+  'w-14 bg-binance-bg border border-binance-border rounded px-2 py-1 text-xs text-binance-text text-center focus:outline-none focus:border-binance-yellow/50'
+
+// ─── CommentRow: comment count min/max input ─────────────────
+function CommentRow({
+  minVal, onMin,
+  maxVal, onMax,
+}: {
+  minVal: number; onMin: (v: number) => void
+  maxVal: number; onMax: (v: number) => void
+}) {
+  const isEmpty = minVal === 0 && maxVal === 0
+  return (
+    <div className="mb-3 px-3 py-2.5 bg-binance-bg rounded border border-binance-border/50">
+      <div className="flex items-center gap-1.5 text-[11px] text-binance-text-dim">
+        <span>댓글</span>
+        <input
+          type="number" min={0} value={minVal}
+          onChange={e => onMin(Number(e.target.value))}
+          className={commentInputCls}
+        />
+        <span>개 ~</span>
+        <input
+          type="number" min={0} value={maxVal}
+          onChange={e => onMax(Number(e.target.value))}
+          className={commentInputCls}
+        />
+        <span>개</span>
+        {isEmpty && <span className="text-binance-text-dim/50">(댓글 없음)</span>}
+      </div>
+    </div>
+  )
+}
+
 // ─── MessageCard: wrapper for each template card ─────────────
 function MessageCard({ children, title, accent }: {
   children: React.ReactNode
@@ -72,15 +106,32 @@ const ALL_VARS: { key: string; desc: string }[] = [
   { key: 'symbol',     desc: '코인명' },
   { key: 'side',       desc: 'LONG/SHORT' },
   { key: 'leverage',   desc: '레버리지' },
-  { key: 'entryPrice', desc: '진입가' },
+  { key: 'entryPrice', desc: '체결가' },
+  { key: 'inputPrice', desc: '입력가' },
   { key: 'amount',     desc: '투자금' },
+  { key: 'quantity',   desc: '수량' },
+  { key: 'marginMode', desc: '마진모드' },
+  { key: 'takeProfit', desc: 'TP' },
+  { key: 'stopLoss',   desc: 'SL' },
   { key: 'closePrice', desc: '청산가' },
   { key: 'pnl',        desc: '손익 USDT' },
   { key: 'roe',        desc: '수익률 %' },
 ]
 
-function VarReferencePanel() {
+function VarReferencePanel({
+  roundEnabled,
+  onRoundEnabled,
+  roundDecimals,
+  onRoundDecimals,
+}: {
+  roundEnabled: boolean
+  onRoundEnabled: (v: boolean) => void
+  roundDecimals: number
+  onRoundDecimals: (v: number) => void
+}) {
   const [copied, setCopied] = useState<string | null>(null)
+  const EXAMPLE_RAW = 65432.12345
+  const exampleFormatted = roundEnabled ? EXAMPLE_RAW.toFixed(roundDecimals) : String(EXAMPLE_RAW)
 
   const handleCopy = (v: string) => {
     navigator.clipboard.writeText(`{{${v}}}`).then(() => {
@@ -94,6 +145,39 @@ function VarReferencePanel() {
       <div className="px-3 py-2 bg-binance-card border-b border-binance-border">
         <p className="font-semibold text-binance-text text-[11px]">변수 레퍼런스</p>
         <p className="text-binance-text-dim/70 mt-0.5">클릭하면 복사됩니다</p>
+      </div>
+
+      {/* ── 숫자 포맷 섹션 ── */}
+      <div className="px-3 py-2.5 bg-binance-bg border-b border-binance-border space-y-2">
+        <p className="font-medium text-binance-text text-[10px]">숫자 포맷</p>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={roundEnabled}
+            onChange={e => onRoundEnabled(e.target.checked)}
+            className="w-3 h-3 rounded accent-binance-yellow cursor-pointer"
+          />
+          <span className="text-binance-text-dim">반올림 활성화</span>
+        </label>
+        {roundEnabled && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-binance-text-dim">소수점</span>
+            <input
+              type="number"
+              min={0} max={8}
+              value={roundDecimals}
+              onChange={e => onRoundDecimals(Math.min(8, Math.max(0, Number(e.target.value))))}
+              className="w-10 bg-binance-card border border-binance-border rounded px-1.5 py-0.5 text-[10px] text-binance-text text-center focus:outline-none focus:border-binance-yellow/50"
+            />
+            <span className="text-binance-text-dim">자리</span>
+          </div>
+        )}
+        <p className="text-binance-text-dim/60">
+          예시:{' '}
+          <code className="text-binance-text-dim">{EXAMPLE_RAW}</code>
+          {' → '}
+          <code className="text-binance-yellow">{exampleFormatted}</code>
+        </p>
       </div>
       <div className="divide-y divide-binance-border/30">
         {ALL_VARS.map(({ key, desc }) => {
@@ -292,6 +376,10 @@ export default function SettingsPage() {
                       minVal={s.preEntryMinSec} onMin={s.setPreEntryMinSec}
                       maxVal={s.preEntryMaxSec} onMax={s.setPreEntryMaxSec}
                     />
+                    <CommentRow
+                      minVal={s.preEntryCommentMin} onMin={s.setPreEntryCommentMin}
+                      maxVal={s.preEntryCommentMax} onMax={s.setPreEntryCommentMax}
+                    />
                     <TemplateSection
                       title="템플릿"
                       templateKey="teleditPreEntryTemplate"
@@ -316,6 +404,10 @@ export default function SettingsPage() {
                       enabled={s.templateEnabled.teledditLongTemplate}
                       onToggleEnabled={s.updateEnabled}
                     />
+                    <CommentRow
+                      minVal={s.longCommentMin} onMin={s.setLongCommentMin}
+                      maxVal={s.longCommentMax} onMax={s.setLongCommentMax}
+                    />
                     <div className="my-3 border-t border-binance-border/40" />
                     <TemplateSection
                       title="SHORT"
@@ -327,6 +419,10 @@ export default function SettingsPage() {
                       enabled={s.templateEnabled.teledditShortTemplate}
                       onToggleEnabled={s.updateEnabled}
                     />
+                    <CommentRow
+                      minVal={s.shortCommentMin} onMin={s.setShortCommentMin}
+                      maxVal={s.shortCommentMax} onMax={s.setShortCommentMax}
+                    />
                   </MessageCard>
 
                   {/* 4) 포지션 진입 후 */}
@@ -335,6 +431,10 @@ export default function SettingsPage() {
                       prefix="진입 후"
                       minVal={s.postEntryMinSec} onMin={s.setPostEntryMinSec}
                       maxVal={s.postEntryMaxSec} onMax={s.setPostEntryMaxSec}
+                    />
+                    <CommentRow
+                      minVal={s.postEntryCommentMin} onMin={s.setPostEntryCommentMin}
+                      maxVal={s.postEntryCommentMax} onMax={s.setPostEntryCommentMax}
                     />
                     <TemplateSection
                       title="템플릿"
@@ -355,6 +455,10 @@ export default function SettingsPage() {
                       minVal={s.preCloseMinSec} onMin={s.setPreCloseMinSec}
                       maxVal={s.preCloseMaxSec} onMax={s.setPreCloseMaxSec}
                     />
+                    <CommentRow
+                      minVal={s.preCloseCommentMin} onMin={s.setPreCloseCommentMin}
+                      maxVal={s.preCloseCommentMax} onMax={s.setPreCloseCommentMax}
+                    />
                     <TemplateSection
                       title="템플릿"
                       templateKey="teleditPreCloseTemplate"
@@ -369,6 +473,10 @@ export default function SettingsPage() {
 
                   {/* 6) 포지션 종료 */}
                   <MessageCard title="포지션 종료" accent="red">
+                    <CommentRow
+                      minVal={s.closeCommentMin} onMin={s.setCloseCommentMin}
+                      maxVal={s.closeCommentMax} onMax={s.setCloseCommentMax}
+                    />
                     <TemplateSection
                       title="템플릿"
                       templateKey="teleditCloseTemplate"
@@ -383,6 +491,15 @@ export default function SettingsPage() {
 
                   {/* 7) 수익 인증 1 (자동 생성) */}
                   <MessageCard title="수익 인증 1" accent="yellow">
+                    <TimingRow
+                      prefix="종료 후"
+                      minVal={s.profit1MinSec} onMin={s.setProfit1MinSec}
+                      maxVal={s.profit1MaxSec} onMax={s.setProfit1MaxSec}
+                    />
+                    <CommentRow
+                      minVal={s.profit1CommentMin} onMin={s.setProfit1CommentMin}
+                      maxVal={s.profit1CommentMax} onMax={s.setProfit1CommentMax}
+                    />
                     <div className="flex items-center gap-2 mb-2.5">
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-binance-border/60 text-binance-text-dim">자동 생성</span>
                     </div>
@@ -405,6 +522,10 @@ export default function SettingsPage() {
                       prefix="수익인증 1 이후"
                       minVal={s.profit2MinSec} onMin={s.setProfit2MinSec}
                       maxVal={s.profit2MaxSec} onMax={s.setProfit2MaxSec}
+                    />
+                    <CommentRow
+                      minVal={s.profit2CommentMin} onMin={s.setProfit2CommentMin}
+                      maxVal={s.profit2CommentMax} onMax={s.setProfit2CommentMax}
                     />
                     <TemplateSection
                       title="템플릿"
@@ -439,7 +560,12 @@ export default function SettingsPage() {
                 </div>{/* end left */}
                 {/* ── Right: variable reference panel ── */}
                 <div className="w-[220px] shrink-0 sticky top-6">
-                  <VarReferencePanel />
+                  <VarReferencePanel
+                    roundEnabled={s.varRoundEnabled}
+                    onRoundEnabled={s.setVarRoundEnabled}
+                    roundDecimals={s.varRoundDecimals}
+                    onRoundDecimals={s.setVarRoundDecimals}
+                  />
                 </div>
                 </div>{/* end flex */}
               </div>
