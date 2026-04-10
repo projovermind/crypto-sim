@@ -55,6 +55,12 @@ export function useSettings() {
   const [teleditEmail, setTeleditEmail] = useState('')
   const [teleditPassword, setTeleditPassword] = useState('')
 
+  // Timing settings (seconds)
+  const [preEntryMinSec, setPreEntryMinSec] = useState(60)
+  const [preEntryMaxSec, setPreEntryMaxSec] = useState(120)
+  const [preCloseMinSec, setPreCloseMinSec] = useState(60)
+  const [preCloseMaxSec, setPreCloseMaxSec] = useState(120)
+
   // Templates
   const [templates, setTemplates] = useState<Record<TemplateKey, string>>({ ...DEFAULT_TEMPLATES })
   const [savingTeledit, setSavingTeledit] = useState(false)
@@ -90,6 +96,10 @@ export function useSettings() {
         if (data.teleditApiUrl) setTeleditApiUrl(data.teleditApiUrl)
         if (data.teleditEmail) setTeleditEmail(data.teleditEmail)
         if (data.teleditPassword) setTeleditPassword(data.teleditPassword)
+        if (data.preEntryMinSec != null) setPreEntryMinSec(data.preEntryMinSec)
+        if (data.preEntryMaxSec != null) setPreEntryMaxSec(data.preEntryMaxSec)
+        if (data.preCloseMinSec != null) setPreCloseMinSec(data.preCloseMinSec)
+        if (data.preCloseMaxSec != null) setPreCloseMaxSec(data.preCloseMaxSec)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -146,6 +156,10 @@ export function useSettings() {
           teleditApiUrl: teleditApiUrl || null,
           teleditEmail: teleditEmail || null,
           teleditPassword: teleditPassword || null,
+          preEntryMinSec,
+          preEntryMaxSec,
+          preCloseMinSec,
+          preCloseMaxSec,
           ...templates,
         }),
       })
@@ -178,6 +192,11 @@ export function useSettings() {
     teleditPassword, setTeleditPassword,
     // Templates
     templates, updateTemplate, resetTemplate,
+    // Timing
+    preEntryMinSec, setPreEntryMinSec,
+    preEntryMaxSec, setPreEntryMaxSec,
+    preCloseMinSec, setPreCloseMinSec,
+    preCloseMaxSec, setPreCloseMaxSec,
     savingTeledit, teleditMsg,
     handleSaveTeledit,
   }

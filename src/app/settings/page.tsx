@@ -182,8 +182,33 @@ export default function SettingsPage() {
                     <h3 className="text-xs font-bold text-binance-text">포지션 진입 시</h3>
                   </div>
                   <div className="space-y-4">
+                    {/* 진입 전 발송 타이밍 */}
+                    <div>
+                      <p className="text-[11px] font-medium text-binance-text-dim mb-2">진입 전 발송 타이밍</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-binance-text-dim">최소</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={s.preEntryMinSec}
+                          onChange={e => s.setPreEntryMinSec(Number(e.target.value))}
+                          className="w-20 bg-binance-bg border border-binance-border rounded px-2 py-1.5 text-xs text-binance-text text-center focus:outline-none focus:border-binance-yellow/50"
+                        />
+                        <span className="text-[11px] text-binance-text-dim">초 ~</span>
+                        <span className="text-[11px] text-binance-text-dim">최대</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={s.preEntryMaxSec}
+                          onChange={e => s.setPreEntryMaxSec(Number(e.target.value))}
+                          className="w-20 bg-binance-bg border border-binance-border rounded px-2 py-1.5 text-xs text-binance-text text-center focus:outline-none focus:border-binance-yellow/50"
+                        />
+                        <span className="text-[11px] text-binance-text-dim">초 전</span>
+                      </div>
+                    </div>
+                    <div className="border-t border-binance-border" />
                     <TemplateSection
-                      title="진입 N~N1분 전"
+                      title="진입 N~N1초 전"
                       templateKey="teleditPreEntryTemplate"
                       value={s.templates.teleditPreEntryTemplate}
                       onChange={s.updateTemplate}
@@ -234,8 +259,33 @@ export default function SettingsPage() {
                     <h3 className="text-xs font-bold text-binance-text">포지션 종료 시</h3>
                   </div>
                   <div className="space-y-4">
+                    {/* 종료 전 발송 타이밍 */}
+                    <div>
+                      <p className="text-[11px] font-medium text-binance-text-dim mb-2">종료 전 발송 타이밍</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-binance-text-dim">최소</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={s.preCloseMinSec}
+                          onChange={e => s.setPreCloseMinSec(Number(e.target.value))}
+                          className="w-20 bg-binance-bg border border-binance-border rounded px-2 py-1.5 text-xs text-binance-text text-center focus:outline-none focus:border-binance-yellow/50"
+                        />
+                        <span className="text-[11px] text-binance-text-dim">초 ~</span>
+                        <span className="text-[11px] text-binance-text-dim">최대</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={s.preCloseMaxSec}
+                          onChange={e => s.setPreCloseMaxSec(Number(e.target.value))}
+                          className="w-20 bg-binance-bg border border-binance-border rounded px-2 py-1.5 text-xs text-binance-text text-center focus:outline-none focus:border-binance-yellow/50"
+                        />
+                        <span className="text-[11px] text-binance-text-dim">초 전</span>
+                      </div>
+                    </div>
+                    <div className="border-t border-binance-border" />
                     <TemplateSection
-                      title="종료 N~N1분 전"
+                      title="종료 N~N1초 전"
                       templateKey="teleditPreCloseTemplate"
                       value={s.templates.teleditPreCloseTemplate}
                       onChange={s.updateTemplate}

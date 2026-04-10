@@ -6,6 +6,43 @@ import { MOCK_ENTRY, MOCK_CLOSE, ENTRY_VARS, CLOSE_VARS, DEFAULT_TEMPLATES, Temp
 const textareaCls =
   'w-full bg-binance-bg border border-binance-border rounded px-3 py-2 text-xs text-binance-text resize-none focus:outline-none focus:border-binance-yellow'
 
+// ─── Variable descriptions ──────────────────────────────────────
+const VAR_DESCRIPTIONS: Record<string, string> = {
+  symbol: '코인명',
+  side: '방향(LONG/SHORT)',
+  leverage: '레버리지',
+  entryPrice: '진입가',
+  amount: '수량',
+  closePrice: '청산가',
+  pnl: '손익(USDT)',
+  roe: '수익률(%)',
+}
+
+// ─── VarTable: two-column variable reference ────────────────────
+function VarTable({ vars }: { vars: string[] }) {
+  return (
+    <table className="w-full text-[10px] border-collapse mb-1.5">
+      <thead>
+        <tr className="border-b border-binance-border">
+          <th className="text-left py-0.5 pr-2 text-binance-text-dim font-medium w-1/3">변수명</th>
+          <th className="text-left py-0.5 text-binance-text-dim font-medium">설명</th>
+        </tr>
+      </thead>
+      <tbody>
+        {vars.map(v => (
+          <tr key={v} className="border-b border-binance-border/40 last:border-0">
+            <td className="py-0.5 pr-2">
+              <code className="text-binance-yellow">{`{{${v}}}`}</code>
+            </td>
+            <td className="py-0.5 text-binance-text-dim">{VAR_DESCRIPTIONS[v] ?? v}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+// ─── TemplateSection ────────────────────────────────────────────
 interface TemplateSectionProps {
   title: string
   templateKey: TemplateKey
@@ -38,14 +75,7 @@ export default function TemplateSection({
           기본값
         </button>
       </div>
-      <p className="text-[11px] text-binance-text-dim mb-1.5">
-        {vars.map((v, i) => (
-          <span key={v}>
-            <code className="text-binance-yellow">{`{{${v}}}`}</code>
-            {i < vars.length - 1 ? ', ' : ''}
-          </span>
-        ))}
-      </p>
+      <VarTable vars={vars} />
       <textarea
         value={value}
         onChange={e => onChange(templateKey, e.target.value)}

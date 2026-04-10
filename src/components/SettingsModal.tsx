@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { applyTemplate, DEFAULT_TEMPLATE, DEFAULT_CLOSE_TEMPLATE, DEFAULT_PROFIT_TEMPLATE } from '@/hooks/useDashboard'
+import ProfitCard from '@/components/ProfitCard'
+import type { PositionWithLive } from '@/types'
 
 interface SettingsModalProps {
   showSettings: boolean
@@ -43,6 +45,19 @@ interface SettingsModalProps {
 const MOCK_ENTRY = { symbol: 'BTCUSDT', side: 'LONG', leverage: 10, entryPrice: 65000, amount: 100, pnl: null, closedPrice: null } as any
 const MOCK_CLOSE = { symbol: 'BTCUSDT', side: 'LONG', leverage: 10, entryPrice: 65000, amount: 100, pnl: 12.5, roeLive: 12.5, closedPrice: 66200 } as any
 const MOCK_PROFIT = { symbol: 'BTCUSDT', side: 'LONG', leverage: 10, entryPrice: 65000, amount: 100, pnl: 12.5, roeLive: 12.5, closedPrice: 66200 } as any
+
+const MOCK_PROFIT_POSITION: PositionWithLive = {
+  id: 'mock', userId: 'mock',
+  symbol: 'BTCUSDT', side: 'LONG', leverage: 10,
+  entryPrice: 65000, amount: 100, quantity: 100 / 65000,
+  marginMode: 'CROSS', orderType: 'MARKET', entryFee: 0,
+  takeProfit: null, stopLoss: null,
+  status: 'CLOSED_TP', deletedAt: null, closedAt: null,
+  closedPrice: 66200, pnl: 12.5,
+  entryTime: '', createdAt: '', updatedAt: '',
+  currentPrice: 66200, pnlLive: 12.5, roeLive: 1.92,
+  liquidationPrice: 58500, hitTP: false, hitSL: false,
+}
 
 const inputCls = 'w-full bg-binance-bg border border-binance-border rounded px-3 py-2 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50'
 const textareaCls = 'w-full bg-binance-bg border border-binance-border rounded px-3 py-2 text-xs text-binance-text resize-none focus:outline-none focus:border-binance-yellow'
@@ -281,6 +296,20 @@ export default function SettingsModal({
                 defaultValue={DEFAULT_PROFIT_TEMPLATE}
                 mock={MOCK_PROFIT}
               />
+
+              {/* 수익 인증 카드 미리보기 */}
+              <div>
+                <p className="text-[11px] text-binance-text-dim mb-2">카드 미리보기</p>
+                <div style={{ width: 217, height: 300, overflow: 'hidden', borderRadius: 7 }}>
+                  <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left' }}>
+                    <ProfitCard
+                      position={MOCK_PROFIT_POSITION}
+                      bgIndex={0}
+                      hideProfit={false}
+                    />
+                  </div>
+                </div>
+              </div>
 
               {/* 저장 버튼 */}
               <div className="flex items-center justify-between pt-1">

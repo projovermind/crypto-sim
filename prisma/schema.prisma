@@ -35,6 +35,10 @@ model User {
   teleditPostClose1Template String?    // 종료 N분 후 1
   teleditPostClose2Template String?    // 종료 N분 후 2
   teleditPostClose3Template String?    // 종료 N분 후 3
+  preEntryMinSec    Int        @default(60)   // 진입 전 알림 최소(초)
+  preEntryMaxSec    Int        @default(120)  // 진입 전 알림 최대(초)
+  preCloseMinSec    Int        @default(60)   // 종료 전 알림 최소(초)
+  preCloseMaxSec    Int        @default(120)  // 종료 전 알림 최대(초)
   createdAt         DateTime   @default(now())
   positions         Position[]
   telegramAccount   TelegramAccount?
