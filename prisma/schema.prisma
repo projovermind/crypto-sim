@@ -63,6 +63,8 @@ model User {
   // --- 수익 인증 2번째 메시지 ---
   teleditProfitTemplate2    String?    // 수익 인증 2 템플릿
   teleditProfit2Enabled     Boolean    @default(true)  // 수익 인증 2 활성화
+  profit1MinSec             Int        @default(30)   // 수익 인증 1 최소(초)
+  profit1MaxSec             Int        @default(60)   // 수익 인증 1 최대(초)
   profit2MinSec             Int        @default(30)   // 수익 인증 2 최소(초)
   profit2MaxSec             Int        @default(60)   // 수익 인증 2 최대(초)
   createdAt         DateTime   @default(now())
