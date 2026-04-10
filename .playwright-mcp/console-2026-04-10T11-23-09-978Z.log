@@ -1,0 +1,5 @@
+[     490ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://crypto-sim-nu.vercel.app/favicon.ico:0
+[     526ms] [LOG] [WS] Binance WebSocket connected @ https://crypto-sim-nu.vercel.app/_next/static/chunks/115-44083bfdecfc7585.js?dpl=dpl_79Y8vygzwuh7fomyjs5ZzSeTmGF1:0
+[     812ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://crypto-sim-nu.vercel.app/login:0
+[    2848ms] [LOG] [WS] Disconnected, reconnecting in 3s... @ https://crypto-sim-nu.vercel.app/_next/static/chunks/115-44083bfdecfc7585.js?dpl=dpl_79Y8vygzwuh7fomyjs5ZzSeTmGF1:0
+[   10116ms] [LOG] [WS] Binance WebSocket connected @ https://crypto-sim-nu.vercel.app/_next/static/chunks/115-44083bfdecfc7585.js?dpl=dpl_79Y8vygzwuh7fomyjs5ZzSeTmGF1:0

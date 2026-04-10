@@ -64,14 +64,14 @@ function CommentRow({
       <div className="flex items-center gap-1.5 text-[11px] text-binance-text-dim">
         <span>댓글</span>
         <input
-          type="number" min={0} value={minVal}
-          onChange={e => onMin(Number(e.target.value))}
+          type="number" min={0} max={110} value={minVal}
+          onChange={e => onMin(Math.min(Number(e.target.value), 110))}
           className={commentInputCls}
         />
         <span>개 ~</span>
         <input
-          type="number" min={0} value={maxVal}
-          onChange={e => onMax(Number(e.target.value))}
+          type="number" min={0} max={110} value={maxVal}
+          onChange={e => onMax(Math.min(Number(e.target.value), 110))}
           className={commentInputCls}
         />
         <span>개</span>

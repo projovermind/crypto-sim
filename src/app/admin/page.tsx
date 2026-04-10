@@ -14,13 +14,40 @@ interface UserItem {
   _count: { positions: number }
 }
 
+type CommentType = 'preEntry' | 'long' | 'short' | 'postEntry' | 'preClose' | 'close' | 'profit1' | 'profit2'
+
+interface CommentItem {
+  id: string
+  type: string
+  content: string
+  createdAt: string
+}
+
+const COMMENT_TYPES: { value: CommentType; label: string }[] = [
+  { value: 'preEntry', label: '진입 전' },
+  { value: 'long', label: '롱' },
+  { value: 'short', label: '숏' },
+  { value: 'postEntry', label: '진입 후' },
+  { value: 'preClose', label: '종료 전' },
+  { value: 'close', label: '청산' },
+  { value: 'profit1', label: '수익인증1' },
+  { value: 'profit2', label: '수익인증2' },
+]
+
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [users, setUsers] = useState<UserItem[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
-  const [tab, setTab] = useState<'all' | 'pending'>('all')
+  const [tab, setTab] = useState<'all' | 'pending' | 'comments'>('all')
+
+  // 댓글 관리
+  const [commentType, setCommentType] = useState<CommentType>('preEntry')
+  const [comments, setComments] = useState<CommentItem[]>([])
+  const [commentLoading, setCommentLoading] = useState(false)
+  const [newCommentText, setNewCommentText] = useState('')
+  const [commentMsg, setCommentMsg] = useState('')
 
   // 새 관리자 생성 폼
   const [showCreate, setShowCreate] = useState(false)
@@ -77,6 +104,46 @@ export default function AdminPage() {
   useEffect(() => {
     if (session && (userRole === 'ADMIN' || userRole === 'MANAGER')) fetchUsers()
   }, [session, userRole, fetchUsers])
+
+  const fetchComments = useCallback(async (type: CommentType) => {
+    setCommentLoading(true)
+    setCommentMsg('')
+    try {
+      const res = await fetch(`/api/admin/comments?type=${type}`)
+      if (res.ok) setComments(await res.json())
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setCommentLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (tab === 'comments') fetchComments(commentType)
+  }, [tab, commentType, fetchComments])
+
+  const addComment = async () => {
+    if (!newCommentText.trim()) return
+    setCommentMsg('')
+    const res = await fetch('/api/admin/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: commentType, content: newCommentText.trim() }),
+    })
+    if (res.ok) {
+      setNewCommentText('')
+      fetchComments(commentType)
+    } else {
+      const data = await res.json()
+      setCommentMsg(data.error || '추가 실패')
+    }
+  }
+
+  const deleteComment = async (id: string) => {
+    const res = await fetch(`/api/admin/comments?id=${id}`, { method: 'DELETE' })
+    if (res.ok) fetchComments(commentType)
+    else alert((await res.json()).error)
+  }
 
   const fetchMyAccount = useCallback(async () => {
     try {
@@ -319,8 +386,16 @@ export default function AdminPage() {
               {t === 'pending' ? `승인 대기 (${users.filter(u => u.status === 'PENDING').length})` : `전체 (${users.length})`}
             </button>
           ))}
+          <button
+            onClick={() => setTab('comments')}
+            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+              tab === 'comments' ? 'bg-binance-yellow text-binance-bg' : 'text-binance-text-dim hover:text-binance-text bg-binance-card'
+            }`}
+          >
+            댓글 관리
+          </button>
 
-          {userRole === 'ADMIN' && (
+          {userRole === 'ADMIN' && tab !== 'comments' && (
             <button
               onClick={() => setShowCreate(!showCreate)}
               className="ml-auto px-3 py-1.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
@@ -373,15 +448,84 @@ export default function AdminPage() {
           </form>
         )}
 
+        {/* Comment Pool Management */}
+        {tab === 'comments' && (
+          <div className="space-y-3">
+            {/* Type selector */}
+            <div className="flex flex-wrap gap-1.5">
+              {COMMENT_TYPES.map(ct => (
+                <button
+                  key={ct.value}
+                  onClick={() => setCommentType(ct.value)}
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                    commentType === ct.value
+                      ? 'bg-binance-yellow text-binance-bg'
+                      : 'text-binance-text-dim hover:text-binance-text bg-binance-card border border-binance-border'
+                  }`}
+                >
+                  {ct.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Add form */}
+            <div className="bg-binance-card border border-binance-border rounded-lg p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-binance-text-dim">
+                  현재 <span className="text-binance-text font-medium">{comments.length}</span>개 / 최대 5000개
+                </span>
+                {commentMsg && <span className="text-xs text-red-400">{commentMsg}</span>}
+              </div>
+              <textarea
+                value={newCommentText}
+                onChange={e => setNewCommentText(e.target.value)}
+                placeholder="추가할 댓글 내용을 입력하세요"
+                rows={3}
+                className="w-full bg-binance-bg border border-binance-border rounded px-3 py-2 text-sm text-binance-text focus:outline-none focus:border-binance-yellow/50 resize-none"
+              />
+              <button
+                onClick={addComment}
+                disabled={!newCommentText.trim() || commentLoading}
+                className="px-4 py-2 rounded text-xs font-bold bg-binance-yellow text-binance-bg hover:bg-binance-yellow/90 disabled:opacity-50"
+              >
+                추가
+              </button>
+            </div>
+
+            {/* Comment list */}
+            <div className="bg-binance-card border border-binance-border rounded-lg overflow-hidden">
+              {commentLoading ? (
+                <div className="text-center py-8 text-binance-text-dim text-xs">로딩 중...</div>
+              ) : comments.length === 0 ? (
+                <div className="text-center py-8 text-binance-text-dim text-xs">댓글이 없습니다.</div>
+              ) : (
+                <div className="max-h-96 overflow-y-auto divide-y divide-binance-border/50">
+                  {comments.map(c => (
+                    <div key={c.id} className="flex items-start gap-3 px-4 py-3 hover:bg-binance-border/10">
+                      <span className="flex-1 text-xs text-binance-text whitespace-pre-wrap break-words">{c.content}</span>
+                      <button
+                        onClick={() => deleteComment(c.id)}
+                        className="flex-shrink-0 px-2 py-1 text-[10px] rounded bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Error Banner */}
-        {fetchError && (
+        {tab !== 'comments' && fetchError && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-xs">
             {fetchError}
           </div>
         )}
 
         {/* User Table */}
-        <div className="bg-binance-card border border-binance-border rounded-lg overflow-hidden">
+        {tab !== 'comments' && <div className="bg-binance-card border border-binance-border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-binance-text-dim border-b border-binance-border text-xs">
@@ -501,7 +645,7 @@ export default function AdminPage() {
               )}
             </tbody>
           </table>
-        </div>
+        </div>}
       </div>
     </div>
   )

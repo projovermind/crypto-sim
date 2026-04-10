@@ -1,0 +1,19 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "TAPBIT" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 코인 포지션 시뮬레이터
+    - generic [ref=e7]:
+      - heading "로그인" [level=2] [ref=e8]
+      - generic [ref=e9]:
+        - generic [ref=e10]: 아이디
+        - textbox "영문, 숫자, 밑줄 (3~20자)" [ref=e11]
+      - generic [ref=e12]:
+        - generic [ref=e13]: 비밀번호
+        - textbox "••••••" [ref=e14]
+      - button "로그인" [ref=e15] [cursor=pointer]
+      - paragraph [ref=e16]:
+        - text: 계정이 없으신가요?
+        - button "회원가입" [ref=e17] [cursor=pointer]
+    - paragraph [ref=e18]: Binance API 기반 실시간 가격
+  - alert [ref=e19]
