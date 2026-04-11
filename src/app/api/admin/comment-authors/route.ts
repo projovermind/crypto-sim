@@ -79,6 +79,8 @@ export async function POST(req: NextRequest) {
   })
 }
 
+const NICKNAME_POOL = ['ㅇㅇ','ㅇㅇㅇ','d','dd','ddd','kjh','10','본인','p','..','1234','ㄱㄱ','폰바꿈','투폰','k','ㅁㄴㅇㄹ','여','남','asdf','이','김','카톡주세요','qwer','8210','...','ㅎㅎ','박','777','세컨폰','a','개인','업무용','lmy','zxcv','1','최','ㅇㅋ','연락요망','나','-','iPhone','s','. .','ㅁㅁ','전화X','정','1111','j','강','b','c','m','부캐','2222','ㅂㅂ','h','조','12','y','오','ㅋㅋ','11','공기계','톡만','g','윤','88','58','ㄷㄷ','kims','q','x','장','메세지','w','임','456','r','t','한','v','u','n','0','i','신','o','ㅂㅈㄷㄱ','l','e','z','안','카톡만가능','72','백','999','송','배','2','허','K.J.H','JH','SJ','SH','MS','JM','DY','HJ','HK','_','^^']
+
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions)
   const role = (session?.user as any)?.role
@@ -103,9 +105,9 @@ export async function PUT(req: NextRequest) {
     const given = givenNames[Math.floor(Math.random() * givenNames.length)]
     const hasAvatar = Math.random() < 0.15
     authors.push({
-      name: surname + given,
+      name: surname + ' ' + given,
       avatarUrl: hasAvatar ? `https://i.pravatar.cc/150?img=${Math.ceil(Math.random() * 70)}` : null,
-      nickname1: null,
+      nickname1: NICKNAME_POOL[Math.floor(Math.random() * NICKNAME_POOL.length)],
       nickname2: null,
     })
   }

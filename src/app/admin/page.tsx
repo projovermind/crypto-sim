@@ -1,5 +1,17 @@
 'use client'
 
+const getInitials = (name: string) => {
+  const trimmed = name.trim()
+  const parts = trimmed.split(/\s+/)
+  if (parts.length >= 2) {
+    return parts.slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('')
+  }
+  // 공백 없으면 첫 2글자 (길이 2 이상일 때)
+  return trimmed.length >= 2
+    ? trimmed[0].toUpperCase() + trimmed[1].toUpperCase()
+    : trimmed[0]?.toUpperCase() || ''
+}
+
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -767,13 +779,13 @@ export default function AdminPage() {
                               const img = e.target as HTMLImageElement;
                               const fallback = document.createElement('div');
                               fallback.className = 'w-5 h-5 rounded-full bg-binance-yellow flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-black';
-                              fallback.textContent = a.name.charAt(0).toUpperCase();
+                              fallback.textContent = getInitials(a.name);
                               img.replaceWith(fallback);
                             }}
                           />
                         ) : (
                           <div className="w-5 h-5 rounded-full bg-binance-yellow flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-black">
-                            {a.name.charAt(0).toUpperCase()}
+                            {getInitials(a.name)}
                           </div>
                         )}
                         <span className="flex-1 text-xs text-binance-text truncate flex items-center gap-1">
