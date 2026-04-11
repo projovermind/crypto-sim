@@ -67,7 +67,7 @@ export default function AdminPage() {
   const [authorAvatar, setAuthorAvatar] = useState('')
   const [authorNickname1, setAuthorNickname1] = useState('')
   const [authorNickname2, setAuthorNickname2] = useState('')
-  const [authorMsg, setAuthorMsg] = useState('')
+  const [authorMsg, setAuthorMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [seedLoading, setSeedLoading] = useState(false)
 
   // 댓글 관리
@@ -146,7 +146,7 @@ export default function AdminPage() {
 
   const addAuthor = async () => {
     if (!authorName.trim()) return
-    setAuthorMsg('')
+    setAuthorMsg(null)
     const res = await fetch('/api/admin/comment-authors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -160,7 +160,7 @@ export default function AdminPage() {
       fetchAuthors()
     } else {
       const data = await res.json().catch(() => ({}))
-      setAuthorMsg(data.error || '추가 실패')
+      setAuthorMsg({ text: data.error || '추가 실패', ok: false })
     }
   }
 
@@ -173,18 +173,20 @@ export default function AdminPage() {
   const seedAuthors = async () => {
     if (!confirm('작성자를 1000명까지 자동 생성하시겠습니까?')) return
     setSeedLoading(true)
-    setAuthorMsg('')
+    setAuthorMsg(null)
     try {
       const res = await fetch('/api/admin/comment-authors', { method: 'PUT' })
       const data = await res.json()
       if (res.ok) {
-        setAuthorMsg(`${data.created}명 생성 완료 (총 ${data.total}명)`)
+        setAuthorMsg({ text: `${data.created}명 생성 완료 (총 ${data.total}명)`, ok: true })
         fetchAuthors()
       } else {
-        setAuthorMsg(data.error || '생성 실패')
+        setAuthorMsg({ text: data.error || '생성 실패', ok: false })
+        fetchAuthors()
       }
     } catch {
-      setAuthorMsg('서버 오류')
+      setAuthorMsg({ text: '서버 오류', ok: false })
+      fetchAuthors()
     } finally {
       setSeedLoading(false)
     }
@@ -686,8 +688,16 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-binance-yellow">작성자 풀</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-binance-text-dim">
+                    <span className="text-xs text-binance-text-dim flex items-center gap-1.5">
                       현재 <span className="text-binance-text font-medium">{authors.length}</span>명 / 최대 1000명
+                      <button
+                        onClick={() => fetchAuthors()}
+                        disabled={authorLoading}
+                        className="text-binance-text-dim hover:text-binance-yellow transition-colors disabled:opacity-50"
+                        title="새로고침"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                      </button>
                     </span>
                     <button
                       onClick={seedAuthors}
@@ -698,7 +708,7 @@ export default function AdminPage() {
                     </button>
                   </div>
                 </div>
-                {authorMsg && <span className="text-xs text-red-400">{authorMsg}</span>}
+                {authorMsg && <span className={`text-xs ${authorMsg.ok ? 'text-green-400' : 'text-red-400'}`}>{authorMsg.text}</span>}
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -815,6 +825,7 @@ export default function AdminPage() {
                   rows={3}
                   className="w-full bg-binance-bg border border-binance-border rounded px-3 py-2 text-sm text-binance-text focus:outline-none focus:border-binance-yellow/50 resize-none"
                 />
+                <p className="text-[10px] text-binance-text-dim">사용 가능 변수: <code className="text-binance-yellow font-mono">{'{{name}}'}</code> 이름, <code className="text-binance-yellow font-mono">{'{{nickname1}}'}</code> 별명1, <code className="text-binance-yellow font-mono">{'{{nickname2}}'}</code> 별명2</p>
                 <button
                   onClick={addComment}
                   disabled={!newCommentText.trim() || commentLoading}
@@ -832,17 +843,27 @@ export default function AdminPage() {
                   <div className="text-center py-8 text-binance-text-dim text-xs">댓글이 없습니다.</div>
                 ) : (
                   <div className="max-h-96 overflow-y-auto divide-y divide-binance-border/50">
-                    {comments.map(c => (
-                      <div key={c.id} className="flex items-start gap-3 px-4 py-3 hover:bg-binance-border/10">
-                        <span className="flex-1 text-xs text-binance-text whitespace-pre-wrap break-words">{c.content}</span>
-                        <button
-                          onClick={() => deleteComment(c.id)}
-                          className="flex-shrink-0 px-2 py-1 text-[10px] rounded bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                        >
-                          삭제
-                        </button>
-                      </div>
-                    ))}
+                    {comments.map(c => {
+                      // {{...}} 패턴 하이라이트
+                      const parts = c.content.split(/(\{\{[^}]+\}\})/g)
+                      return (
+                        <div key={c.id} className="flex items-start gap-3 px-4 py-3 hover:bg-binance-border/10">
+                          <span className="flex-1 text-xs text-binance-text whitespace-pre-wrap break-words">
+                            {parts.map((part, i) =>
+                              /^\{\{[^}]+\}\}$/.test(part)
+                                ? <span key={i} className="text-binance-yellow font-mono">{part}</span>
+                                : part
+                            )}
+                          </span>
+                          <button
+                            onClick={() => deleteComment(c.id)}
+                            className="flex-shrink-0 px-2 py-1 text-[10px] rounded bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
