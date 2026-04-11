@@ -23,6 +23,13 @@ interface CommentItem {
   createdAt: string
 }
 
+interface CommentAuthor {
+  id: string
+  name: string
+  avatarUrl: string | null
+  createdAt: string
+}
+
 const COMMENT_TYPES: { value: CommentType; label: string }[] = [
   { value: 'preEntry', label: '진입 전' },
   { value: 'long', label: '롱' },
@@ -50,6 +57,13 @@ export default function AdminPage() {
   const [fetchError, setFetchError] = useState('')
   const [tab, setTab] = useState<SidebarTab>('users')
   const [userFilter, setUserFilter] = useState<'all' | 'pending'>('all')
+
+  // 작성자 풀 관리
+  const [authors, setAuthors] = useState<CommentAuthor[]>([])
+  const [authorLoading, setAuthorLoading] = useState(false)
+  const [authorName, setAuthorName] = useState('')
+  const [authorAvatar, setAuthorAvatar] = useState('')
+  const [authorMsg, setAuthorMsg] = useState('')
 
   // 댓글 관리
   const [commentType, setCommentType] = useState<CommentType>('preEntry')
@@ -113,6 +127,42 @@ export default function AdminPage() {
     if (session && (userRole === 'ADMIN' || userRole === 'MANAGER')) fetchUsers()
   }, [session, userRole, fetchUsers])
 
+  const fetchAuthors = useCallback(async () => {
+    setAuthorLoading(true)
+    try {
+      const res = await fetch('/api/admin/comment-authors')
+      if (res.ok) setAuthors(await res.json())
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setAuthorLoading(false)
+    }
+  }, [])
+
+  const addAuthor = async () => {
+    if (!authorName.trim()) return
+    setAuthorMsg('')
+    const res = await fetch('/api/admin/comment-authors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: authorName.trim(), avatarUrl: authorAvatar.trim() || null }),
+    })
+    if (res.ok) {
+      setAuthorName('')
+      setAuthorAvatar('')
+      fetchAuthors()
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setAuthorMsg(data.error || '추가 실패')
+    }
+  }
+
+  const deleteAuthor = async (id: string) => {
+    const res = await fetch(`/api/admin/comment-authors?id=${id}`, { method: 'DELETE' })
+    if (res.ok) fetchAuthors()
+    else alert((await res.json().catch(() => ({ error: '삭제 실패' }))).error)
+  }
+
   const fetchComments = useCallback(async (type: CommentType) => {
     setCommentLoading(true)
     setCommentMsg('')
@@ -127,8 +177,11 @@ export default function AdminPage() {
   }, [])
 
   useEffect(() => {
-    if (tab === 'teledit') fetchComments(commentType)
-  }, [tab, commentType, fetchComments])
+    if (tab === 'teledit') {
+      fetchComments(commentType)
+      fetchAuthors()
+    }
+  }, [tab, commentType, fetchComments, fetchAuthors])
 
   const addComment = async () => {
     if (!newCommentText.trim()) return
@@ -601,6 +654,66 @@ export default function AdminPage() {
           {/* === Teledit Tab (Comments) === */}
           {tab === 'teledit' && (
             <div className="space-y-3">
+              {/* 작성자 풀 관리 */}
+              <div className="bg-binance-card border border-binance-border rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-binance-yellow">작성자 풀</span>
+                  <span className="text-xs text-binance-text-dim">
+                    현재 <span className="text-binance-text font-medium">{authors.length}</span>명 / 최대 1000명
+                  </span>
+                </div>
+                {authorMsg && <span className="text-xs text-red-400">{authorMsg}</span>}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={authorName}
+                    onChange={e => setAuthorName(e.target.value)}
+                    placeholder="이름"
+                    className="flex-1 bg-binance-bg border border-binance-border rounded px-3 py-2 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50"
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAuthor() } }}
+                  />
+                  <input
+                    type="text"
+                    value={authorAvatar}
+                    onChange={e => setAuthorAvatar(e.target.value)}
+                    placeholder="아바타 URL (선택)"
+                    className="flex-1 bg-binance-bg border border-binance-border rounded px-3 py-2 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50"
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAuthor() } }}
+                  />
+                  <button
+                    onClick={addAuthor}
+                    disabled={!authorName.trim() || authorLoading}
+                    className="px-4 py-2 rounded text-xs font-bold bg-binance-yellow text-binance-bg hover:bg-binance-yellow/90 disabled:opacity-50"
+                  >
+                    추가
+                  </button>
+                </div>
+                <div className="max-h-48 overflow-y-auto divide-y divide-binance-border/50">
+                  {authorLoading ? (
+                    <div className="text-center py-4 text-binance-text-dim text-xs">로딩 중...</div>
+                  ) : authors.length === 0 ? (
+                    <div className="text-center py-4 text-binance-text-dim text-xs">등록된 작성자가 없습니다.</div>
+                  ) : (
+                    authors.map(a => (
+                      <div key={a.id} className="flex items-center gap-2 px-2 py-2 hover:bg-binance-border/10">
+                        {a.avatarUrl ? (
+                          <img src={a.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-binance-border flex-shrink-0" />
+                        )}
+                        <span className="flex-1 text-xs text-binance-text truncate">{a.name}</span>
+                        <button
+                          onClick={() => deleteAuthor(a.id)}
+                          className="flex-shrink-0 px-2 py-1 text-[10px] rounded bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
               {/* Type selector */}
               <div className="flex flex-wrap gap-1.5">
                 {COMMENT_TYPES.map(ct => (

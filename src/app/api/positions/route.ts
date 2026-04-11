@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { applySlippage, applyLimitSlippage, calculateFee, TAKER_FEE_RATE } from '@/lib/calculations'
+import { generateAutoComments } from '@/lib/auto-comments'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -131,6 +132,9 @@ export async function POST(request: NextRequest) {
         entryTime: entryTime ? new Date(entryTime) : new Date(),
       },
     })
+
+    // 댓글 자동 생성 (응답 반환 후 백그라운드 실행 - fire-and-forget)
+    generateAutoComments(position.id, side as 'LONG' | 'SHORT', user as any).catch(err => console.error('Auto-comment failed:', err))
 
     return NextResponse.json(position, { status: 201 })
   } catch (error: any) {
