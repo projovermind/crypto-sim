@@ -8,11 +8,15 @@ function randInt(min: number, max: number): number {
   return lo + Math.floor(Math.random() * (hi - lo + 1))
 }
 
-/** 배열에서 n개 중복 없이 랜덤 추출 */
-function pickRandom<T>(arr: T[], n: number): T[] {
-  if (n >= arr.length) return [...arr]
-  const shuffled = [...arr].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, n)
+/** 작성자 정보로 {{name}}, {{nickname1}}, {{nickname2}} 치환 */
+function replaceVars(
+  content: string,
+  author: { name: string; nickname1?: string | null; nickname2?: string | null },
+): string {
+  return content
+    .replace(/\{\{name\}\}/g, author.name)
+    .replace(/\{\{nickname1\}\}/g, author.nickname1 ?? '')
+    .replace(/\{\{nickname2\}\}/g, author.nickname2 ?? '')
 }
 
 interface UserCommentSettings {
@@ -71,36 +75,43 @@ export async function generateAutoComments(
     messageType: string
     authorName: string
     avatarUrl: string | null
+    nickname1: string | null
+    nickname2: string | null
     content: string
     orderIndex: number
   }> = []
 
   for (const config of typeConfigs) {
-    const count = randInt(config.min, config.max)
+    const count = Math.min(randInt(config.min, config.max), 110)
     if (count <= 0) continue
 
     // 해당 타입의 댓글 풀 필터링
     const pool = allComments.filter((c) => c.type === config.type)
     if (pool.length === 0) continue
 
-    // 랜덤 작성자 & 랜덤 내용 선택
-    const selectedAuthors = pickRandom(authors, count)
-    for (let i = 0; i < selectedAuthors.length; i++) {
-      const author = selectedAuthors[i]
+    // 각 슬롯마다 독립적으로 작성자 선택 (중복 허용)
+    for (let i = 0; i < count; i++) {
+      const author = authors[Math.floor(Math.random() * authors.length)]
       const comment = pool[Math.floor(Math.random() * pool.length)]
       allNewComments.push({
         positionId,
         messageType: config.type,
-        authorName: author.name,
+        authorName: author.nickname1 ?? author.name,
         avatarUrl: author.avatarUrl,
-        content: comment.content,
-        orderIndex: i,
+        nickname1: author.nickname1 ?? null,
+        nickname2: author.nickname2 ?? null,
+        content: replaceVars(comment.content, author),
+        orderIndex: i, // 임시 인덱스, 셔플 후 재할당
       })
     }
   }
 
-  // 4) 한 번에 저장
+  // 4) 전체 순서 랜덤화
   if (allNewComments.length > 0) {
+    allNewComments.sort(() => Math.random() - 0.5)
+    allNewComments.forEach((item, i) => {
+      item.orderIndex = i
+    })
     await prisma.positionComment.createMany({ data: allNewComments })
   }
 }

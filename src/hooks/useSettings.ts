@@ -66,6 +66,8 @@ export function useSettings() {
   const [teleditApiUrl, setTeleditApiUrl] = useState('')
   const [teleditEmail, setTeleditEmail] = useState('')
   const [teleditPassword, setTeleditPassword] = useState('')
+  const [channelName, setChannelName] = useState('')
+  const [channelAvatarUrl, setChannelAvatarUrl] = useState('')
 
   // Comment count settings
   const [preEntryCommentMin, setPreEntryCommentMin] = useState(0)
@@ -134,6 +136,8 @@ export function useSettings() {
         if (data.teleditApiUrl) setTeleditApiUrl(data.teleditApiUrl)
         if (data.teleditEmail) setTeleditEmail(data.teleditEmail)
         if (data.teleditPassword) setTeleditPassword(data.teleditPassword)
+        if (data.channelName) setChannelName(data.channelName)
+        if (data.channelAvatarUrl) setChannelAvatarUrl(data.channelAvatarUrl)
         if (data.preEntryCommentMin != null) setPreEntryCommentMin(data.preEntryCommentMin)
         if (data.preEntryCommentMax != null) setPreEntryCommentMax(data.preEntryCommentMax)
         if (data.longCommentMin != null) setLongCommentMin(data.longCommentMin)
@@ -230,6 +234,8 @@ export function useSettings() {
           teleditApiUrl: teleditApiUrl || null,
           teleditEmail: teleditEmail || null,
           teleditPassword: teleditPassword || null,
+          channelName: channelName || null,
+          channelAvatarUrl: channelAvatarUrl || null,
           preEntryCommentMin, preEntryCommentMax,
           longCommentMin, longCommentMax,
           shortCommentMin, shortCommentMax,
@@ -270,6 +276,7 @@ export function useSettings() {
     }
   }, [
     teleditApiUrl, teleditEmail, teleditPassword,
+    channelName, channelAvatarUrl,
     preEntryCommentMin, preEntryCommentMax,
     longCommentMin, longCommentMax,
     shortCommentMin, shortCommentMax,
@@ -301,6 +308,8 @@ export function useSettings() {
     teleditApiUrl, setTeleditApiUrl,
     teleditEmail, setTeleditEmail,
     teleditPassword, setTeleditPassword,
+    channelName, setChannelName,
+    channelAvatarUrl, setChannelAvatarUrl,
     // Templates
     templates, updateTemplate, resetTemplate,
     templateEnabled, updateEnabled,

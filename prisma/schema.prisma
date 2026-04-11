@@ -85,6 +85,8 @@ model User {
   profit1CommentMax         Int        @default(0)
   profit2CommentMin         Int        @default(0)
   profit2CommentMax         Int        @default(0)
+  channelName      String?    // 채널명
+  channelAvatarUrl String?    // 채널 아바타 URL
   createdAt         DateTime   @default(now())
   positions         Position[]
   telegramAccount   TelegramAccount?
@@ -210,6 +212,8 @@ model CommentAuthorPool {
   id        String   @id @default(cuid())
   name      String
   avatarUrl String?
+  nickname1 String?
+  nickname2 String?
   createdAt DateTime @default(now())
 }
 
@@ -220,6 +224,8 @@ model PositionComment {
   messageType String
   authorName  String
   avatarUrl   String?
+  nickname1   String?
+  nickname2   String?
   content     String    @db.Text
   orderIndex  Int
   createdAt   DateTime  @default(now())

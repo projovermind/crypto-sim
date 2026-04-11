@@ -27,6 +27,8 @@ interface CommentAuthor {
   id: string
   name: string
   avatarUrl: string | null
+  nickname1: string | null
+  nickname2: string | null
   createdAt: string
 }
 
@@ -63,7 +65,10 @@ export default function AdminPage() {
   const [authorLoading, setAuthorLoading] = useState(false)
   const [authorName, setAuthorName] = useState('')
   const [authorAvatar, setAuthorAvatar] = useState('')
+  const [authorNickname1, setAuthorNickname1] = useState('')
+  const [authorNickname2, setAuthorNickname2] = useState('')
   const [authorMsg, setAuthorMsg] = useState('')
+  const [seedLoading, setSeedLoading] = useState(false)
 
   // 댓글 관리
   const [commentType, setCommentType] = useState<CommentType>('preEntry')
@@ -145,11 +150,13 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/comment-authors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: authorName.trim(), avatarUrl: authorAvatar.trim() || null }),
+      body: JSON.stringify({ name: authorName.trim(), avatarUrl: authorAvatar.trim() || null, nickname1: authorNickname1.trim() || null, nickname2: authorNickname2.trim() || null }),
     })
     if (res.ok) {
       setAuthorName('')
       setAuthorAvatar('')
+      setAuthorNickname1('')
+      setAuthorNickname2('')
       fetchAuthors()
     } else {
       const data = await res.json().catch(() => ({}))
@@ -161,6 +168,26 @@ export default function AdminPage() {
     const res = await fetch(`/api/admin/comment-authors?id=${id}`, { method: 'DELETE' })
     if (res.ok) fetchAuthors()
     else alert((await res.json().catch(() => ({ error: '삭제 실패' }))).error)
+  }
+
+  const seedAuthors = async () => {
+    if (!confirm('작성자를 1000명까지 자동 생성하시겠습니까?')) return
+    setSeedLoading(true)
+    setAuthorMsg('')
+    try {
+      const res = await fetch('/api/admin/comment-authors', { method: 'PUT' })
+      const data = await res.json()
+      if (res.ok) {
+        setAuthorMsg(`${data.created}명 생성 완료 (총 ${data.total}명)`)
+        fetchAuthors()
+      } else {
+        setAuthorMsg(data.error || '생성 실패')
+      }
+    } catch {
+      setAuthorMsg('서버 오류')
+    } finally {
+      setSeedLoading(false)
+    }
   }
 
   const fetchComments = useCallback(async (type: CommentType) => {
@@ -658,9 +685,18 @@ export default function AdminPage() {
               <div className="bg-binance-card border border-binance-border rounded-lg p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-binance-yellow">작성자 풀</span>
-                  <span className="text-xs text-binance-text-dim">
-                    현재 <span className="text-binance-text font-medium">{authors.length}</span>명 / 최대 1000명
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-binance-text-dim">
+                      현재 <span className="text-binance-text font-medium">{authors.length}</span>명 / 최대 1000명
+                    </span>
+                    <button
+                      onClick={seedAuthors}
+                      disabled={seedLoading || authors.length >= 1000}
+                      className="px-3 py-1 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {seedLoading ? '생성 중...' : '1000명 자동 생성'}
+                    </button>
+                  </div>
                 </div>
                 {authorMsg && <span className="text-xs text-red-400">{authorMsg}</span>}
                 <div className="flex gap-2">
@@ -677,6 +713,22 @@ export default function AdminPage() {
                     value={authorAvatar}
                     onChange={e => setAuthorAvatar(e.target.value)}
                     placeholder="아바타 URL (선택)"
+                    className="flex-1 bg-binance-bg border border-binance-border rounded px-3 py-2 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50"
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAuthor() } }}
+                  />
+                  <input
+                    type="text"
+                    value={authorNickname1}
+                    onChange={e => setAuthorNickname1(e.target.value)}
+                    placeholder="별명1 (선택)"
+                    className="flex-1 bg-binance-bg border border-binance-border rounded px-3 py-2 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50"
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAuthor() } }}
+                  />
+                  <input
+                    type="text"
+                    value={authorNickname2}
+                    onChange={e => setAuthorNickname2(e.target.value)}
+                    placeholder="별명2 (선택)"
                     className="flex-1 bg-binance-bg border border-binance-border rounded px-3 py-2 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50"
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAuthor() } }}
                   />
@@ -697,11 +749,28 @@ export default function AdminPage() {
                     authors.map(a => (
                       <div key={a.id} className="flex items-center gap-2 px-2 py-2 hover:bg-binance-border/10">
                         {a.avatarUrl ? (
-                          <img src={a.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          <img
+                            src={a.avatarUrl}
+                            alt=""
+                            className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                            onError={e => {
+                              const img = e.target as HTMLImageElement;
+                              const fallback = document.createElement('div');
+                              fallback.className = 'w-5 h-5 rounded-full bg-binance-yellow flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-black';
+                              fallback.textContent = a.name.charAt(0).toUpperCase();
+                              img.replaceWith(fallback);
+                            }}
+                          />
                         ) : (
-                          <div className="w-5 h-5 rounded-full bg-binance-border flex-shrink-0" />
+                          <div className="w-5 h-5 rounded-full bg-binance-yellow flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-black">
+                            {a.name.charAt(0).toUpperCase()}
+                          </div>
                         )}
-                        <span className="flex-1 text-xs text-binance-text truncate">{a.name}</span>
+                        <span className="flex-1 text-xs text-binance-text truncate flex items-center gap-1">
+                          {a.name}
+                          {a.nickname1 && <span className="text-[9px] text-binance-text-dim bg-binance-border/30 px-1 rounded">{a.nickname1}</span>}
+                          {a.nickname2 && <span className="text-[9px] text-binance-text-dim bg-binance-border/30 px-1 rounded">{a.nickname2}</span>}
+                        </span>
                         <button
                           onClick={() => deleteAuthor(a.id)}
                           className="flex-shrink-0 px-2 py-1 text-[10px] rounded bg-red-500/10 text-red-400 hover:bg-red-500/20"

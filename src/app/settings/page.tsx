@@ -338,6 +338,33 @@ export default function SettingsPage() {
                 {/* ── Left: message cards ── */}
                 <div className="flex-1 min-w-0 space-y-6">
 
+                {/* ── Channel Info ── */}
+                <div className="bg-binance-card border border-binance-border rounded-lg p-5">
+                  <h3 className="text-xs font-medium text-binance-text-dim mb-3">채널 정보</h3>
+                  <div className="space-y-2.5 max-w-lg">
+                    <div>
+                      <label className="block text-[11px] text-binance-text-dim mb-1">채널명</label>
+                      <input
+                        type="text"
+                        value={s.channelName}
+                        onChange={e => s.setChannelName(e.target.value)}
+                        placeholder="채널명"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-binance-text-dim mb-1">채널 아바타 URL</label>
+                      <input
+                        type="text"
+                        value={s.channelAvatarUrl}
+                        onChange={e => s.setChannelAvatarUrl(e.target.value)}
+                        placeholder="채널 아바타 URL"
+                        className={inputCls}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* ── Connection Info ── */}
                 <div className="bg-binance-card border border-binance-border rounded-lg p-5">
                   <h3 className="text-xs font-medium text-binance-text-dim mb-3">Teledit 연결 정보</h3>
