@@ -6,6 +6,7 @@ import { calculatePnL, formatPrice, formatNumber } from '@/lib/calculations'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { INTER_REGULAR_B64, INTER_SEMIBOLD_B64, INTER_BOLD_B64 } from '../font-data'
+import { POSTER_BG_1_B64, POSTER_BG_2_B64, POSTER_BG_3_B64 } from '../poster-data'
 
 export const runtime = 'nodejs'
 
@@ -38,19 +39,16 @@ const FONT_REGULAR  = b64ToArrayBuffer(INTER_REGULAR_B64)
 const FONT_SEMIBOLD = b64ToArrayBuffer(INTER_SEMIBOLD_B64)
 const FONT_BOLD     = b64ToArrayBuffer(INTER_BOLD_B64)
 
-// ── 이미지 캐시 (배경, 로고) ─────────────────────────────────────────────────
-let bgCache: Record<string, string> = {}
-let logoCache = ''
+// ── 포스터 배경: base64 임베드 (Lambda 파일시스템 무관) ─────────────────────
+const POSTER_B64 = [POSTER_BG_1_B64, POSTER_BG_2_B64, POSTER_BG_3_B64]
 
-async function getBg(idx: number): Promise<string> {
-  const key = `bg${idx + 1}`
-  if (bgCache[key]) return bgCache[key]
-  try {
-    const buf = await readFile(join(process.cwd(), 'public', 'posters', `${key}.png`))
-    bgCache[key] = `data:image/png;base64,${buf.toString('base64')}`
-  } catch { bgCache[key] = '' }
-  return bgCache[key]
+function getBg(idx: number): string {
+  const b64 = POSTER_B64[idx] ?? POSTER_B64[0]
+  return b64 ? `data:image/png;base64,${b64}` : ''
 }
+
+// ── 로고: 파일시스템 (소용량, 이미 작동 확인) ────────────────────────────────
+let logoCache = ''
 
 async function getLogo(): Promise<string> {
   if (logoCache) return logoCache
@@ -102,7 +100,8 @@ export async function GET(
     }
 
     const bgIdx = parseInt(request.nextUrl.searchParams.get('bg') || '0')
-    const [bgSrc, logoSrc] = await Promise.all([getBg(bgIdx), getLogo()])
+    const bgSrc = getBg(bgIdx)
+    const logoSrc = await getLogo()
 
 
     // ProfitCard.tsx와 동일한 계산
