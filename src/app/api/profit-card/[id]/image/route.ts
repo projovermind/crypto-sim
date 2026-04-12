@@ -40,6 +40,7 @@ export async function PUT(
     const { url } = await put(`profit-cards/${params.id}.png`, buffer, {
       access: 'public',
       addRandomSuffix: false,
+      allowOverwrite: true,
       contentType: 'image/png',
     })
 
