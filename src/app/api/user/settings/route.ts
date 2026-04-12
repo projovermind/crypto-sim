@@ -79,6 +79,18 @@ export async function GET(request: NextRequest) {
         profit2:     u.teleditProfit2Enabled    ?? true,
       },
 
+      // ── 댓글 수 (min/max) ──
+      commentCounts: {
+        preEntry:  { min: Number(u.preEntryCommentMin  ?? 0), max: Number(u.preEntryCommentMax  ?? 0) },
+        long:      { min: Number(u.longCommentMin      ?? 0), max: Number(u.longCommentMax      ?? 0) },
+        short:     { min: Number(u.shortCommentMin     ?? 0), max: Number(u.shortCommentMax     ?? 0) },
+        postEntry: { min: Number(u.postEntryCommentMin ?? 0), max: Number(u.postEntryCommentMax ?? 0) },
+        preClose:  { min: Number(u.preCloseCommentMin  ?? 0), max: Number(u.preCloseCommentMax  ?? 0) },
+        close:     { min: Number(u.closeCommentMin     ?? 0), max: Number(u.closeCommentMax     ?? 0) },
+        profit1:   { min: Number(u.profit1CommentMin   ?? 0), max: Number(u.profit1CommentMax   ?? 0) },
+        profit2:   { min: Number(u.profit2CommentMin   ?? 0), max: Number(u.profit2CommentMax   ?? 0) },
+      },
+
       // ── 타이밍 (초) ──
       timing: {
         preEntryMin:  u.preEntryMinSec  ?? 60,
