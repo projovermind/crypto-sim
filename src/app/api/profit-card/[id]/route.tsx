@@ -128,15 +128,22 @@ export async function GET(
           style={{
             width: 362, height: 500, borderRadius: 12,
             fontFamily: 'Inter',
-            backgroundImage: bgSrc ? `url(${bgSrc})` : undefined,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center bottom',
-            backgroundRepeat: 'no-repeat',
             backgroundColor: 'rgb(2,5,13)',
             position: 'relative', overflow: 'hidden',
             display: 'flex', flexDirection: 'column',
           }}
         >
+          {/* 배경 이미지 — satori는 backgroundImage url() 미지원 → img 요소 사용 */}
+          {bgSrc && (
+            <img
+              src={bgSrc}
+              style={{
+                position: 'absolute', bottom: 0, left: 0,
+                width: '100%', height: '100%',
+                objectFit: 'cover', objectPosition: 'center bottom',
+              }}
+            />
+          )}
           {/* Header: 60px */}
           <div style={{ display: 'flex', alignItems: 'center', height: 60, padding: '0 20px', position: 'relative' }}>
             {logoSrc
