@@ -1,12 +1,16 @@
 import { ImageResponse } from 'next/og'
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthUser } from '@/lib/auth'
+import { jwtVerify } from 'jose'
 import { prisma } from '@/lib/prisma'
 import { calculatePnL, formatPrice, formatNumber } from '@/lib/calculations'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 
 export const runtime = 'nodejs'
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.NEXTAUTH_SECRET || 'crypto-sim-secret-key-change-in-production',
+)
 
 function corsResponse(body: string | null, status: number) {
   return new NextResponse(body, {
@@ -40,7 +44,7 @@ async function getBg(idx: number): Promise<string> {
 async function getFont(name: string): Promise<ArrayBuffer> {
   if (fontCache[name]) return fontCache[name]
   try {
-    const buf = await readFile(join(process.cwd(), 'public', 'fonts', `${name}.woff2`))
+    const buf = await readFile(join(process.cwd(), 'public', 'fonts', `${name}.ttf`))
     fontCache[name] = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
     return fontCache[name]
   } catch { return new ArrayBuffer(0) }
@@ -51,20 +55,29 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   try {
-    const user = await getAuthUser(request)
-    if (!user) return corsResponse('Unauthorized', 401)
+    // 커스텀 JWT 직접 verify (next-auth getToken은 확장 토큰 미지원)
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader?.startsWith('Bearer ')) return corsResponse('Unauthorized', 401)
+    let userId: string
+    try {
+      const { payload } = await jwtVerify(authHeader.slice(7), JWT_SECRET)
+      userId = (payload as any).userId ?? (payload as any).id ?? ''
+      if (!userId) {
+        const email = (payload as any).email
+        if (email) {
+          const u = await prisma.user.findUnique({ where: { email }, select: { id: true } })
+          if (u) userId = u.id
+        }
+      }
+      if (!userId) return corsResponse('Unauthorized', 401)
+    } catch { return corsResponse('Invalid token', 401) }
 
     const position = await prisma.position.findUnique({ where: { id: params.id } })
     if (!position) return corsResponse('Not found', 404)
-    if (position.userId !== user.id) return corsResponse('Forbidden', 403)
+    if (position.userId !== userId) return corsResponse('Forbidden', 403)
 
     const bgIdx = parseInt(request.nextUrl.searchParams.get('bg') || '0')
-    const [bgSrc, fontRegular, fontSemiBold, fontBold] = await Promise.all([
-      getBg(bgIdx),
-      getFont('Inter-Regular'),
-      getFont('Inter-SemiBold'),
-      getFont('Inter-Bold'),
-    ])
+    const bgSrc = await getBg(bgIdx)
 
     // 포시 calculatePnL과 100% 동일
     const closePrice = position.closedPrice ?? position.entryPrice
@@ -143,11 +156,7 @@ export async function GET(
           'Access-Control-Allow-Methods': 'GET, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
-        fonts: [
-          { name: 'Inter', data: fontRegular, weight: 400 as const, style: 'normal' as const },
-          { name: 'Inter', data: fontSemiBold, weight: 600 as const, style: 'normal' as const },
-          { name: 'Inter', data: fontBold, weight: 700 as const, style: 'normal' as const },
-        ],
+        // satori 기본 폰트 사용 (Inter 로드 시 variable font 에러)
       },
     )
   } catch (error) {
