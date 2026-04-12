@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { del } from '@vercel/blob'
 
 // GET /api/positions/trash — 휴지통 목록 (7일 이상 자동 퍼지 포함)
 export async function GET(request: NextRequest) {
@@ -10,8 +11,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
     }
 
-    // 7일 이상 된 항목 자동 영구 삭제
+    // 7일 이상 된 항목 자동 영구 삭제 (Blob 이미지도 함께 정리)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const expiredPositions = await prisma.position.findMany({
+      where: { userId: user.id, deletedAt: { not: null, lt: sevenDaysAgo } },
+      select: { id: true, shareImageUrl: true },
+    })
+    const blobUrlsToDelete = expiredPositions.map(p => p.shareImageUrl).filter(Boolean) as string[]
+    if (blobUrlsToDelete.length > 0) {
+      await del(blobUrlsToDelete).catch(() => {}) // 실패해도 계속 진행
+    }
     await prisma.position.deleteMany({
       where: {
         userId: user.id,
@@ -44,7 +53,15 @@ export async function POST(request: NextRequest) {
     const { action, ids } = await request.json()
 
     if (action === 'empty') {
-      // 휴지통 비우기 (영구 삭제)
+      // 휴지통 비우기 (영구 삭제 + Blob 이미지 정리)
+      const toDelete = await prisma.position.findMany({
+        where: { userId: user.id, deletedAt: { not: null } },
+        select: { id: true, shareImageUrl: true },
+      })
+      const blobUrls = toDelete.map(p => p.shareImageUrl).filter(Boolean) as string[]
+      if (blobUrls.length > 0) {
+        await del(blobUrls).catch(() => {})
+      }
       const result = await prisma.position.deleteMany({
         where: { userId: user.id, deletedAt: { not: null } },
       })

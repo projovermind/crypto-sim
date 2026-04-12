@@ -19,6 +19,7 @@ export interface Position {
   closedAt: string | null
   closedPrice: number | null
   pnl: number | null
+  shareImageUrl: string | null
   entryTime: string
   createdAt: string
   updatedAt: string

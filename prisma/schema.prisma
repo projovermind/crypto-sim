@@ -119,6 +119,7 @@ model Position {
   closedAt    DateTime?
   closedPrice Float?
   pnl         Float?
+  shareImageUrl String?  // Vercel Blob URL — html-to-image로 생성된 profit card
   entryTime   DateTime
   deletedAt   DateTime?
   createdAt   DateTime @default(now())

@@ -53,7 +53,7 @@ const MOCK_PROFIT_POSITION: PositionWithLive = {
   marginMode: 'CROSS', orderType: 'MARKET', entryFee: 0,
   takeProfit: null, stopLoss: null,
   status: 'CLOSED_TP', deletedAt: null, closedAt: null,
-  closedPrice: 66200, pnl: 12.5,
+  closedPrice: 66200, pnl: 12.5, shareImageUrl: null,
   entryTime: '', createdAt: '', updatedAt: '',
   currentPrice: 66200, pnlLive: 12.5, roeLive: 1.92,
   liquidationPrice: 58500, hitTP: false, hitSL: false,
