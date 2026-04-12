@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { calculatePnL, formatPrice, formatNumber } from '@/lib/calculations'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
+import { DMMono_Regular_B64, DMMono_Medium_B64 } from '../font-data'
 
 export const runtime = 'nodejs'
 
@@ -29,6 +30,15 @@ export async function OPTIONS() {
 
 // 캐시
 let bgCache: Record<string, string> = {}
+
+// DM Mono: base64 임베드 → 파일시스템/CDN 불필요, 항상 사용 가능
+function _b64toAB(b64: string): ArrayBuffer {
+  const buf = Buffer.from(b64, 'base64')
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
+}
+const DM_MONO_REGULAR_BUF: ArrayBuffer = _b64toAB(DMMono_Regular_B64)
+const DM_MONO_MEDIUM_BUF: ArrayBuffer  = _b64toAB(DMMono_Medium_B64)
+
 let fontCache: Record<string, ArrayBuffer> = {}
 
 async function getBg(idx: number): Promise<string> {
@@ -41,24 +51,55 @@ async function getBg(idx: number): Promise<string> {
   } catch { return '' }
 }
 
+// 폰트명 → Google Fonts CDN 직접 URL (파일시스템 실패 시 최후 폴백)
+const FONT_CDN: Record<string, string> = {
+  'Inter-Regular':   'https://fonts.gstatic.com/s/inter/v19/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2',
+  'Inter-SemiBold':  'https://fonts.gstatic.com/s/inter/v19/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hiA.woff2',
+  'Inter-Bold':      'https://fonts.gstatic.com/s/inter/v19/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2',
+  'DMMono-Regular':  'https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzIYQ.ttf',
+  'DMMono-Medium':   'https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYhh0.ttf',
+}
+
 async function getFont(name: string): Promise<ArrayBuffer> {
   if (fontCache[name]) return fontCache[name]
+
+  // 1차: 파일시스템 (로컬 dev / Vercel)
   try {
-    // 1차: 파일시스템 (로컬 dev)
     const buf = await readFile(join(process.cwd(), 'public', 'fonts', `${name}.ttf`))
-    fontCache[name] = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
-    return fontCache[name]
-  } catch {
+    const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
+    if (ab.byteLength > 1000) {
+      fontCache[name] = ab
+      return ab
+    }
+  } catch { /* ignore */ }
+
+  // 2차: 로컬 서버 HTTP
+  try {
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000'
+    const res = await fetch(`${baseUrl}/fonts/${name}.ttf`)
+    if (res.ok) {
+      const ab = await res.arrayBuffer()
+      if (ab.byteLength > 1000) {
+        fontCache[name] = ab
+        return ab
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 3차: Google Fonts CDN 직접 fetch
+  if (FONT_CDN[name]) {
     try {
-      // 2차: HTTP fetch (Vercel 프로덕션)
-      const res = await fetch(new URL(`/fonts/${name}.ttf`, process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'))
+      const res = await fetch(FONT_CDN[name])
       if (res.ok) {
         fontCache[name] = await res.arrayBuffer()
         return fontCache[name]
       }
     } catch { /* ignore */ }
-    return new ArrayBuffer(0)
   }
+
+  return new ArrayBuffer(0)
 }
 
 export async function GET(
@@ -94,6 +135,9 @@ export async function GET(
       getFont('Inter-SemiBold'),
       getFont('Inter-Bold'),
     ])
+    // DM Mono: 임베드 버퍼 직접 사용 (로딩 실패 없음)
+    const fontMonoRegular = DM_MONO_REGULAR_BUF
+    const fontMonoMedium  = DM_MONO_MEDIUM_BUF
 
     // 포시 calculatePnL과 100% 동일
     const closePrice = position.closedPrice ?? position.entryPrice
@@ -143,7 +187,7 @@ export async function GET(
           {/* ROE */}
           <div style={{ display: 'flex', flexDirection: 'column', padding: '0 20px' }}>
             <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>ROE</span>
-            <span style={{ color: pnlColor, fontSize: 44, fontWeight: 600, lineHeight: 1.1, marginTop: 4 }}>
+            <span style={{ color: pnlColor, fontSize: 44, fontWeight: 500, lineHeight: 1.1, marginTop: 4, fontFamily: 'DM Mono' }}>
               {isProfit ? '+' : ''}{formatNumber(pnlData.roe)}%
             </span>
           </div>
@@ -152,16 +196,16 @@ export async function GET(
           <div style={{ display: 'flex', flexDirection: 'column', padding: '24px 20px', gap: 6 }}>
             <div style={{ display: 'flex', fontSize: 12 }}>
               <span style={{ color: 'rgba(255,255,255,0.8)' }}>Entry Price: </span>
-              <span style={{ color: '#fff', fontWeight: 600, marginLeft: 4 }}>{formatPrice(entryPrice)}</span>
+              <span style={{ color: '#fff', fontWeight: 500, marginLeft: 4, fontFamily: 'DM Mono' }}>{formatPrice(entryPrice)}</span>
             </div>
             <div style={{ display: 'flex', fontSize: 12 }}>
               <span style={{ color: 'rgba(255,255,255,0.8)' }}>Last Price: </span>
-              <span style={{ color: '#fff', fontWeight: 600, marginLeft: 4 }}>{formatPrice(closePrice)}</span>
+              <span style={{ color: '#fff', fontWeight: 500, marginLeft: 4, fontFamily: 'DM Mono' }}>{formatPrice(closePrice)}</span>
             </div>
           </div>
 
           {/* Timestamp */}
-          <div style={{ position: 'absolute', bottom: 16, left: 20, fontSize: 12, color: '#94979e' }}>{dateStr}</div>
+          <div style={{ position: 'absolute', bottom: 16, left: 20, fontSize: 12, color: '#94979e', fontFamily: 'DM Mono' }}>{dateStr}</div>
         </div>
       ),
       {
@@ -176,6 +220,8 @@ export async function GET(
           { name: 'Inter', data: fontRegular, weight: 400 as const, style: 'normal' as const },
           { name: 'Inter', data: fontSemiBold, weight: 600 as const, style: 'normal' as const },
           { name: 'Inter', data: fontBold, weight: 700 as const, style: 'normal' as const },
+          { name: 'DM Mono', data: fontMonoRegular, weight: 400 as const, style: 'normal' as const },
+          { name: 'DM Mono', data: fontMonoMedium, weight: 500 as const, style: 'normal' as const },
         ],
       },
     )
