@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const EXTENSION_VERSION = '0.1.2';
+const EXTENSION_VERSION = '0.1.3';
 const BASE_URL = 'https://crypto-sim-nu.vercel.app';
 
 export async function GET() {
