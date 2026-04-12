@@ -36,6 +36,20 @@ export async function GET(request: NextRequest) {
     const positions = await prisma.position.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      include: {
+        positionCommentCount: {
+          select: {
+            preEntryCount: true,
+            longCount: true,
+            shortCount: true,
+            postEntryCount: true,
+            preCloseCount: true,
+            closeCount: true,
+            profit1Count: true,
+            profit2Count: true,
+          },
+        },
+      },
     })
 
     return NextResponse.json(positions, { headers: CORS_HEADERS })

@@ -91,6 +91,9 @@ export async function GET(request: NextRequest) {
         profit2:   { min: Number(u.profit2CommentMin   ?? 0), max: Number(u.profit2CommentMax   ?? 0) },
       },
 
+      channelName: (u.channelName as string) || null,
+      channelAvatarUrl: (u.channelAvatarUrl as string) || null,
+
       // ── 타이밍 (초) ──
       timing: {
         preEntryMin:  u.preEntryMinSec  ?? 60,
