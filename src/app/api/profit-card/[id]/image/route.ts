@@ -10,38 +10,50 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    })
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+    const position = await prisma.position.findUnique({
+      where: { id: params.id },
+      select: { id: true, userId: true },
+    })
+    if (!position) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (position.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+    const { dataUrl } = await request.json()
+    if (!dataUrl || !dataUrl.startsWith('data:image/')) {
+      return NextResponse.json({ error: 'Invalid dataUrl' }, { status: 400 })
+    }
+
+    const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '')
+    const buffer = Buffer.from(base64, 'base64')
+
+    const { url } = await put(`profit-cards/${params.id}.png`, buffer, {
+      access: 'public',
+      addRandomSuffix: false,
+      contentType: 'image/png',
+    })
+
+    await prisma.position.update({
+      where: { id: params.id },
+      data: { shareImageUrl: url },
+    })
+
+    return NextResponse.json({ url })
+  } catch (error: any) {
+    console.error('[profit-card/image PUT]', params.id, error?.message || error)
+    return NextResponse.json(
+      { error: error?.message || 'Internal Server Error' },
+      { status: 500 }
+    )
   }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  })
-  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-
-  const position = await prisma.position.findUnique({
-    where: { id: params.id },
-    select: { id: true, userId: true },
-  })
-  if (!position) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (position.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  const { dataUrl } = await request.json()
-  const base64 = dataUrl.replace(/^data:image\/png;base64,/, '')
-  const buffer = Buffer.from(base64, 'base64')
-
-  const { url } = await put(`profit-cards/${params.id}.png`, buffer, {
-    access: 'public',
-    addRandomSuffix: false,
-    contentType: 'image/png',
-  })
-
-  await prisma.position.update({
-    where: { id: params.id },
-    data: { shareImageUrl: url },
-  })
-
-  return NextResponse.json({ url })
 }
