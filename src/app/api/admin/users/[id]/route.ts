@@ -54,6 +54,32 @@ export async function PATCH(
       updateData.name = body.name
     }
 
+    // 별명 변경 (ADMIN만)
+    if ('nickname1' in body) {
+      if (admin.role !== 'ADMIN') {
+        return NextResponse.json({ error: '계정 정보 변경은 ADMIN만 가능합니다.' }, { status: 403 })
+      }
+      updateData.nickname1 = body.nickname1 || null
+    }
+    if ('nickname2' in body) {
+      if (admin.role !== 'ADMIN') {
+        return NextResponse.json({ error: '계정 정보 변경은 ADMIN만 가능합니다.' }, { status: 403 })
+      }
+      updateData.nickname2 = body.nickname2 || null
+    }
+    if ('entryWaitWord' in body) {
+      if (admin.role !== 'ADMIN') {
+        return NextResponse.json({ error: '계정 정보 변경은 ADMIN만 가능합니다.' }, { status: 403 })
+      }
+      updateData.entryWaitWord = body.entryWaitWord || null
+    }
+    if ('profitProofWord' in body) {
+      if (admin.role !== 'ADMIN') {
+        return NextResponse.json({ error: '계정 정보 변경은 ADMIN만 가능합니다.' }, { status: 403 })
+      }
+      updateData.profitProofWord = body.profitProofWord || null
+    }
+
     // 비밀번호 초기화 (ADMIN만)
     if (body.newPassword) {
       if (admin.role !== 'ADMIN') {
@@ -68,7 +94,7 @@ export async function PATCH(
     const updated = await prisma.user.update({
       where: { id: params.id },
       data: updateData,
-      select: { id: true, email: true, name: true, role: true, status: true },
+      select: { id: true, email: true, name: true, nickname1: true, nickname2: true, entryWaitWord: true, profitProofWord: true, role: true, status: true },
     })
 
     return NextResponse.json(updated)

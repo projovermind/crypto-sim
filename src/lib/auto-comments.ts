@@ -8,15 +8,17 @@ function randInt(min: number, max: number): number {
   return lo + Math.floor(Math.random() * (hi - lo + 1))
 }
 
-/** 작성자 정보로 {{name}}, {{nickname1}}, {{nickname2}} 치환 */
+/** 포지션 오픈한 회원 정보로 {{name}}, {{nickname1}}, {{nickname2}}, {{entryWait}}, {{profitProof}} 치환 */
 function replaceVars(
   content: string,
-  author: { name: string; nickname1?: string | null; nickname2?: string | null },
+  owner: { name: string; nickname1?: string | null; nickname2?: string | null; entryWaitWord?: string | null; profitProofWord?: string | null },
 ): string {
   return content
-    .replace(/\{\{name\}\}/g, author.name)
-    .replace(/\{\{nickname1\}\}/g, author.nickname1 ?? '')
-    .replace(/\{\{nickname2\}\}/g, author.nickname2 ?? '')
+    .replace(/\{\{name\}\}/g, owner.name)
+    .replace(/\{\{nickname1\}\}/g, owner.nickname1 ?? '')
+    .replace(/\{\{nickname2\}\}/g, owner.nickname2 ?? '')
+    .replace(/\{\{entryWait\}\}/g, owner.entryWaitWord ?? '')
+    .replace(/\{\{profitProof\}\}/g, owner.profitProofWord ?? '')
 }
 
 interface UserCommentSettings {
@@ -43,6 +45,7 @@ export async function generateAutoComments(
   positionId: string,
   side: 'LONG' | 'SHORT',
   user: UserCommentSettings,
+  owner: { name: string; nickname1?: string | null; nickname2?: string | null; entryWaitWord?: string | null; profitProofWord?: string | null },
 ): Promise<void> {
   // 1) 작성자 풀 & 댓글 풀 로드
   const [authors, allComments] = await Promise.all([
@@ -96,11 +99,11 @@ export async function generateAutoComments(
       allNewComments.push({
         positionId,
         messageType: config.type,
-        authorName: author.nickname1 ?? author.name,
+        authorName: author.name,
         avatarUrl: author.avatarUrl,
-        nickname1: author.nickname1 ?? null,
-        nickname2: author.nickname2 ?? null,
-        content: replaceVars(comment.content, author),
+        nickname1: null,
+        nickname2: null,
+        content: replaceVars(comment.content, owner),
         orderIndex: i, // 임시 인덱스, 셔플 후 재할당
       })
     }

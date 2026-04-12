@@ -13,6 +13,10 @@ model User {
   id        String     @id @default(cuid())
   email     String     @unique  // 아이디 (username)로 사용
   name      String
+  nickname1 String?
+  nickname2 String?
+  entryWaitWord   String?   // 진입 대기 단어
+  profitProofWord String?   // 수익 인증 단어
   password  String
   role              String     @default("USER")    // "USER" | "MANAGER" | "ADMIN"
   status            String     @default("PENDING")  // "PENDING" | "APPROVED" | "SUSPENDED"

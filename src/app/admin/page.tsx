@@ -20,6 +20,10 @@ interface UserItem {
   id: string
   email: string
   name: string
+  nickname1: string | null
+  nickname2: string | null
+  entryWaitWord: string | null
+  profitProofWord: string | null
   role: string
   status: string
   createdAt: string
@@ -39,8 +43,6 @@ interface CommentAuthor {
   id: string
   name: string
   avatarUrl: string | null
-  nickname1: string | null
-  nickname2: string | null
   createdAt: string
 }
 
@@ -77,8 +79,6 @@ export default function AdminPage() {
   const [authorLoading, setAuthorLoading] = useState(false)
   const [authorName, setAuthorName] = useState('')
   const [authorAvatar, setAuthorAvatar] = useState('')
-  const [authorNickname1, setAuthorNickname1] = useState('')
-  const [authorNickname2, setAuthorNickname2] = useState('')
   const [authorMsg, setAuthorMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [seedLoading, setSeedLoading] = useState(false)
 
@@ -101,6 +101,10 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<string | null>(null)
   const [editEmail, setEditEmail] = useState('')
   const [editName, setEditName] = useState('')
+  const [editNickname1, setEditNickname1] = useState('')
+  const [editNickname2, setEditNickname2] = useState('')
+  const [editEntryWait, setEditEntryWait] = useState('')
+  const [editProfitProof, setEditProfitProof] = useState('')
   const [editPw, setEditPw] = useState('')
   const [editMsg, setEditMsg] = useState('')
 
@@ -162,13 +166,11 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/comment-authors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: authorName.trim(), avatarUrl: authorAvatar.trim() || null, nickname1: authorNickname1.trim() || null, nickname2: authorNickname2.trim() || null }),
+      body: JSON.stringify({ name: authorName.trim(), avatarUrl: authorAvatar.trim() || null }),
     })
     if (res.ok) {
       setAuthorName('')
       setAuthorAvatar('')
-      setAuthorNickname1('')
-      setAuthorNickname2('')
       fetchAuthors()
     } else {
       const data = await res.json().catch(() => ({}))
@@ -313,13 +315,17 @@ export default function AdminPage() {
     setEditingUser(u.id)
     setEditEmail(u.email)
     setEditName(u.name)
+    setEditNickname1(u.nickname1 ?? '')
+    setEditNickname2(u.nickname2 ?? '')
+    setEditEntryWait(u.entryWaitWord ?? '')
+    setEditProfitProof(u.profitProofWord ?? '')
     setEditPw('')
     setEditMsg('')
   }
 
   const saveEditUser = async (id: string) => {
     setEditMsg('')
-    const body: any = { email: editEmail, name: editName }
+    const body: any = { email: editEmail, name: editName, nickname1: editNickname1, nickname2: editNickname2, entryWaitWord: editEntryWait, profitProofWord: editProfitProof }
     if (editPw) body.newPassword = editPw
     const res = await fetch(`/api/admin/users/${id}`, {
       method: 'PATCH',
@@ -574,6 +580,10 @@ export default function AdminPage() {
                     <tr className="text-binance-text-dim border-b border-binance-border text-xs">
                       <th className="text-left py-2 px-3 font-normal">아이디</th>
                       <th className="text-left py-2 px-3 font-normal">이름</th>
+                      <th className="text-left py-2 px-3 font-normal">별명1</th>
+                      <th className="text-left py-2 px-3 font-normal">별명2</th>
+                      <th className="text-left py-2 px-3 font-normal">진입대기</th>
+                      <th className="text-left py-2 px-3 font-normal">수익인증</th>
                       <th className="text-left py-2 px-3 font-normal">역할</th>
                       <th className="text-left py-2 px-3 font-normal">상태</th>
                       <th className="text-left py-2 px-3 font-normal">포지션</th>
@@ -584,9 +594,10 @@ export default function AdminPage() {
                   <tbody>
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="text-center py-8 text-binance-text-dim text-xs">
+                        <td colSpan={11} className="text-center py-8 text-binance-text-dim text-xs">
                           {userFilter === 'pending' ? '승인 대기 중인 유저가 없습니다.' : '유저가 없습니다.'}
                         </td>
+
                       </tr>
                     ) : (
                       filtered.map(u => editingUser === u.id ? (
@@ -597,6 +608,26 @@ export default function AdminPage() {
                           </td>
                           <td className="py-1.5 px-3">
                             <input type="text" value={editName} onChange={e => setEditName(e.target.value)}
+                              className="w-full bg-binance-bg border border-binance-border rounded px-2 py-1 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50" />
+                          </td>
+                          <td className="py-1.5 px-3">
+                            <input type="text" value={editNickname1} onChange={e => setEditNickname1(e.target.value)}
+                              placeholder="별명1"
+                              className="w-full bg-binance-bg border border-binance-border rounded px-2 py-1 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50" />
+                          </td>
+                          <td className="py-1.5 px-3">
+                            <input type="text" value={editNickname2} onChange={e => setEditNickname2(e.target.value)}
+                              placeholder="별명2"
+                              className="w-full bg-binance-bg border border-binance-border rounded px-2 py-1 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50" />
+                          </td>
+                          <td className="py-1.5 px-3">
+                            <input type="text" value={editEntryWait} onChange={e => setEditEntryWait(e.target.value)}
+                              placeholder="진입 대기"
+                              className="w-full bg-binance-bg border border-binance-border rounded px-2 py-1 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50" />
+                          </td>
+                          <td className="py-1.5 px-3">
+                            <input type="text" value={editProfitProof} onChange={e => setEditProfitProof(e.target.value)}
+                              placeholder="수익 인증"
                               className="w-full bg-binance-bg border border-binance-border rounded px-2 py-1 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50" />
                           </td>
                           <td className="py-1.5 px-3">
@@ -627,6 +658,10 @@ export default function AdminPage() {
                         <tr key={u.id} className="border-b border-binance-border/50 hover:bg-binance-border/20">
                           <td className="py-2 px-3 text-xs font-mono">{u.email}</td>
                           <td className="py-2 px-3 text-xs">{u.name}</td>
+                          <td className="py-2 px-3 text-xs text-binance-text-dim">{u.nickname1 ?? '-'}</td>
+                          <td className="py-2 px-3 text-xs text-binance-text-dim">{u.nickname2 ?? '-'}</td>
+                          <td className="py-2 px-3 text-xs text-binance-text-dim">{u.entryWaitWord ?? '-'}</td>
+                          <td className="py-2 px-3 text-xs text-binance-text-dim">{u.profitProofWord ?? '-'}</td>
                           <td className="py-2 px-3">
                             <span className={`text-xs font-medium ${roleLabel[u.role]?.cls}`}>
                               {roleLabel[u.role]?.text}
@@ -738,22 +773,6 @@ export default function AdminPage() {
                     className="flex-1 bg-binance-bg border border-binance-border rounded px-3 py-2 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50"
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAuthor() } }}
                   />
-                  <input
-                    type="text"
-                    value={authorNickname1}
-                    onChange={e => setAuthorNickname1(e.target.value)}
-                    placeholder="별명1 (선택)"
-                    className="flex-1 bg-binance-bg border border-binance-border rounded px-3 py-2 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50"
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAuthor() } }}
-                  />
-                  <input
-                    type="text"
-                    value={authorNickname2}
-                    onChange={e => setAuthorNickname2(e.target.value)}
-                    placeholder="별명2 (선택)"
-                    className="flex-1 bg-binance-bg border border-binance-border rounded px-3 py-2 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50"
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAuthor() } }}
-                  />
                   <button
                     onClick={addAuthor}
                     disabled={!authorName.trim() || authorLoading}
@@ -790,8 +809,6 @@ export default function AdminPage() {
                         )}
                         <span className="flex-1 text-xs text-binance-text truncate flex items-center gap-1">
                           {a.name}
-                          {a.nickname1 && <span className="text-[9px] text-binance-text-dim bg-binance-border/30 px-1 rounded">{a.nickname1}</span>}
-                          {a.nickname2 && <span className="text-[9px] text-binance-text-dim bg-binance-border/30 px-1 rounded">{a.nickname2}</span>}
                         </span>
                         <button
                           onClick={() => deleteAuthor(a.id)}
@@ -837,7 +854,7 @@ export default function AdminPage() {
                   rows={3}
                   className="w-full bg-binance-bg border border-binance-border rounded px-3 py-2 text-sm text-binance-text focus:outline-none focus:border-binance-yellow/50 resize-none"
                 />
-                <p className="text-[10px] text-binance-text-dim">사용 가능 변수: <code className="text-binance-yellow font-mono">{'{{name}}'}</code> 이름, <code className="text-binance-yellow font-mono">{'{{nickname1}}'}</code> 별명1, <code className="text-binance-yellow font-mono">{'{{nickname2}}'}</code> 별명2</p>
+                <p className="text-[10px] text-binance-text-dim">사용 가능 변수: <code className="text-binance-yellow font-mono">{'{{name}}'}</code> 이름, <code className="text-binance-yellow font-mono">{'{{nickname1}}'}</code> 별명1, <code className="text-binance-yellow font-mono">{'{{nickname2}}'}</code> 별명2, <code className="text-binance-yellow font-mono">{'{{entryWait}}'}</code> 진입대기, <code className="text-binance-yellow font-mono">{'{{profitProof}}'}</code> 수익인증</p>
                 <button
                   onClick={addComment}
                   disabled={!newCommentText.trim() || commentLoading}

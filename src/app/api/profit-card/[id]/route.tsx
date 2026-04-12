@@ -2,6 +2,7 @@ import { ImageResponse } from 'next/og'
 import { NextRequest } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { calculatePnL, formatPrice, formatNumber } from '@/lib/calculations'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 
@@ -63,25 +64,25 @@ export async function GET(
     const bgIndex = parseInt(request.nextUrl.searchParams.get('bg') || '0')
     const bgSrc = await getBackgroundBase64(bgIndex)
 
-    // 계산
-    const pnl = position.pnl ?? 0
-    const margin = position.amount / position.leverage
-    const roe = margin > 0 ? (pnl / margin * 100) : 0
-    const isProfit = pnl >= 0
+    // 포시 calculatePnL과 100% 동일한 계산
+    const closePrice = position.closedPrice ?? position.entryPrice
+    const pnlData = calculatePnL(
+      position.side as 'LONG' | 'SHORT',
+      position.entryPrice,
+      closePrice,
+      position.leverage,
+      position.amount,
+      position.quantity,
+      position.entryFee,
+    )
+    const isProfit = pnlData.pnl >= 0
     const pnlColor = isProfit ? '#00ff85' : '#ff3d55'
     const sideColor = position.side === 'LONG' ? '#00ff85' : '#ff3d55'
     const entryPrice = (position as any).inputPrice ?? position.entryPrice
-    const closePrice = position.closedPrice ?? entryPrice
 
     const now = new Date()
     const pad = (n: number) => n.toString().padStart(2, '0')
     const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
-
-    const fmtPrice = (p: number) => {
-      if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-      if (p >= 1) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
-      return p.toString()
-    }
 
     const imageResponse = new ImageResponse(
       (
@@ -147,7 +148,7 @@ export async function GET(
           <div style={{ display: 'flex', flexDirection: 'column', padding: '0 20px' }}>
             <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>ROE</span>
             <span style={{ color: pnlColor, fontSize: 52, fontWeight: 600, lineHeight: 1.1, marginTop: 4 }}>
-              {isProfit ? '+' : ''}{roe.toFixed(2)}%
+              {isProfit ? '+' : ''}{formatNumber(pnlData.roe)}%
             </span>
           </div>
 
@@ -155,11 +156,11 @@ export async function GET(
           <div style={{ display: 'flex', flexDirection: 'column', padding: '24px 20px', gap: 6 }}>
             <div style={{ display: 'flex', fontSize: 13 }}>
               <span style={{ color: 'rgba(255,255,255,0.8)' }}>Entry Price: </span>
-              <span style={{ color: '#fff', fontWeight: 600, marginLeft: 4 }}>{fmtPrice(entryPrice)}</span>
+              <span style={{ color: '#fff', fontWeight: 600, marginLeft: 4 }}>{formatPrice(entryPrice)}</span>
             </div>
             <div style={{ display: 'flex', fontSize: 13 }}>
               <span style={{ color: 'rgba(255,255,255,0.8)' }}>Last Price: </span>
-              <span style={{ color: '#fff', fontWeight: 600, marginLeft: 4 }}>{fmtPrice(closePrice)}</span>
+              <span style={{ color: '#fff', fontWeight: 600, marginLeft: 4 }}>{formatPrice(closePrice)}</span>
             </div>
           </div>
 

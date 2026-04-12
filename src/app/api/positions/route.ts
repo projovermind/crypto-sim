@@ -134,7 +134,8 @@ export async function POST(request: NextRequest) {
     })
 
     // 댓글 자동 생성 (응답 반환 후 백그라운드 실행 - fire-and-forget)
-    generateAutoComments(position.id, side as 'LONG' | 'SHORT', user as any).catch(err => console.error('Auto-comment failed:', err))
+    const u = user as any
+    generateAutoComments(position.id, side as 'LONG' | 'SHORT', u, { name: u.name, nickname1: u.nickname1, nickname2: u.nickname2, entryWaitWord: u.entryWaitWord, profitProofWord: u.profitProofWord }).catch(err => console.error('Auto-comment failed:', err))
 
     return NextResponse.json(position, { status: 201 })
   } catch (error: any) {
