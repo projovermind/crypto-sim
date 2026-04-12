@@ -21,10 +21,10 @@ export default function PositionsPopupPage() {
   // ── 자동 캡처 ────────────────────────────────────────────────────────────────
   const [capturePos, setCapturePos] = useState<PositionWithLive | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
-  // 이미 처리했거나 처리 중인 포지션 ID (세션 내 중복 방지)
-  const processedIds = useRef<Set<string>>(new Set())
-  // 배치 큐
-  const captureQueue = useRef<PositionWithLive[]>([])
+  const captureQueue  = useRef<PositionWithLive[]>([])
+  const isCapturing   = useRef(false)        // 진행 중 여부 (ref → stale closure 방지)
+  const processedIds  = useRef<Set<string>>(new Set()) // 세션 내 중복 방지
+  const batchStarted  = useRef(false)        // 최초 1회만 배치 시작
 
   useEffect(() => { document.title = 'Tap PO(NEW)' }, [])
   useEffect(() => {
@@ -55,78 +55,82 @@ export default function PositionsPopupPage() {
     if (openSymbols.length > 0) subscribeSymbols(openSymbols)
   }, [positions])
 
-  // ── 포지션 로드 시: shareImageUrl 없는 종료 포지션들 배치 큐에 추가 ───────────
-  useEffect(() => {
-    if (!session) return
-    const needCapture = positions.filter(
-      p => p.status !== 'OPEN' && !p.deletedAt && !p.shareImageUrl && !processedIds.current.has(p.id)
-    )
-    if (needCapture.length === 0) return
-
-    // 큐에 추가 (아직 없는 것만)
-    const existingIds = new Set(captureQueue.current.map(q => q.id))
-    const toAdd = needCapture
-      .filter(p => !existingIds.has(p.id))
-      .map(p => ({
-        ...p,
-        currentPrice: p.closedPrice ?? p.entryPrice,
-        pnlLive: p.pnl ?? 0,
-        roeLive: 0,
-        liquidationPrice: 0,
-        hitTP: false,
-        hitSL: false,
-      }))
-
-    if (toAdd.length > 0) {
-      captureQueue.current = [...captureQueue.current, ...toAdd]
-      // 캡처 중이 아니면 즉시 시작
-      if (!capturePos) {
-        const next = captureQueue.current.shift()!
-        processedIds.current.add(next.id)
-        setCapturePos(next)
-      }
+  // ── 헬퍼: 다음 캡처 시작 ─────────────────────────────────────────────────────
+  const startNextCapture = useCallback(() => {
+    const next = captureQueue.current.shift()
+    if (next) {
+      isCapturing.current = true
+      setCapturePos(next)
+    } else {
+      isCapturing.current = false
+      setCapturePos(null)
     }
-  // positions가 바뀔 때만 실행 (capturePos 의존성 제외 — 무한루프 방지)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [positions, session])
+  }, [])
 
-  // ── 캡처 실행: capturePos 세팅 → 렌더 대기 → 캡처 → 업로드 → 다음 큐 ─────────
+  // ── 첫 positions 로드 시 배치 큐 구성 (1회만) ────────────────────────────────
+  useEffect(() => {
+    if (!session || positions.length === 0 || batchStarted.current) return
+
+    const needCapture = positions.filter(
+      p => p.status !== 'OPEN' && !p.deletedAt && !p.shareImageUrl
+    )
+    if (needCapture.length === 0) { batchStarted.current = true; return }
+
+    console.log(`[ProfitCard] 배치 캡처 시작: ${needCapture.length}개`)
+    batchStarted.current = true
+
+    captureQueue.current = needCapture.map(p => ({
+      ...p,
+      currentPrice: p.closedPrice ?? p.entryPrice,
+      pnlLive: p.pnl ?? 0,
+      roeLive: 0,
+      liquidationPrice: 0,
+      hitTP: false,
+      hitSL: false,
+    }))
+    needCapture.forEach(p => processedIds.current.add(p.id))
+
+    startNextCapture()
+  }, [positions, session, startNextCapture])
+
+  // ── capturePos → 렌더 대기 → 캡처 → 업로드 → 다음 ───────────────────────────
   useEffect(() => {
     if (!capturePos) return
     let cancelled = false
 
     const doCapture = async () => {
       await document.fonts.ready
-      await new Promise(r => setTimeout(r, 800))
-      if (cancelled || !cardRef.current) return
+      await new Promise(r => setTimeout(r, 1000))
+      if (cancelled || !cardRef.current) {
+        console.warn('[ProfitCard] 캡처 취소됨:', capturePos.id, { cancelled, hasRef: !!cardRef.current })
+        return
+      }
 
       try {
+        console.log('[ProfitCard] 캡처 중:', capturePos.id)
         const { toPng } = await import('html-to-image')
         const dataUrl = await toPng(cardRef.current, { pixelRatio: 2, cacheBust: true })
-        await fetch(`/api/profit-card/${capturePos.id}/image`, {
+        const res = await fetch(`/api/profit-card/${capturePos.id}/image`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ dataUrl }),
         })
-      } catch (e) {
-        console.error('[ProfitCard] 캡처 실패:', capturePos.id, e)
-      } finally {
-        if (!cancelled) {
-          // 큐에 다음 항목 있으면 이어서 처리
-          const next = captureQueue.current.shift()
-          if (next) {
-            processedIds.current.add(next.id)
-            setCapturePos(next)
-          } else {
-            setCapturePos(null)
-          }
+        if (res.ok) {
+          console.log('[ProfitCard] 업로드 완료:', capturePos.id)
+        } else {
+          const err = await res.text()
+          console.error('[ProfitCard] 업로드 실패:', capturePos.id, res.status, err)
         }
+      } catch (e) {
+        console.error('[ProfitCard] 캡처 오류:', capturePos.id, e)
+      } finally {
+        if (!cancelled) startNextCapture()
       }
     }
 
     doCapture()
     return () => { cancelled = true }
-  }, [capturePos])
+  }, [capturePos, startNextCapture])
 
   const positionsWithLive: PositionWithLive[] = positions
     .filter(p => p.status === 'OPEN')
@@ -156,10 +160,11 @@ export default function PositionsPopupPage() {
       }
       if (res.ok) {
         fetchPositions()
-        // 전체 종료: 캡처 큐에 추가
+        // 전체 종료 시 즉시 캡처 (중복 체크)
         if (!opts && posWithLive && !processedIds.current.has(id)) {
           processedIds.current.add(id)
-          if (!capturePos && captureQueue.current.length === 0) {
+          if (!isCapturing.current) {
+            isCapturing.current = true
             setCapturePos(posWithLive)
           } else {
             captureQueue.current.push(posWithLive)
