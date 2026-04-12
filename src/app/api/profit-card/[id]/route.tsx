@@ -44,10 +44,21 @@ async function getBg(idx: number): Promise<string> {
 async function getFont(name: string): Promise<ArrayBuffer> {
   if (fontCache[name]) return fontCache[name]
   try {
+    // 1차: 파일시스템 (로컬 dev)
     const buf = await readFile(join(process.cwd(), 'public', 'fonts', `${name}.ttf`))
     fontCache[name] = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
     return fontCache[name]
-  } catch { return new ArrayBuffer(0) }
+  } catch {
+    try {
+      // 2차: HTTP fetch (Vercel 프로덕션)
+      const res = await fetch(new URL(`/fonts/${name}.ttf`, process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'))
+      if (res.ok) {
+        fontCache[name] = await res.arrayBuffer()
+        return fontCache[name]
+      }
+    } catch { /* ignore */ }
+    return new ArrayBuffer(0)
+  }
 }
 
 export async function GET(
