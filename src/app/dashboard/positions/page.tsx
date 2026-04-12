@@ -18,18 +18,18 @@ export default function PositionsPopupPage() {
   const connect = usePriceStore(s => s.connect)
   const disconnect = usePriceStore(s => s.disconnect)
 
-  // ── 자동 캡처용 ──────────────────────────────────────────────────────────────
+  // ── 자동 캡처 ────────────────────────────────────────────────────────────────
   const [capturePos, setCapturePos] = useState<PositionWithLive | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
+  // 이미 처리했거나 처리 중인 포지션 ID (세션 내 중복 방지)
+  const processedIds = useRef<Set<string>>(new Set())
+  // 배치 큐
+  const captureQueue = useRef<PositionWithLive[]>([])
 
-  useEffect(() => {
-    document.title = 'Tap PO(NEW)'
-  }, [])
-
+  useEffect(() => { document.title = 'Tap PO(NEW)' }, [])
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
-
   useEffect(() => {
     connect()
     return () => { disconnect() }
@@ -55,13 +55,47 @@ export default function PositionsPopupPage() {
     if (openSymbols.length > 0) subscribeSymbols(openSymbols)
   }, [positions])
 
-  // ── capturePos가 세팅되면 ProfitCard 렌더 후 자동 캡처 ───────────────────────
+  // ── 포지션 로드 시: shareImageUrl 없는 종료 포지션들 배치 큐에 추가 ───────────
+  useEffect(() => {
+    if (!session) return
+    const needCapture = positions.filter(
+      p => p.status !== 'OPEN' && !p.deletedAt && !p.shareImageUrl && !processedIds.current.has(p.id)
+    )
+    if (needCapture.length === 0) return
+
+    // 큐에 추가 (아직 없는 것만)
+    const existingIds = new Set(captureQueue.current.map(q => q.id))
+    const toAdd = needCapture
+      .filter(p => !existingIds.has(p.id))
+      .map(p => ({
+        ...p,
+        currentPrice: p.closedPrice ?? p.entryPrice,
+        pnlLive: p.pnl ?? 0,
+        roeLive: 0,
+        liquidationPrice: 0,
+        hitTP: false,
+        hitSL: false,
+      }))
+
+    if (toAdd.length > 0) {
+      captureQueue.current = [...captureQueue.current, ...toAdd]
+      // 캡처 중이 아니면 즉시 시작
+      if (!capturePos) {
+        const next = captureQueue.current.shift()!
+        processedIds.current.add(next.id)
+        setCapturePos(next)
+      }
+    }
+  // positions가 바뀔 때만 실행 (capturePos 의존성 제외 — 무한루프 방지)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [positions, session])
+
+  // ── 캡처 실행: capturePos 세팅 → 렌더 대기 → 캡처 → 업로드 → 다음 큐 ─────────
   useEffect(() => {
     if (!capturePos) return
     let cancelled = false
 
     const doCapture = async () => {
-      // 배경 이미지/폰트 로드 대기
       await document.fonts.ready
       await new Promise(r => setTimeout(r, 800))
       if (cancelled || !cardRef.current) return
@@ -75,9 +109,18 @@ export default function PositionsPopupPage() {
           body: JSON.stringify({ dataUrl }),
         })
       } catch (e) {
-        console.error('[ProfitCard] 자동 캡처 실패:', e)
+        console.error('[ProfitCard] 캡처 실패:', capturePos.id, e)
       } finally {
-        if (!cancelled) setCapturePos(null)
+        if (!cancelled) {
+          // 큐에 다음 항목 있으면 이어서 처리
+          const next = captureQueue.current.shift()
+          if (next) {
+            processedIds.current.add(next.id)
+            setCapturePos(next)
+          } else {
+            setCapturePos(null)
+          }
+        }
       }
     }
 
@@ -95,9 +138,7 @@ export default function PositionsPopupPage() {
     })
 
   const handleClose = async (id: string, options?: number | { closeMargin?: number; closeQuantity?: number }) => {
-    // 종료 전 현재 라이브 데이터 저장 (캡처용)
     const posWithLive = positionsWithLive.find(p => p.id === id)
-
     try {
       let res: Response
       const opts = typeof options === 'number' ? { closeMargin: options } : options
@@ -115,9 +156,14 @@ export default function PositionsPopupPage() {
       }
       if (res.ok) {
         fetchPositions()
-        // 전체 종료일 때만 수익카드 자동 캡처
-        if (!opts && posWithLive) {
-          setCapturePos(posWithLive)
+        // 전체 종료: 캡처 큐에 추가
+        if (!opts && posWithLive && !processedIds.current.has(id)) {
+          processedIds.current.add(id)
+          if (!capturePos && captureQueue.current.length === 0) {
+            setCapturePos(posWithLive)
+          } else {
+            captureQueue.current.push(posWithLive)
+          }
         }
       } else {
         const err = await res.json()
@@ -150,7 +196,7 @@ export default function PositionsPopupPage() {
         isPopup
       />
 
-      {/* 자동 캡처용 숨겨진 ProfitCard — 화면 밖에 렌더링 */}
+      {/* 자동 캡처용 숨겨진 ProfitCard */}
       {capturePos && (
         <div style={{ position: 'fixed', top: '-9999px', left: '-9999px', pointerEvents: 'none', zIndex: -1 }}>
           <ProfitCard ref={cardRef} position={capturePos} bgIndex={0} hideProfit={false} />
