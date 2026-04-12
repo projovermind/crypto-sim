@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { prisma } from '@/lib/prisma'
 import { calculatePnL, formatPrice, formatNumber } from '@/lib/calculations'
-import { readFileSync, existsSync } from 'fs'
+import { readFileSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 
@@ -28,34 +28,20 @@ export async function OPTIONS() {
   return corsResponse(null, 204)
 }
 
-// ── 폰트: 모듈 초기화 시 1회 readFileSync → Vercel 조용한 실패 없음 ─────────
-function loadFontSync(name: string): { ab: ArrayBuffer; bytes: number; ok: boolean; error?: string } {
+// ── 폰트: 요청마다 readFileSync (debug 라우트와 동일 방식, 작동 확인됨) ─────────
+function loadFont(name: string): ArrayBuffer {
   const path = join(process.cwd(), 'public', 'fonts', `${name}.ttf`)
   try {
     const buf = readFileSync(path)
     const ab = new ArrayBuffer(buf.byteLength)
     new Uint8Array(ab).set(buf)
-    return { ab, bytes: buf.byteLength, ok: true }
+    console.log(`[profit-card] 폰트 로드 성공: ${name} (${buf.byteLength}bytes)`)
+    return ab
   } catch (e: any) {
-    console.error(`[profit-card] 폰트 로드 실패: ${name}`, e)
-    return { ab: new ArrayBuffer(0), bytes: 0, ok: false, error: e.message }
+    console.error(`[profit-card] 폰트 로드 실패: ${name}`, e.message)
+    return new ArrayBuffer(0)
   }
 }
-
-const _FONT_REGULAR  = loadFontSync('Inter-Regular')
-const _FONT_SEMIBOLD = loadFontSync('Inter-SemiBold')
-const _FONT_BOLD     = loadFontSync('Inter-Bold')
-
-const FONT_REGULAR  = _FONT_REGULAR.ab
-const FONT_SEMIBOLD = _FONT_SEMIBOLD.ab
-const FONT_BOLD     = _FONT_BOLD.ab
-
-const FONT_DEBUG = JSON.stringify({
-  cwd: process.cwd(),
-  'Inter-Regular':  { ok: _FONT_REGULAR.ok,  bytes: _FONT_REGULAR.bytes,  error: _FONT_REGULAR.error },
-  'Inter-SemiBold': { ok: _FONT_SEMIBOLD.ok, bytes: _FONT_SEMIBOLD.bytes, error: _FONT_SEMIBOLD.error },
-  'Inter-Bold':     { ok: _FONT_BOLD.ok,     bytes: _FONT_BOLD.bytes,     error: _FONT_BOLD.error },
-})
 
 // ── 이미지 캐시 (배경, 로고) ─────────────────────────────────────────────────
 let bgCache: Record<string, string> = {}
@@ -111,6 +97,11 @@ export async function GET(
 
     const bgIdx = parseInt(request.nextUrl.searchParams.get('bg') || '0')
     const [bgSrc, logoSrc] = await Promise.all([getBg(bgIdx), getLogo()])
+
+    // 폰트 로드 (debug 라우트와 동일 방식)
+    const fontRegular  = loadFont('Inter-Regular')
+    const fontSemibold = loadFont('Inter-SemiBold')
+    const fontBold     = loadFont('Inter-Bold')
 
     // ProfitCard.tsx와 동일한 계산
     const closePrice = position.closedPrice ?? position.entryPrice
@@ -217,12 +208,11 @@ export async function GET(
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          'X-Font-Debug': FONT_DEBUG,
         },
         fonts: [
-          { name: 'Inter', data: FONT_REGULAR,  weight: 400 as const, style: 'normal' as const },
-          { name: 'Inter', data: FONT_SEMIBOLD, weight: 600 as const, style: 'normal' as const },
-          { name: 'Inter', data: FONT_BOLD,     weight: 700 as const, style: 'normal' as const },
+          { name: 'Inter', data: fontRegular,  weight: 400 as const, style: 'normal' as const },
+          { name: 'Inter', data: fontSemibold, weight: 600 as const, style: 'normal' as const },
+          { name: 'Inter', data: fontBold,     weight: 700 as const, style: 'normal' as const },
         ],
       },
     )
