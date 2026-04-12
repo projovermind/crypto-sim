@@ -29,23 +29,33 @@ export async function OPTIONS() {
 }
 
 // ── 폰트: 모듈 초기화 시 1회 readFileSync → Vercel 조용한 실패 없음 ─────────
-function loadFontSync(name: string): ArrayBuffer {
+function loadFontSync(name: string): { ab: ArrayBuffer; bytes: number; ok: boolean; error?: string } {
   const path = join(process.cwd(), 'public', 'fonts', `${name}.ttf`)
   try {
     const buf = readFileSync(path)
-    // 새 ArrayBuffer에 복사 (Buffer pool 공유 문제 방지)
     const ab = new ArrayBuffer(buf.byteLength)
     new Uint8Array(ab).set(buf)
-    return ab
-  } catch (e) {
+    return { ab, bytes: buf.byteLength, ok: true }
+  } catch (e: any) {
     console.error(`[profit-card] 폰트 로드 실패: ${name}`, e)
-    return new ArrayBuffer(0)
+    return { ab: new ArrayBuffer(0), bytes: 0, ok: false, error: e.message }
   }
 }
 
-const FONT_REGULAR  = loadFontSync('Inter-Regular')
-const FONT_SEMIBOLD = loadFontSync('Inter-SemiBold')
-const FONT_BOLD     = loadFontSync('Inter-Bold')
+const _FONT_REGULAR  = loadFontSync('Inter-Regular')
+const _FONT_SEMIBOLD = loadFontSync('Inter-SemiBold')
+const _FONT_BOLD     = loadFontSync('Inter-Bold')
+
+const FONT_REGULAR  = _FONT_REGULAR.ab
+const FONT_SEMIBOLD = _FONT_SEMIBOLD.ab
+const FONT_BOLD     = _FONT_BOLD.ab
+
+const FONT_DEBUG = JSON.stringify({
+  cwd: process.cwd(),
+  'Inter-Regular':  { ok: _FONT_REGULAR.ok,  bytes: _FONT_REGULAR.bytes,  error: _FONT_REGULAR.error },
+  'Inter-SemiBold': { ok: _FONT_SEMIBOLD.ok, bytes: _FONT_SEMIBOLD.bytes, error: _FONT_SEMIBOLD.error },
+  'Inter-Bold':     { ok: _FONT_BOLD.ok,     bytes: _FONT_BOLD.bytes,     error: _FONT_BOLD.error },
+})
 
 // ── 이미지 캐시 (배경, 로고) ─────────────────────────────────────────────────
 let bgCache: Record<string, string> = {}
@@ -207,6 +217,7 @@ export async function GET(
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'X-Font-Debug': FONT_DEBUG,
         },
         fonts: [
           { name: 'Inter', data: FONT_REGULAR,  weight: 400 as const, style: 'normal' as const },
