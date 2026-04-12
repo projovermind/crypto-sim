@@ -384,17 +384,23 @@ export function useDashboard(): UseDashboardReturn {
     } else {
       isCapturing.current = false
       setCapturePos(null)
+      // 배치 완료 → 업그레이드 플래그 세팅 (이후 재방문 시 null만 캡처)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('profitcard_upgraded_v1', '1')
+      }
     }
   }, [])
 
   // ── 첫 positions 로드 시 배치 큐 구성 (1회만) ────────────────────────────────
+  // localStorage 'profitcard_upgraded_v1': 최초 1회 전체 재캡처 후 세팅 → 이후 null만 캡처
   useEffect(() => {
     if (!session || positions.length === 0 || batchStarted.current) return
+    const upgraded = typeof window !== 'undefined' && !!localStorage.getItem('profitcard_upgraded_v1')
     const needCapture = positions.filter(
-      p => p.status !== 'OPEN' && !p.deletedAt
+      p => p.status !== 'OPEN' && !p.deletedAt && (!upgraded || !p.shareImageUrl)
     )
     if (needCapture.length === 0) { batchStarted.current = true; return }
-    console.log(`[ProfitCard] 배치 캡처 시작: ${needCapture.length}개`)
+    console.log(`[ProfitCard] 배치 캡처 시작: ${needCapture.length}개 (upgraded=${upgraded})`)
     batchStarted.current = true
     captureQueue.current = needCapture.map(p => ({
       ...p,
