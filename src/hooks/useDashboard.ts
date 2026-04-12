@@ -391,7 +391,7 @@ export function useDashboard(): UseDashboardReturn {
   useEffect(() => {
     if (!session || positions.length === 0 || batchStarted.current) return
     const needCapture = positions.filter(
-      p => p.status !== 'OPEN' && !p.deletedAt && !p.shareImageUrl
+      p => p.status !== 'OPEN' && !p.deletedAt
     )
     if (needCapture.length === 0) { batchStarted.current = true; return }
     console.log(`[ProfitCard] 배치 캡처 시작: ${needCapture.length}개`)
