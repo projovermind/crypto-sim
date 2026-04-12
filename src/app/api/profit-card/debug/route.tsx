@@ -4,6 +4,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 function tryLoad(name: string) {
   const path = join(process.cwd(), 'public', 'fonts', `${name}.ttf`)
