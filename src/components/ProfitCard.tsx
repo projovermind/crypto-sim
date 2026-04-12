@@ -47,7 +47,7 @@ const ProfitCard = forwardRef<HTMLDivElement, ProfitCardProps>(
       <div
         ref={ref}
         className="relative overflow-hidden"
-        style={{ ...bgStyle, width: 362, height: 500, borderRadius: 12, fontFamily: 'var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}
+        style={{ ...bgStyle, width: 362, height: 500, borderRadius: 12, fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}
       >
         {/* Header: 60px */}
         <div className="relative flex items-center" style={{ height: 60, padding: '0 20px' }}>
