@@ -429,7 +429,30 @@ export function useDashboard(): UseDashboardReturn {
       try {
         console.log('[ProfitCard] 캡처 중:', capturePos.id)
         const { toPng } = await import('html-to-image')
-        const dataUrl = await toPng(cardRef.current, { pixelRatio: 2, cacheBust: true })
+
+        // html-to-image 자동 @font-face 스캔은 Next.js 환경에서 불안정 → 직접 embed
+        const toB64 = async (url: string): Promise<string> => {
+          const res = await fetch(url)
+          const buf = await res.arrayBuffer()
+          const bytes = new Uint8Array(buf)
+          let binary = ''
+          for (let i = 0; i < bytes.length; i += 8192) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + 8192))
+          }
+          return btoa(binary)
+        }
+        const [r400, r600, r700] = await Promise.all([
+          toB64('/fonts/Inter-Regular.woff2'),
+          toB64('/fonts/Inter-SemiBold.woff2'),
+          toB64('/fonts/Inter-Bold.woff2'),
+        ])
+        const fontEmbedCSS = [
+          `@font-face{font-family:'Inter';src:url('data:font/woff2;base64,${r400}')format('woff2');font-weight:400;font-style:normal;}`,
+          `@font-face{font-family:'Inter';src:url('data:font/woff2;base64,${r600}')format('woff2');font-weight:600;font-style:normal;}`,
+          `@font-face{font-family:'Inter';src:url('data:font/woff2;base64,${r700}')format('woff2');font-weight:700;font-style:normal;}`,
+        ].join('')
+
+        const dataUrl = await toPng(cardRef.current, { pixelRatio: 2, cacheBust: true, fontEmbedCSS })
         const res = await fetch(`/api/profit-card/${capturePos.id}/image`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
