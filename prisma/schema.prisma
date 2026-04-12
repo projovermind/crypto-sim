@@ -73,22 +73,22 @@ model User {
   profit2MaxSec             Int        @default(60)   // 수익 인증 2 최대(초)
   varRoundEnabled           Boolean    @default(false) // 변수 반올림 활성화
   varRoundDecimals          Int        @default(2)    // 변수 반올림 소수점 자릿수
-  preEntryCommentMin        Int        @default(0)
-  preEntryCommentMax        Int        @default(0)
+  preEntryCommentMin        Int        @default(12)
+  preEntryCommentMax        Int        @default(31)
   longCommentMin            Int        @default(0)
-  longCommentMax            Int        @default(0)
+  longCommentMax            Int        @default(2)
   shortCommentMin           Int        @default(0)
-  shortCommentMax           Int        @default(0)
-  postEntryCommentMin       Int        @default(0)
-  postEntryCommentMax       Int        @default(0)
+  shortCommentMax           Int        @default(2)
+  postEntryCommentMin       Int        @default(8)
+  postEntryCommentMax       Int        @default(32)
   preCloseCommentMin        Int        @default(0)
-  preCloseCommentMax        Int        @default(0)
-  closeCommentMin           Int        @default(0)
-  closeCommentMax           Int        @default(0)
-  profit1CommentMin         Int        @default(0)
-  profit1CommentMax         Int        @default(0)
-  profit2CommentMin         Int        @default(0)
-  profit2CommentMax         Int        @default(0)
+  preCloseCommentMax        Int        @default(3)
+  closeCommentMin           Int        @default(5)
+  closeCommentMax           Int        @default(14)
+  profit1CommentMin         Int        @default(8)
+  profit1CommentMax         Int        @default(23)
+  profit2CommentMin         Int        @default(16)
+  profit2CommentMax         Int        @default(42)
   channelName      String?    // 채널명
   channelAvatarUrl String?    // 채널 아바타 URL
   createdAt         DateTime   @default(now())
@@ -127,6 +127,22 @@ model Position {
   overrides            MessageOverride[]
   positionComments     PositionComment[]
   positionCommentAuthors PositionCommentAuthor[]
+  positionCommentCount   PositionCommentCount?
+}
+
+model PositionCommentCount {
+  id             String   @id @default(cuid())
+  positionId     String   @unique
+  position       Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  preEntryCount  Int
+  longCount      Int
+  shortCount     Int
+  postEntryCount Int
+  preCloseCount  Int
+  closeCount     Int
+  profit1Count   Int
+  profit2Count   Int
+  createdAt      DateTime @default(now())
 }
 
 // === Teledit 전용 모델 (DB 공유로 인해 CryptoSim에도 선언 필수) ===

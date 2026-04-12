@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { signOut } from 'next-auth/react'
 import { useSettings } from '@/hooks/useSettings'
 import NavBar from '@/components/NavBar'
@@ -208,6 +208,30 @@ function VarReferencePanel({
 export default function SettingsPage() {
   const s = useSettings()
   const [activeTab, setActiveTab] = useState<TabKey>('account')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+
+  const handleAvatarUpload = async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      alert('최대 2MB까지 업로드 가능합니다')
+      return
+    }
+    setAvatarUploading(true)
+    setAvatarError(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/user/channel-avatar', { method: 'POST', body: fd })
+      if (!res.ok) throw new Error('업로드 실패')
+      const data = await res.json()
+      s.setChannelAvatarUrl(data.url)
+    } catch {
+      setAvatarError('이미지 업로드에 실패했습니다')
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
 
   if (s.status === 'loading' || s.loading) {
     return (
@@ -406,14 +430,44 @@ export default function SettingsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-binance-text-dim mb-1">채널 아바타 URL</label>
-                      <input
-                        type="text"
-                        value={s.channelAvatarUrl}
-                        onChange={e => s.setChannelAvatarUrl(e.target.value)}
-                        placeholder="채널 아바타 URL"
-                        className={inputCls}
-                      />
+                      <label className="block text-[11px] text-binance-text-dim mb-1.5">채널 아바타</label>
+                      <div className="flex items-center gap-3">
+                        {s.channelAvatarUrl ? (
+                          <img
+                            src={s.channelAvatarUrl}
+                            alt="채널 아바타"
+                            className="w-12 h-12 rounded-full object-cover border border-binance-border"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-binance-bg border border-binance-border flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-binance-text-dim/40" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                        <input
+                          ref={avatarInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) handleAvatarUpload(file)
+                            e.target.value = ''
+                          }}
+                        />
+                        <button
+                          type="button"
+                          disabled={avatarUploading}
+                          onClick={() => avatarInputRef.current?.click()}
+                          className="px-3 py-1.5 text-[11px] bg-binance-bg border border-binance-border rounded text-binance-yellow hover:bg-binance-border/30 transition-colors disabled:opacity-50"
+                        >
+                          {avatarUploading ? 'loading...' : '이미지 업로드'}
+                        </button>
+                      </div>
+                      {avatarError && (
+                        <p className="text-[11px] text-red-400 mt-1.5">{avatarError}</p>
+                      )}
                     </div>
                   </div>
                 </div>

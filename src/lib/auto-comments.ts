@@ -71,23 +71,36 @@ export async function generateAutoComments(
     })),
   })
 
-  // 3) 메시지 타입별 설정 매핑
+  // 3) 각 타입별 count를 먼저 확정 (side 규칙 적용)
+  const counts = {
+    preEntryCount:  randInt(user.preEntryCommentMin,  user.preEntryCommentMax),
+    longCount:      side === 'LONG' ? randInt(user.longCommentMin,  user.longCommentMax)  : 0,
+    shortCount:     side === 'SHORT' ? randInt(user.shortCommentMin, user.shortCommentMax) : 0,
+    postEntryCount: randInt(user.postEntryCommentMin, user.postEntryCommentMax),
+    preCloseCount:  randInt(user.preCloseCommentMin,  user.preCloseCommentMax),
+    closeCount:     randInt(user.closeCommentMin,     user.closeCommentMax),
+    profit1Count:   randInt(user.profit1CommentMin,   user.profit1CommentMax),
+    profit2Count:   randInt(user.profit2CommentMin,   user.profit2CommentMax),
+  }
+
+  // 확정된 count DB 저장
+  await prisma.positionCommentCount.create({
+    data: { positionId, ...counts },
+  })
+
+  // 4) 타입별 설정 (확정된 count 사용)
   const directionType = side === 'LONG' ? 'long' : 'short'
-  const typeConfigs: Array<{
-    type: string
-    min: number
-    max: number
-  }> = [
-    { type: 'preEntry', min: user.preEntryCommentMin, max: user.preEntryCommentMax },
-    { type: directionType, min: side === 'LONG' ? user.longCommentMin : user.shortCommentMin, max: side === 'LONG' ? user.longCommentMax : user.shortCommentMax },
-    { type: 'postEntry', min: user.postEntryCommentMin, max: user.postEntryCommentMax },
-    { type: 'preClose', min: user.preCloseCommentMin, max: user.preCloseCommentMax },
-    { type: 'close', min: user.closeCommentMin, max: user.closeCommentMax },
-    { type: 'profit1', min: user.profit1CommentMin, max: user.profit1CommentMax },
-    { type: 'profit2', min: user.profit2CommentMin, max: user.profit2CommentMax },
+  const typeConfigs: Array<{ type: string; count: number }> = [
+    { type: 'preEntry',    count: counts.preEntryCount },
+    { type: directionType, count: side === 'LONG' ? counts.longCount : counts.shortCount },
+    { type: 'postEntry',   count: counts.postEntryCount },
+    { type: 'preClose',    count: counts.preCloseCount },
+    { type: 'close',       count: counts.closeCount },
+    { type: 'profit1',     count: counts.profit1Count },
+    { type: 'profit2',     count: counts.profit2Count },
   ]
 
-  // 4) 각 타입별 댓글 생성 (선정된 110명 중에서만 작성자 선택)
+  // 5) 각 타입별 댓글 생성 (선정된 110명 중에서만 작성자 선택)
   const allNewComments: Array<{
     positionId: string
     messageType: string
@@ -100,7 +113,7 @@ export async function generateAutoComments(
   }> = []
 
   for (const config of typeConfigs) {
-    const count = Math.min(randInt(config.min, config.max), 110)
+    const count = Math.min(config.count, 110)
     if (count <= 0) continue
 
     // 해당 타입의 댓글 풀 필터링
@@ -124,7 +137,7 @@ export async function generateAutoComments(
     }
   }
 
-  // 5) 전체 순서 랜덤화
+  // 6) 전체 순서 랜덤화
   if (allNewComments.length > 0) {
     allNewComments.sort(() => Math.random() - 0.5)
     allNewComments.forEach((item, i) => {
