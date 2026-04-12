@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, RefObject } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { PositionWithLive, Position } from '@/types'
@@ -163,6 +163,10 @@ export interface UseDashboardReturn {
   setCloseTemplateInput: (v: string) => void
   setProfitTemplateInput: (v: string) => void
 
+  // 자동 캡처
+  capturePos: PositionWithLive | null
+  cardRef: RefObject<HTMLDivElement | null>
+
   // Handlers
   fetchPositions: () => Promise<void>
   handleCreatePosition: (data: any) => Promise<void>
@@ -217,6 +221,14 @@ export function useDashboard(): UseDashboardReturn {
   const [preCloseMaxSec, setPreCloseMaxSec] = useState(120)
   const [varRoundEnabled, setVarRoundEnabled] = useState(false)
   const [varRoundDecimals, setVarRoundDecimals] = useState(2)
+
+  // ── 자동 캡처 ────────────────────────────────────────────────────────────────
+  const [capturePos, setCapturePos] = useState<PositionWithLive | null>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const captureQueue  = useRef<PositionWithLive[]>([])
+  const isCapturing   = useRef(false)
+  const processedIds  = useRef<Set<string>>(new Set())
+  const batchStarted  = useRef(false)
 
   // Price store
   const prices = usePriceStore(s => s.prices)
@@ -363,6 +375,75 @@ export function useDashboard(): UseDashboardReturn {
   // ─── Computed: currentPrice ─────────────────────────────
   const currentPrice = prices[symbol] || marketData?.price || 0
 
+  // ── 헬퍼: 다음 캡처 시작 ─────────────────────────────────────────────────────
+  const startNextCapture = useCallback(() => {
+    const next = captureQueue.current.shift()
+    if (next) {
+      isCapturing.current = true
+      setCapturePos(next)
+    } else {
+      isCapturing.current = false
+      setCapturePos(null)
+    }
+  }, [])
+
+  // ── 첫 positions 로드 시 배치 큐 구성 (1회만) ────────────────────────────────
+  useEffect(() => {
+    if (!session || positions.length === 0 || batchStarted.current) return
+    const needCapture = positions.filter(
+      p => p.status !== 'OPEN' && !p.deletedAt && !p.shareImageUrl
+    )
+    if (needCapture.length === 0) { batchStarted.current = true; return }
+    console.log(`[ProfitCard] 배치 캡처 시작: ${needCapture.length}개`)
+    batchStarted.current = true
+    captureQueue.current = needCapture.map(p => ({
+      ...p,
+      currentPrice: p.closedPrice ?? p.entryPrice,
+      pnlLive: p.pnl ?? 0,
+      roeLive: 0,
+      liquidationPrice: 0,
+      hitTP: false,
+      hitSL: false,
+    }))
+    needCapture.forEach(p => processedIds.current.add(p.id))
+    startNextCapture()
+  }, [positions, session, startNextCapture])
+
+  // ── capturePos → 렌더 대기 → 캡처 → 업로드 → 다음 ───────────────────────────
+  useEffect(() => {
+    if (!capturePos) return
+    let cancelled = false
+    const doCapture = async () => {
+      await document.fonts.ready
+      await new Promise(r => setTimeout(r, 1000))
+      if (cancelled || !cardRef.current) {
+        console.warn('[ProfitCard] 캡처 취소됨:', capturePos.id)
+        return
+      }
+      try {
+        console.log('[ProfitCard] 캡처 중:', capturePos.id)
+        const { toPng } = await import('html-to-image')
+        const dataUrl = await toPng(cardRef.current, { pixelRatio: 2, cacheBust: true })
+        const res = await fetch(`/api/profit-card/${capturePos.id}/image`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dataUrl }),
+        })
+        if (res.ok) {
+          console.log('[ProfitCard] 업로드 완료:', capturePos.id)
+        } else {
+          console.error('[ProfitCard] 업로드 실패:', capturePos.id, res.status)
+        }
+      } catch (e) {
+        console.error('[ProfitCard] 캡처 오류:', capturePos.id, e)
+      } finally {
+        if (!cancelled) startNextCapture()
+      }
+    }
+    doCapture()
+    return () => { cancelled = true }
+  }, [capturePos, startNextCapture])
+
   // ─── Handler: change password ───────────────────────────
   const handleChangePassword = useCallback(async () => {
     setPwMsg('')
@@ -484,6 +565,18 @@ export function useDashboard(): UseDashboardReturn {
     if (res.ok) {
       fetchPositions()
       setSelectedPosition(prev => prev?.id === id ? null : prev)
+
+      // 전체 청산 시 이미지 자동 캡처 (중복 체크)
+      if (!opts && positionSnap && !processedIds.current.has(id)) {
+        processedIds.current.add(id)
+        if (!isCapturing.current) {
+          isCapturing.current = true
+          setCapturePos(positionSnap)
+        } else {
+          captureQueue.current.push(positionSnap)
+        }
+      }
+
       const baseUrl = teleditApiUrl || process.env.NEXT_PUBLIC_TELEDIT_API_URL
       if (baseUrl && positionSnap && teleditPreCloseTemplate) {
         const range = Math.max(0, preCloseMaxSec - preCloseMinSec)
@@ -629,6 +722,10 @@ export function useDashboard(): UseDashboardReturn {
     // Session & routing
     session,
     status,
+
+    // 자동 캡처
+    capturePos,
+    cardRef,
 
     // State
     positions,

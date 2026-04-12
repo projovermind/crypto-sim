@@ -8,6 +8,7 @@ import TradePanel from '@/components/trade/TradePanel'
 import PositionTable from '@/components/position/PositionTable'
 import PositionHistory from '@/components/position/PositionHistory'
 import SharePopup from '@/components/SharePopup'
+import ProfitCard from '@/components/ProfitCard'
 
 export default function DashboardPage() {
   const d = useDashboard()
@@ -80,6 +81,13 @@ export default function DashboardPage() {
 
       {d.sharePosition && (
         <SharePopup position={d.sharePosition} onClose={() => d.setSharePosition(null)} />
+      )}
+
+      {/* 자동 캡처용 숨겨진 ProfitCard */}
+      {d.capturePos && (
+        <div style={{ position: 'fixed', top: '-9999px', left: '-9999px', pointerEvents: 'none', zIndex: -1 }}>
+          <ProfitCard ref={d.cardRef} position={d.capturePos} bgIndex={0} hideProfit={true} />
+        </div>
       )}
     </div>
   )
