@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 import { NextRequest, NextResponse } from 'next/server'
-import { jwtVerify } from 'jose'
+import { getToken } from 'next-auth/jwt'
 import { prisma } from '@/lib/prisma'
 import { calculatePnL, formatPrice, formatNumber } from '@/lib/calculations'
 import { readFile } from 'fs/promises'
@@ -9,9 +9,7 @@ import { INTER_REGULAR_B64, INTER_SEMIBOLD_B64, INTER_BOLD_B64 } from '../font-d
 
 export const runtime = 'nodejs'
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'crypto-sim-secret-key-change-in-production',
-)
+const AUTH_SECRET = process.env.NEXTAUTH_SECRET || 'crypto-sim-secret-key-change-in-production'
 
 function corsResponse(body: string | null, status: number) {
   return new NextResponse(body, {
@@ -71,22 +69,16 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) return corsResponse('Unauthorized', 401)
+    // next-auth/jwt getToken handles both JWE (extension Bearer) and JWS tokens
+    const token = await getToken({ req: request, secret: AUTH_SECRET })
+    if (!token) return corsResponse('Unauthorized', 401)
 
-    let userId: string
-    try {
-      const { payload } = await jwtVerify(authHeader.slice(7), JWT_SECRET)
-      userId = (payload as any).userId ?? (payload as any).id ?? ''
-      if (!userId) {
-        const email = (payload as any).email
-        if (email) {
-          const u = await prisma.user.findUnique({ where: { email }, select: { id: true } })
-          if (u) userId = u.id
-        }
-      }
-      if (!userId) return corsResponse('Unauthorized', 401)
-    } catch { return corsResponse('Invalid token', 401) }
+    let userId = (token.id as string) || ''
+    if (!userId && token.email) {
+      const u = await prisma.user.findUnique({ where: { email: token.email as string }, select: { id: true } })
+      if (u) userId = u.id
+    }
+    if (!userId) return corsResponse('Unauthorized', 401)
 
     const position = await prisma.position.findUnique({ where: { id: params.id } })
     if (!position) return corsResponse('Not found', 404)
