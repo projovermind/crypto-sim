@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { prisma } from '@/lib/prisma'
 import { calculatePnL, formatPrice, formatNumber } from '@/lib/calculations'
-import { readFileSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
+import { INTER_REGULAR_B64, INTER_SEMIBOLD_B64, INTER_BOLD_B64 } from '../font-data'
 
 export const runtime = 'nodejs'
 
@@ -28,20 +28,17 @@ export async function OPTIONS() {
   return corsResponse(null, 204)
 }
 
-// ── 폰트: 요청마다 readFileSync (debug 라우트와 동일 방식, 작동 확인됨) ─────────
-function loadFont(name: string): ArrayBuffer {
-  const path = join(process.cwd(), 'public', 'fonts', `${name}.ttf`)
-  try {
-    const buf = readFileSync(path)
-    const ab = new ArrayBuffer(buf.byteLength)
-    new Uint8Array(ab).set(buf)
-    console.log(`[profit-card] 폰트 로드 성공: ${name} (${buf.byteLength}bytes)`)
-    return ab
-  } catch (e: any) {
-    console.error(`[profit-card] 폰트 로드 실패: ${name}`, e.message)
-    return new ArrayBuffer(0)
-  }
+// ── 폰트: base64 임베드 → 파일시스템/Lambda 환경 무관 ───────────────────────
+function b64ToArrayBuffer(b64: string): ArrayBuffer {
+  const bin = Buffer.from(b64, 'base64')
+  const ab = new ArrayBuffer(bin.byteLength)
+  new Uint8Array(ab).set(bin)
+  return ab
 }
+
+const FONT_REGULAR  = b64ToArrayBuffer(INTER_REGULAR_B64)
+const FONT_SEMIBOLD = b64ToArrayBuffer(INTER_SEMIBOLD_B64)
+const FONT_BOLD     = b64ToArrayBuffer(INTER_BOLD_B64)
 
 // ── 이미지 캐시 (배경, 로고) ─────────────────────────────────────────────────
 let bgCache: Record<string, string> = {}
@@ -98,10 +95,6 @@ export async function GET(
     const bgIdx = parseInt(request.nextUrl.searchParams.get('bg') || '0')
     const [bgSrc, logoSrc] = await Promise.all([getBg(bgIdx), getLogo()])
 
-    // 폰트 로드 (debug 라우트와 동일 방식)
-    const fontRegular  = loadFont('Inter-Regular')
-    const fontSemibold = loadFont('Inter-SemiBold')
-    const fontBold     = loadFont('Inter-Bold')
 
     // ProfitCard.tsx와 동일한 계산
     const closePrice = position.closedPrice ?? position.entryPrice
@@ -210,9 +203,9 @@ export async function GET(
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
         fonts: [
-          { name: 'Inter', data: fontRegular,  weight: 400 as const, style: 'normal' as const },
-          { name: 'Inter', data: fontSemibold, weight: 600 as const, style: 'normal' as const },
-          { name: 'Inter', data: fontBold,     weight: 700 as const, style: 'normal' as const },
+          { name: 'Inter', data: FONT_REGULAR,  weight: 400 as const, style: 'normal' as const },
+          { name: 'Inter', data: FONT_SEMIBOLD, weight: 600 as const, style: 'normal' as const },
+          { name: 'Inter', data: FONT_BOLD,     weight: 700 as const, style: 'normal' as const },
         ],
       },
     )
