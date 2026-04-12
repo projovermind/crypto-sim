@@ -48,15 +48,30 @@ export async function generateAutoComments(
   owner: { name: string; nickname1?: string | null; nickname2?: string | null; entryWaitWord?: string | null; profitProofWord?: string | null },
 ): Promise<void> {
   // 1) 작성자 풀 & 댓글 풀 로드
-  const [authors, allComments] = await Promise.all([
+  const [allAuthors, allComments] = await Promise.all([
     prisma.commentAuthorPool.findMany(),
     prisma.commentPool.findMany(),
   ])
 
   // 작성자 풀이 비어있으면 스킵
-  if (authors.length === 0) return
+  if (allAuthors.length === 0) return
 
-  // 2) 메시지 타입별 설정 매핑
+  // 2) 포지션 전용 작성자 선정: 최대 110명 랜덤 셔플 후 상위 선택
+  const shuffled = [...allAuthors].sort(() => Math.random() - 0.5)
+  const selected = shuffled.slice(0, 110)
+
+  // 선정된 작성자를 PositionCommentAuthor에 저장
+  await prisma.positionCommentAuthor.createMany({
+    data: selected.map((a) => ({
+      positionId,
+      authorName: a.name,
+      avatarUrl: a.avatarUrl,
+      nickname1: a.nickname1,
+      nickname2: a.nickname2,
+    })),
+  })
+
+  // 3) 메시지 타입별 설정 매핑
   const directionType = side === 'LONG' ? 'long' : 'short'
   const typeConfigs: Array<{
     type: string
@@ -72,7 +87,7 @@ export async function generateAutoComments(
     { type: 'profit2', min: user.profit2CommentMin, max: user.profit2CommentMax },
   ]
 
-  // 3) 각 타입별 댓글 생성
+  // 4) 각 타입별 댓글 생성 (선정된 110명 중에서만 작성자 선택)
   const allNewComments: Array<{
     positionId: string
     messageType: string
@@ -92,9 +107,9 @@ export async function generateAutoComments(
     const pool = allComments.filter((c) => c.type === config.type)
     if (pool.length === 0) continue
 
-    // 각 슬롯마다 독립적으로 작성자 선택 (중복 허용)
+    // 각 슬롯마다 선정된 작성자 중에서 랜덤 선택 (중복 허용)
     for (let i = 0; i < count; i++) {
-      const author = authors[Math.floor(Math.random() * authors.length)]
+      const author = selected[Math.floor(Math.random() * selected.length)]
       const comment = pool[Math.floor(Math.random() * pool.length)]
       allNewComments.push({
         positionId,
@@ -109,7 +124,7 @@ export async function generateAutoComments(
     }
   }
 
-  // 4) 전체 순서 랜덤화
+  // 5) 전체 순서 랜덤화
   if (allNewComments.length > 0) {
     allNewComments.sort(() => Math.random() - 0.5)
     allNewComments.forEach((item, i) => {

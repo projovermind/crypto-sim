@@ -123,8 +123,9 @@ model Position {
   deletedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  overrides         MessageOverride[]
-  positionComments  PositionComment[]
+  overrides            MessageOverride[]
+  positionComments     PositionComment[]
+  positionCommentAuthors PositionCommentAuthor[]
 }
 
 // === Teledit 전용 모델 (DB 공유로 인해 CryptoSim에도 선언 필수) ===
@@ -235,4 +236,17 @@ model PositionComment {
   createdAt   DateTime  @default(now())
 
   @@index([positionId, messageType])
+}
+
+model PositionCommentAuthor {
+  id         String    @id @default(cuid())
+  positionId String
+  position   Position  @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  authorName String
+  avatarUrl  String?
+  nickname1  String?
+  nickname2  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([positionId])
 }
