@@ -199,7 +199,7 @@ export default function PositionsPopupPage() {
       {/* 자동 캡처용 숨겨진 ProfitCard */}
       {capturePos && (
         <div style={{ position: 'fixed', top: '-9999px', left: '-9999px', pointerEvents: 'none', zIndex: -1 }}>
-          <ProfitCard ref={cardRef} position={capturePos} bgIndex={0} hideProfit={false} />
+          <ProfitCard ref={cardRef} position={capturePos} bgIndex={0} hideProfit={true} />
         </div>
       )}
     </div>
