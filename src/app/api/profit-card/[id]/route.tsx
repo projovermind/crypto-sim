@@ -177,7 +177,7 @@ export async function GET(
 
           {/* ROE + PNL */}
           <div style={{ display: 'flex', flexDirection: 'column', margin: '0 20px' }}>
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 20 }}>
               <div style={{ fontSize: 12, lineHeight: '16px', color: 'rgba(255,255,255,0.8)', marginBottom: 0 }}>ROE</div>
               <div style={{ fontSize: 44, lineHeight: '44px', color: pnlColor, fontWeight: 600 }}>
                 {`${isProfit ? '+' : ''}${formatNumber(pnlData.roe)}%`}
@@ -198,7 +198,7 @@ export async function GET(
           </div>
 
           {/* Timestamp */}
-          <div style={{ position: 'absolute', bottom: 16, left: 20, fontSize: 12, lineHeight: '14px', color: '#94979e' }}>
+          <div style={{ display: 'flex', position: 'absolute', bottom: 16, left: 20, fontSize: 12, lineHeight: '14px', color: '#94979e' }}>
             {dateStr}
           </div>
         </div>
