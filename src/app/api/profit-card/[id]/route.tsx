@@ -77,7 +77,12 @@ export async function GET(
     if (position.userId !== userId) return corsResponse('Forbidden', 403)
 
     const bgIdx = parseInt(request.nextUrl.searchParams.get('bg') || '0')
-    const bgSrc = await getBg(bgIdx)
+    const [bgSrc, fontRegular, fontSemiBold, fontBold] = await Promise.all([
+      getBg(bgIdx),
+      getFont('Inter-Regular'),
+      getFont('Inter-SemiBold'),
+      getFont('Inter-Bold'),
+    ])
 
     // 포시 calculatePnL과 100% 동일
     const closePrice = position.closedPrice ?? position.entryPrice
@@ -156,7 +161,11 @@ export async function GET(
           'Access-Control-Allow-Methods': 'GET, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
-        // satori 기본 폰트 사용 (Inter 로드 시 variable font 에러)
+        fonts: [
+          { name: 'Inter', data: fontRegular, weight: 400 as const, style: 'normal' as const },
+          { name: 'Inter', data: fontSemiBold, weight: 600 as const, style: 'normal' as const },
+          { name: 'Inter', data: fontBold, weight: 700 as const, style: 'normal' as const },
+        ],
       },
     )
   } catch (error) {

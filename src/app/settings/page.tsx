@@ -287,6 +287,59 @@ export default function SettingsPage() {
             {activeTab === 'account' && (
               <div className="animate-fade-in">
                 <h2 className="text-sm font-bold text-binance-text mb-5">계정 관리</h2>
+
+                {/* ── Profile Info ── */}
+                <div className="bg-binance-card border border-binance-border rounded-lg p-5 mb-4">
+                  <h3 className="text-xs font-medium text-binance-text-dim mb-3">프로필 정보</h3>
+                  <div className="space-y-2.5 max-w-md">
+                    <div>
+                      <label className="block text-[11px] text-binance-text-dim mb-1">이름 <span className="text-red-400">*</span></label>
+                      <input
+                        type="text"
+                        value={s.name}
+                        onChange={e => s.setName(e.target.value)}
+                        placeholder="이름"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-binance-text-dim mb-1">별명 1</label>
+                      <input
+                        type="text"
+                        value={s.nickname1}
+                        onChange={e => s.setNickname1(e.target.value)}
+                        placeholder="별명1 (선택)"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] text-binance-text-dim mb-1">별명 2</label>
+                      <input
+                        type="text"
+                        value={s.nickname2}
+                        onChange={e => s.setNickname2(e.target.value)}
+                        placeholder="별명2 (선택)"
+                        className={inputCls}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 mt-4">
+                    <button
+                      onClick={s.handleSaveProfile}
+                      disabled={s.savingProfile}
+                      className="px-4 py-2 text-xs bg-binance-yellow text-black font-bold rounded hover:opacity-90 transition-opacity disabled:opacity-50"
+                    >
+                      {s.savingProfile ? '저장 중...' : '프로필 저장'}
+                    </button>
+                    {s.profileMsg && (
+                      <span className={`text-[11px] ${s.profileMsg.includes('저장되었') ? 'text-green-400' : 'text-red-400'}`}>
+                        {s.profileMsg}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Password Change ── */}
                 <div className="bg-binance-card border border-binance-border rounded-lg p-5">
                   <h3 className="text-xs font-medium text-binance-text-dim mb-3">비밀번호 변경</h3>
                   <div className="space-y-2.5 max-w-md">

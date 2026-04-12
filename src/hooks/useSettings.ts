@@ -55,6 +55,13 @@ export function useSettings() {
 
   const [loading, setLoading] = useState(true)
 
+  // Profile form
+  const [name, setName] = useState('')
+  const [nickname1, setNickname1] = useState('')
+  const [nickname2, setNickname2] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileMsg, setProfileMsg] = useState('')
+
   // Password form
   const [currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw] = useState('')
@@ -120,6 +127,10 @@ export function useSettings() {
       .then(r => (r.ok ? r.json() : null))
       .then(data => {
         if (!data) return
+        // Profile
+        if (data.name) setName(data.name)
+        if (data.nickname1) setNickname1(data.nickname1)
+        if (data.nickname2) setNickname2(data.nickname2)
         setTemplates(prev => ({
           ...prev,
           teledditTemplate: data.teledditTemplate || DEFAULT_TEMPLATES.teledditTemplate,
@@ -192,6 +203,31 @@ export function useSettings() {
   const updateEnabled = useCallback((key: TemplateKey, value: boolean) => {
     setTemplateEnabled(prev => ({ ...prev, [key]: value }))
   }, [])
+
+  // ─── Save profile ────────────────────────────────────────
+  const handleSaveProfile = useCallback(async () => {
+    setProfileMsg('')
+    if (!name.trim()) { setProfileMsg('이름은 1자 이상이어야 합니다.'); return }
+    setSavingProfile(true)
+    try {
+      const res = await fetch('/api/account', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), nickname1: nickname1.trim() || null, nickname2: nickname2.trim() || null }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setProfileMsg('프로필이 저장되었습니다.')
+      } else {
+        setProfileMsg(data.error || '저장 실패')
+      }
+    } catch {
+      setProfileMsg('오류가 발생했습니다.')
+    } finally {
+      setSavingProfile(false)
+      setTimeout(() => setProfileMsg(''), 3000)
+    }
+  }, [name, nickname1, nickname2])
 
   // ─── Change password ─────────────────────────────────────
   const handleChangePassword = useCallback(async () => {
@@ -298,6 +334,12 @@ export function useSettings() {
     session,
     status,
     loading,
+    // Profile
+    name, setName,
+    nickname1, setNickname1,
+    nickname2, setNickname2,
+    savingProfile, profileMsg,
+    handleSaveProfile,
     // Password
     currentPw, setCurrentPw,
     newPw, setNewPw,
