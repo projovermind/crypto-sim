@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculatePnL, formatPrice, formatNumber } from '@/lib/calculations'
@@ -8,14 +8,19 @@ import { join } from 'path'
 
 export const runtime = 'nodejs'
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+function corsResponse(body: string | null, status: number) {
+  return new NextResponse(body, {
+    status,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  })
 }
 
 export async function OPTIONS() {
-  return new Response(null, { status: 204, headers: CORS_HEADERS })
+  return corsResponse(null, 204)
 }
 
 // 캐시
@@ -47,11 +52,11 @@ export async function GET(
 ) {
   try {
     const user = await getAuthUser(request)
-    if (!user) return new Response('Unauthorized', { status: 401, headers: CORS_HEADERS })
+    if (!user) return corsResponse('Unauthorized', 401)
 
     const position = await prisma.position.findUnique({ where: { id: params.id } })
-    if (!position) return new Response('Not found', { status: 404, headers: CORS_HEADERS })
-    if (position.userId !== user.id) return new Response('Forbidden', { status: 403, headers: CORS_HEADERS })
+    if (!position) return corsResponse('Not found', 404)
+    if (position.userId !== user.id) return corsResponse('Forbidden', 403)
 
     const bgIdx = parseInt(request.nextUrl.searchParams.get('bg') || '0')
     const [bgSrc, fontRegular, fontSemiBold, fontBold] = await Promise.all([
@@ -133,7 +138,11 @@ export async function GET(
       {
         width: 362,
         height: 500,
-        headers: CORS_HEADERS,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
         fonts: [
           { name: 'Inter', data: fontRegular, weight: 400 as const, style: 'normal' as const },
           { name: 'Inter', data: fontSemiBold, weight: 600 as const, style: 'normal' as const },
@@ -143,6 +152,6 @@ export async function GET(
     )
   } catch (error) {
     console.error('GET /api/profit-card/[id] error:', error)
-    return new Response('Image generation failed', { status: 500, headers: CORS_HEADERS })
+    return corsResponse('Image generation failed', 500)
   }
 }
