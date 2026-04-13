@@ -152,9 +152,10 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
   }
 
   return (
-    <div className="bg-binance-card border-t border-binance-border h-full flex flex-col">
+    <div className="bg-binance-card border-t border-binance-border h-full overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+      <style>{`.pos-history-scroll::-webkit-scrollbar{display:none}`}</style>
       {/* Tabs + Actions */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-binance-border">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-binance-border sticky top-0 bg-binance-card z-10">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setTab('history')}
@@ -192,7 +193,7 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
       </div>
 
       {/* Content */}
-      <div className="overflow-y-auto overflow-x-hidden flex-1 min-h-0">
+      <div>
         {tab === 'history' ? (
           /* 거래 내역 */
           closedPositions.length === 0 ? (
