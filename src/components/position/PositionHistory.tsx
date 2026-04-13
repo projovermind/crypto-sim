@@ -231,7 +231,7 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
                   <SortHeader label="진입" sortKeyName="entryTime" />
                   <th className="text-left py-1.5 px-1 font-normal">청산</th>
                   <th className="text-right py-1.5 pr-0 font-normal">포지션 관리</th>
-                  <th className="text-center py-1.5 px-1 font-normal">Teledit</th>
+                  <th className="text-right py-1.5 pr-3 font-normal">Teledit</th>
                 </tr>
               </thead>
               <tbody>

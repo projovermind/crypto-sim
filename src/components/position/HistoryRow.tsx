@@ -482,9 +482,9 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
           <button onClick={() => onDelete(p.id)} className="px-2 py-1 text-[12px] text-binance-red hover:bg-binance-red/10 rounded font-medium">Del</button>
         </div>
       </td>
-      {/* Teledit (☑ M1 M2 M3) — 가운데 정렬, 왼쪽 붙임 */}
-      <td className="py-1 pl-0 pr-1">
-        <div className="flex items-center justify-center gap-1">
+      {/* Teledit (☑ M1 M2 M3) — 오른쪽 끝 정렬 */}
+      <td className="py-1 pl-0 pr-3">
+        <div className="flex items-center justify-end gap-1">
           <input
             type="checkbox"
             checked={teledditChecked}
