@@ -314,9 +314,9 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         </td>
         {/* 진입 시간 (read-only) */}
         <td className="py-2 px-2 text-binance-text-dim">{entryTimeDate}</td>
-        {/* 청산 시간 */}
-        <td className="py-1 px-2">
-          <input type="datetime-local" value={editClosedTime} onChange={e => setEditClosedTime(e.target.value)} className={editInputClass + ' text-[10px]'} />
+        {/* 청산 시간 — 편집 시 2열 차지 */}
+        <td className="py-1 px-2" colSpan={3}>
+          <input type="datetime-local" value={editClosedTime} onChange={e => setEditClosedTime(e.target.value)} className={editInputClass + ' w-full text-[11px]'} />
           {searchingClosedTime && (
             <div className="text-[9px] text-binance-yellow mt-0.5 animate-pulse">탐색 중...</div>
           )}
