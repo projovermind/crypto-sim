@@ -212,9 +212,9 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
                 <col style={{ width: 60 }} />  {/* 규모 */}
                 <col style={{ width: 85 }} />  {/* 손익 */}
                 <col style={{ width: 58 }} />  {/* 진입시간 */}
-                <col style={{ width: 90 }} />  {/* 청산시간 */}
-                <col style={{ width: 75 }} />  {/* 포지션 관리 (Edit Del) */}
-                <col style={{ width: 105 }} /> {/* Teledit (☑ M1 M2 M3) */}
+                <col style={{ width: 105 }} /> {/* 청산시간 — 수정 공간 */}
+                <col style={{ width: 65 }} />  {/* 포지션 관리 (Edit Del) */}
+                <col style={{ width: 100 }} /> {/* Teledit (☑ M1 M2 M3) */}
               </colgroup>
               <thead>
                 <tr className="text-binance-text-dim border-b border-binance-border" style={{ fontSize: 12 }}>
@@ -230,7 +230,7 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
                   <SortHeader label="진입" sortKeyName="entryTime" />
                   <th className="text-left py-1.5 px-1 font-normal">청산</th>
                   <th className="text-right py-1.5 px-1 font-normal">포지션 관리</th>
-                  <th className="text-right py-1.5 px-1 font-normal">Teledit</th>
+                  <th className="text-center py-1.5 px-1 font-normal">Teledit</th>
                 </tr>
               </thead>
               <tbody>
