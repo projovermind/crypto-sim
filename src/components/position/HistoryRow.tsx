@@ -475,11 +475,16 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
       <td className="py-2 px-2 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{entryTimeDate}</td>
       {/* 청산 시간 */}
       <td className="py-2 px-2 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{closedAtDate}</td>
-      {/* Actions */}
-      <td className="py-1 px-2">
-        <div className="flex items-center gap-1.5">
-          <button onClick={startEdit} className="px-2.5 py-1 text-[13px] text-binance-yellow hover:bg-binance-yellow/10 rounded font-medium">Edit</button>
-          <button onClick={() => onDelete(p.id)} className="px-2.5 py-1 text-[13px] text-binance-red hover:bg-binance-red/10 rounded font-medium">Del</button>
+      {/* 포지션 관리 (Edit Del) — 오른쪽 정렬 */}
+      <td className="py-1 px-1">
+        <div className="flex items-center justify-end gap-1">
+          <button onClick={startEdit} className="px-2 py-1 text-[12px] text-binance-yellow hover:bg-binance-yellow/10 rounded font-medium">Edit</button>
+          <button onClick={() => onDelete(p.id)} className="px-2 py-1 text-[12px] text-binance-red hover:bg-binance-red/10 rounded font-medium">Del</button>
+        </div>
+      </td>
+      {/* Teledit (☑ M1 M2 M3) — 오른쪽 정렬 */}
+      <td className="py-1 px-1">
+        <div className="flex items-center justify-end gap-1">
           <input
             type="checkbox"
             checked={teledditChecked}
