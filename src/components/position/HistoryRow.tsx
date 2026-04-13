@@ -259,9 +259,9 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
     return (
       <tr className="border-b border-binance-border/50 bg-binance-yellow/5" style={{ height: 52 }}>
         {/* 포지션 번호 */}
-        <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[10px] font-mono">#{p.positionNumber ?? '-'}</td>
+        <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[11px] font-mono">#{p.positionNumber ?? '-'}</td>
         {/* 생성 시간 — 일반 행과 동일 */}
-        <td className="py-2 pl-1 pr-1 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{createdDate}</td>
+        <td className="py-2 pl-1 pr-1 text-binance-text-dim text-[12px] whitespace-pre leading-tight">{createdDate}</td>
         {/* Pair + 배율 편집 */}
         <td className="py-2 px-1">
           <div className="flex flex-col leading-tight">
@@ -304,13 +304,13 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         </td>
         {/* PnL Preview — 일반 행과 동일 스타일 */}
         <td className="py-2 px-2">
-          <div className="flex flex-col" style={{ lineHeight: '14px' }}>
+          <div className="flex flex-col" style={{ lineHeight: '16px', minHeight: 32 }}>
             <span className={previewColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>{formatPnL(preview.pnl)}</span>
             <span className={previewColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>({formatNumber(preview.roe)}%)</span>
           </div>
         </td>
         {/* 진입 시간 — 일반 행과 동일 */}
-        <td className="py-2 px-2 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{entryTimeDate}</td>
+        <td className="py-2 px-2 text-binance-text-dim text-[12px] whitespace-pre leading-tight">{entryTimeDate}</td>
         {/* 청산 시간 */}
         <td className="py-1 px-1" colSpan={3}>
           <div className="flex items-center gap-1.5">
@@ -387,9 +387,9 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
   return (
     <tr className="border-b border-binance-border/50 hover:bg-binance-border/20 transition-colors" style={{ height: 52 }}>
       {/* 포지션 번호 */}
-      <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[10px] font-mono">#{p.positionNumber ?? '-'}</td>
+      <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[11px] font-mono">#{p.positionNumber ?? '-'}</td>
       {/* 생성 시간 */}
-      <td className="py-2 pl-1 pr-1 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{createdDate}</td>
+      <td className="py-2 pl-1 pr-1 text-binance-text-dim text-[12px] whitespace-pre leading-tight">{createdDate}</td>
       {/* Pair */}
       <td className="py-2 px-1">
         <div className="flex flex-col leading-tight">
@@ -422,7 +422,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
       <td className="py-2 px-2 text-binance-text">{formatNumber(p.amount)}</td>
       {/* PnL */}
       <td className="py-2 px-2">
-        <div className="flex items-center">
+        <div className="flex items-center" style={{ minHeight: 32 }}>
           <div className="flex flex-col" style={{ lineHeight: '16px' }}>
             <span className={pnlColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>{formatPnL(pnlData.pnl)}</span>
             <span className={pnlColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>({formatNumber(pnlData.roe)}%)</span>
@@ -436,9 +436,9 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         </div>
       </td>
       {/* 진입 시간 */}
-      <td className="py-2 px-2 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{entryTimeDate}</td>
+      <td className="py-2 px-2 text-binance-text-dim text-[12px] whitespace-pre leading-tight">{entryTimeDate}</td>
       {/* 청산 시간 */}
-      <td className="py-2 px-2 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{closedAtDate}</td>
+      <td className="py-2 px-2 text-binance-text-dim text-[12px] whitespace-pre leading-tight">{closedAtDate}</td>
       {/* 포지션 관리 (Edit Del) — 오른쪽 끝, Teledit 옆 붙임 */}
       <td className="py-1 pl-1 pr-1">
         <div className="flex items-center justify-end gap-1">
