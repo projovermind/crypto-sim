@@ -124,26 +124,40 @@ export async function GET(
     // ── JSX: ProfitCard.tsx와 1:1 동일 구조 ─────────────────────────────────
     return new ImageResponse(
       (
+        // 배경 레이어 + 콘텐츠 레이어를 명시적으로 분리
+        // satori: flex container 안 absolute img는 content 위에 렌더될 수 있음
+        // → 배경을 가장 바깥 wrapper에 두고, 콘텐츠를 그 위 flex div에 배치
         <div
           style={{
-            width: 362, height: 500, borderRadius: 12,
-            fontFamily: 'Inter',
-            backgroundColor: 'rgb(2,5,13)',
-            position: 'relative', overflow: 'hidden',
-            display: 'flex', flexDirection: 'column',
+            width: 362, height: 500, position: 'relative', display: 'flex',
           }}
         >
-          {/* 배경 이미지 — satori는 backgroundImage url() 미지원 → img 요소 사용 */}
+          {/* Layer 0: 검정 바탕 */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, width: 362, height: 500,
+            backgroundColor: 'rgb(2,5,13)', borderRadius: 12, display: 'flex',
+          }} />
+          {/* Layer 1: 배경 이미지 (포스터) */}
           {bgSrc && (
             <img
               src={bgSrc}
+              width={362}
+              height={500}
               style={{
-                position: 'absolute', bottom: 0, left: 0,
-                width: '100%', height: '100%',
-                objectFit: 'cover', objectPosition: 'center bottom',
+                position: 'absolute', top: 0, left: 0,
+                width: 362, height: 500, borderRadius: 12,
               }}
             />
           )}
+          {/* Layer 2: 콘텐츠 (배경 위) */}
+          <div
+            style={{
+              width: 362, height: 500, borderRadius: 12,
+              fontFamily: 'Inter',
+              position: 'relative', overflow: 'hidden',
+              display: 'flex', flexDirection: 'column',
+            }}
+          >
           {/* Header: 60px */}
           <div style={{ display: 'flex', alignItems: 'center', height: 60, padding: '0 20px', position: 'relative' }}>
             {logoSrc
@@ -206,6 +220,7 @@ export async function GET(
           {/* Timestamp */}
           <div style={{ display: 'flex', position: 'absolute', bottom: 16, left: 20, fontSize: 12, lineHeight: '14px', color: '#94979e' }}>
             {dateStr}
+          </div>
           </div>
         </div>
       ),
