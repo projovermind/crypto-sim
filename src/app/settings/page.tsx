@@ -102,27 +102,37 @@ function MessageCard({ children, title, accent }: {
 }
 
 // ─── VarReferencePanel: unified variable reference ────────────
-const ALL_VARS: { key: string; desc: string }[] = [
-  { key: 'symbol',     desc: '코인명' },
-  { key: 'side',       desc: 'LONG/SHORT' },
-  { key: 'leverage',   desc: '레버리지' },
-  { key: 'entryPrice', desc: '체결가' },
-  { key: 'inputPrice', desc: '입력가' },
-  { key: 'amount',     desc: '투자금' },
-  { key: 'quantity',   desc: '수량' },
-  { key: 'marginMode', desc: '마진모드' },
-  { key: 'takeProfit', desc: 'TP' },
-  { key: 'stopLoss',   desc: 'SL' },
-  { key: 'closePrice', desc: '청산가' },
-  { key: 'pnl',        desc: '손익 USDT' },
-  { key: 'roe',        desc: '수익률 %' },
-  { key: 'marginModeKR', desc: '마진(한글)' },
-  { key: 'memo1',      desc: '메모 1' },
-  { key: 'memo2',      desc: '메모 2' },
-  { key: 'memo3',      desc: '메모 3' },
-  { key: 'name',       desc: '이름' },
-  { key: 'nickname1',  desc: '별명 1' },
-  { key: 'nickname2',  desc: '별명 2' },
+const VAR_CATEGORIES: { label: string; vars: { key: string; desc: string }[] }[] = [
+  { label: '포지션 기본', vars: [
+    { key: 'symbol',       desc: '코인명' },
+    { key: 'side',         desc: 'LONG/SHORT' },
+    { key: 'leverage',     desc: '레버리지' },
+    { key: 'marginMode',   desc: '마진모드(EN)' },
+    { key: 'marginModeKR', desc: '마진모드(KR)' },
+  ]},
+  { label: '가격', vars: [
+    { key: 'entryPrice',   desc: '체결가' },
+    { key: 'inputPrice',   desc: '입력가' },
+    { key: 'closePrice',   desc: '청산가' },
+    { key: 'takeProfit',   desc: 'TP' },
+    { key: 'stopLoss',     desc: 'SL' },
+  ]},
+  { label: '규모 / 손익', vars: [
+    { key: 'amount',       desc: '투자금' },
+    { key: 'quantity',     desc: '수량' },
+    { key: 'pnl',          desc: '손익 USDT' },
+    { key: 'roe',          desc: '수익률 %' },
+  ]},
+  { label: '메모', vars: [
+    { key: 'memo1',        desc: '메모 1' },
+    { key: 'memo2',        desc: '메모 2' },
+    { key: 'memo3',        desc: '메모 3' },
+  ]},
+  { label: '유저 정보', vars: [
+    { key: 'name',         desc: '이름' },
+    { key: 'nickname1',    desc: '별명 1' },
+    { key: 'nickname2',    desc: '별명 2' },
+  ]},
 ]
 
 function VarReferencePanel() {
@@ -141,28 +151,35 @@ function VarReferencePanel() {
         <p className="font-semibold text-binance-text text-[13px]">변수 레퍼런스</p>
         <p className="text-binance-text-dim/70 mt-0.5 text-[11px]">클릭하면 복사됩니다 · 숫자는 가격 크기에 따라 자동 포맷</p>
       </div>
-      <div className="divide-y divide-binance-border/30">
-        {ALL_VARS.map(({ key, desc }) => {
-          const isCopied = copied === key
-          return (
-            <div
-              key={key}
-              className="flex items-stretch hover:bg-binance-border/20 transition-colors cursor-pointer"
-              onClick={() => handleCopy(key)}
-              title={`클릭하여 {{${key}}} 복사`}
-            >
-              <div className="px-3 py-2 flex-1 flex items-center">
-                <code className={`font-mono transition-colors ${isCopied ? 'text-green-400' : 'text-binance-yellow'}`}>
-                  {isCopied ? '복사됨!' : `{{${key}}}`}
-                </code>
-              </div>
-              <div className="px-3 py-2 text-binance-text-dim border-l border-binance-border/30 flex items-center w-[100px] shrink-0">
-                {desc}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      {VAR_CATEGORIES.map(cat => (
+        <div key={cat.label}>
+          <div className="px-3 py-1.5 bg-binance-bg/50 border-b border-binance-border/30 text-[10px] font-semibold text-binance-text-dim uppercase tracking-wider">
+            {cat.label}
+          </div>
+          <div className="divide-y divide-binance-border/20">
+            {cat.vars.map(({ key, desc }) => {
+              const isCopied = copied === key
+              return (
+                <div
+                  key={key}
+                  className="flex items-stretch hover:bg-binance-border/20 transition-colors cursor-pointer"
+                  onClick={() => handleCopy(key)}
+                  title={`클릭하여 {{${key}}} 복사`}
+                >
+                  <div className="px-3 py-1.5 flex-1 flex items-center">
+                    <code className={`font-mono transition-colors ${isCopied ? 'text-green-400' : 'text-binance-yellow'}`}>
+                      {isCopied ? '복사됨!' : `{{${key}}}`}
+                    </code>
+                  </div>
+                  <div className="px-3 py-1.5 text-binance-text-dim border-l border-binance-border/30 flex items-center w-[100px] shrink-0">
+                    {desc}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
