@@ -61,15 +61,19 @@ async function teleditFetch(
 // 가격 크기에 따른 자동 소수점 결정
 function autoDecimals(val: number): number {
   const abs = Math.abs(val)
+  if (abs >= 5000) return -1
   if (abs >= 1000) return 0
-  if (abs >= 100) return 0
-  if (abs >= 1) return 1
-  if (abs >= 0.01) return 3
+  if (abs >= 10) return 1
+  if (abs >= 1) return 2
+  if (abs >= 0.1) return 3
+  if (abs >= 0.01) return 4
   return 5
 }
 
 function fmtPrice(val: number): string {
-  return val.toFixed(autoDecimals(val))
+  const d = autoDecimals(val)
+  if (d < 0) return String(Math.round(val / 10) * 10)
+  return val.toFixed(d)
 }
 
 function fmtPriceN(val: number | null | undefined): string {
