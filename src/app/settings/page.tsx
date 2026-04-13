@@ -119,6 +119,9 @@ const ALL_VARS: { key: string; desc: string }[] = [
   { key: 'memo1',      desc: '메모 1' },
   { key: 'memo2',      desc: '메모 2' },
   { key: 'memo3',      desc: '메모 3' },
+  { key: 'name',       desc: '이름' },
+  { key: 'nickname1',  desc: '별명 1' },
+  { key: 'nickname2',  desc: '별명 2' },
 ]
 
 function VarReferencePanel() {

@@ -79,6 +79,7 @@ function fmtPriceN(val: number | null | undefined): string {
 export function applyTemplate(
   template: string,
   position: PositionWithLive | Position,
+  user?: { name?: string; nickname1?: string; nickname2?: string } | null,
 ): string {
   const roe = 'roeLive' in position && position.roeLive != null
     ? position.roeLive.toFixed(1)  // ROE: 항상 소수 1자리
@@ -103,6 +104,9 @@ export function applyTemplate(
     .replace(/\{\{memo1\}\}/g, (position as any).memo1 || '')
     .replace(/\{\{memo2\}\}/g, (position as any).memo2 || '')
     .replace(/\{\{memo3\}\}/g, (position as any).memo3 || '')
+    .replace(/\{\{name\}\}/g, user?.name || '')
+    .replace(/\{\{nickname1\}\}/g, user?.nickname1 || '')
+    .replace(/\{\{nickname2\}\}/g, user?.nickname2 || '')
 }
 
 // ─── Teledit Delayed Message Helper ────────────────────────
