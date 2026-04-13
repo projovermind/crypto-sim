@@ -475,8 +475,8 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
       <td className="py-2 px-2 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{entryTimeDate}</td>
       {/* 청산 시간 */}
       <td className="py-2 px-2 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{closedAtDate}</td>
-      {/* 포지션 관리 (Edit Del) — 오른쪽 끝 정렬, Teledit과 붙임 */}
-      <td className="py-1 pl-1 pr-0">
+      {/* 포지션 관리 (Edit Del) — 오른쪽 끝, Teledit 옆 붙임 */}
+      <td className="py-1 pl-1 pr-1">
         <div className="flex items-center justify-end gap-1">
           <button onClick={startEdit} className="px-2 py-1 text-[12px] text-binance-yellow hover:bg-binance-yellow/10 rounded font-medium">Edit</button>
           <button onClick={() => onDelete(p.id)} className="px-2 py-1 text-[12px] text-binance-red hover:bg-binance-red/10 rounded font-medium">Del</button>
