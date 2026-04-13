@@ -82,22 +82,7 @@ export async function GET(
     if (!position) return corsResponse('Not found', 404)
     if (position.userId !== userId) return corsResponse('Forbidden', 403)
 
-    // ── html-to-image로 생성된 이미지가 있으면 그걸 우선 반환 ──────────────────
-    if (position.shareImageUrl) {
-      const blobRes = await fetch(position.shareImageUrl)
-      if (blobRes.ok) {
-        const buf = await blobRes.arrayBuffer()
-        return new NextResponse(buf, {
-          headers: {
-            'Content-Type': 'image/png',
-            'Cache-Control': 'no-cache',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          },
-        })
-      }
-    }
+    // shareImageUrl 무시 — 항상 satori로 생성 (배경+폰트 보장)
 
     const bgIdx = parseInt(request.nextUrl.searchParams.get('bg') || '0')
     const bgSrc = getBg(bgIdx)
