@@ -8,8 +8,8 @@ import { applyTemplate } from '@/hooks/useDashboard'
 // ─── Default templates ────────────────────────────────────────
 export const DEFAULT_TEMPLATES = {
   teledditTemplate: '🟢 {{symbol}} {{side}} {{leverage}}x | 진입 ${{entryPrice}}',
-  teledditLongTemplate: '🟢 {{symbol}} LONG {{leverage}}x | 진입 ${{entryPrice}}',
-  teledditShortTemplate: '🔴 {{symbol}} SHORT {{leverage}}x | 진입 ${{entryPrice}}',
+  teledditLongTemplate: '#포지션진입안내\n\n종목 : {{symbol}}\n포지션 : {{side}}\n마진모드 : {{marginModeKR}}\n진입가 : {{inputPrice}} 부근 시장가\n레버리지 : {{leverage}}\n비중 : 10%',
+  teledditShortTemplate: '#포지션진입안내\n\n종목 : {{symbol}}\n포지션 : {{side}}\n마진모드 : {{marginModeKR}}\n진입가 : {{inputPrice}} 부근 시장가\n레버리지 : {{leverage}}\n비중 : 10%',
   teleditPreEntryTemplate: '#포지션진입대기\n\n포지션 진입 타점 임박\n준비 안되신 분들은\n\n"준비"',
   teleditPostEntryTemplate: '#포지션진입완료\n\n종목 : {{symbol}}\n포지션 : {{side}}\n마진모드 : {{marginModeKR}}\n최종 진입가 : {{entryPrice}}\n레버리지 : {{leverage}}\n비중 : 10%',
   teleditPreCloseTemplate: '#포지션종료대기\n\n포지션 종료 임박\n준비 안되신 분들은\n\n"준비"',
