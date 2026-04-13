@@ -314,103 +314,73 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         {/* 진입 시간 — 일반 행과 동일 */}
         <td className="py-2 px-2 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{entryTimeDate}</td>
         {/* 청산 시간 */}
-        <td className="py-1 px-2">
-          <input type="datetime-local" value={editClosedTime} onChange={e => setEditClosedTime(e.target.value)} className={editInputClass + ' w-full text-[11px]'} />
-          {searchingClosedTime && (
-            <div className="text-[9px] text-binance-yellow mt-0.5 animate-pulse">탐색 중...</div>
-          )}
-          {manualClosedTime && !searchingClosedTime && (
-            <div className="text-[9px] text-binance-red mt-0.5">⚠️ 해당 가격 도달 이력 없음</div>
-          )}
-          {priceMatches.length > 0 && (() => {
-            const parseYM = (t: string) => {
-              const p = parseMatchTime(t)
-              return `${p.year}-${String(p.month).padStart(2, '0')}`
-            }
-            const yearMonths = [...new Set(priceMatches.map(m => parseYM(m.time)))].sort().reverse()
-            const afterYM = selYearMonth !== null ? priceMatches.filter(m => parseYM(m.time) === selYearMonth) : priceMatches
-            const days = [...new Set(afterYM.map(m => parseMatchTime(m.time).day))].sort((a, b) => b - a)
-            const afterDay = selDay !== null ? afterYM.filter(m => parseMatchTime(m.time).day === selDay) : afterYM
-            const hours = [...new Set(afterDay.map(m => parseMatchTime(m.time).hour))].sort((a, b) => b - a)
-            const afterHour = selHour !== null ? afterDay.filter(m => parseMatchTime(m.time).hour === selHour) : afterDay
-            const minutes = [...new Set(afterHour.map(m => parseMatchTime(m.time).minute))].sort((a, b) => b - a)
+        <td className="py-1 px-1" colSpan={3}>
+          <div className="flex items-center gap-1.5">
+            <input type="datetime-local" value={editClosedTime} onChange={e => setEditClosedTime(e.target.value)} className={editInputClass + ' text-[10px]'} style={{ width: 155 }} />
+            {searchingClosedTime && (
+              <span className="text-[9px] text-binance-yellow animate-pulse">탐색...</span>
+            )}
+            {manualClosedTime && !searchingClosedTime && (
+              <span className="text-[9px] text-binance-red">⚠️ 없음</span>
+            )}
+            {priceMatches.length > 0 && (() => {
+              const parseYM = (t: string) => {
+                const p = parseMatchTime(t)
+                return `${p.year}-${String(p.month).padStart(2, '0')}`
+              }
+              const yearMonths = [...new Set(priceMatches.map(m => parseYM(m.time)))].sort().reverse()
+              const afterYM = selYearMonth !== null ? priceMatches.filter(m => parseYM(m.time) === selYearMonth) : priceMatches
+              const days = [...new Set(afterYM.map(m => parseMatchTime(m.time).day))].sort((a, b) => b - a)
+              const afterDay = selDay !== null ? afterYM.filter(m => parseMatchTime(m.time).day === selDay) : afterYM
+              const hours = [...new Set(afterDay.map(m => parseMatchTime(m.time).hour))].sort((a, b) => b - a)
+              const afterHour = selHour !== null ? afterDay.filter(m => parseMatchTime(m.time).hour === selHour) : afterDay
+              const minutes = [...new Set(afterHour.map(m => parseMatchTime(m.time).minute))].sort((a, b) => b - a)
 
-            const selectBase = 'bg-binance-bg border text-binance-text text-[11px] rounded h-[28px] px-1 focus:outline-none transition-colors'
-            const selectCls = (hasVal: boolean) => `${selectBase} ${hasVal ? 'border-binance-yellow' : 'border-binance-border'}`
+              const selectBase = 'bg-binance-bg border text-binance-text text-[10px] rounded h-[24px] px-0.5 focus:outline-none'
+              const selectCls = (hasVal: boolean) => `${selectBase} ${hasVal ? 'border-binance-yellow' : 'border-binance-border'}`
 
-            return (
-              <div className="mt-1.5 bg-binance-bg border border-binance-border rounded p-2">
-                <div className="flex gap-2 items-center">
-                  {/* 년월 select */}
-                  <select
-                    value={selYearMonth ?? ''}
-                    onChange={e => { setSelYearMonth(e.target.value || null); setSelDay(null); setSelHour(null) }}
-                    className={selectCls(!!selYearMonth)}
-                  >
-                    <option value="">--년월--</option>
-                    {yearMonths.map(ym => {
-                      const [y, mo] = ym.split('-')
-                      return <option key={ym} value={ym}>{y}년 {parseInt(mo)}월</option>
-                    })}
+              return (
+                <>
+                  <select value={selYearMonth ?? ''} onChange={e => { setSelYearMonth(e.target.value || null); setSelDay(null); setSelHour(null) }} className={selectCls(!!selYearMonth)}>
+                    <option value="">월</option>
+                    {yearMonths.map(ym => { const [, mo] = ym.split('-'); return <option key={ym} value={ym}>{parseInt(mo)}월</option> })}
                   </select>
-                  {/* 일 select */}
                   {selYearMonth !== null && (
-                    <select
-                      value={selDay ?? ''}
-                      onChange={e => { setSelDay(e.target.value ? Number(e.target.value) : null); setSelHour(null) }}
-                      className={selectCls(selDay !== null)}
-                    >
-                      <option value="">--일--</option>
+                    <select value={selDay ?? ''} onChange={e => { setSelDay(e.target.value ? Number(e.target.value) : null); setSelHour(null) }} className={selectCls(selDay !== null)}>
+                      <option value="">일</option>
                       {days.map(d => <option key={d} value={d}>{d}일</option>)}
                     </select>
                   )}
-                  {/* 시 select */}
                   {selDay !== null && (
-                    <select
-                      value={selHour ?? ''}
-                      onChange={e => setSelHour(e.target.value ? Number(e.target.value) : null)}
-                      className={selectCls(selHour !== null)}
-                    >
-                      <option value="">--시--</option>
+                    <select value={selHour ?? ''} onChange={e => setSelHour(e.target.value ? Number(e.target.value) : null)} className={selectCls(selHour !== null)}>
+                      <option value="">시</option>
                       {hours.map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}시</option>)}
                     </select>
                   )}
-                  {/* 분 select */}
                   {selHour !== null && (
-                    <select
-                      value=""
-                      onChange={e => {
-                        if (!e.target.value) return
-                        const mi = Number(e.target.value)
-                        const match = afterHour.find(m => parseMatchTime(m.time).minute === mi)
-                        if (match) {
-                          const pt = parseMatchTime(match.time)
-                          const pad = (n: number) => String(n).padStart(2, '0')
-                          const ts = `${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`
-                          setEditClosedTime(ts)
-                          setPriceMatches([])
-                          setSelYearMonth(null); setSelDay(null); setSelHour(null)
-                        }
-                      }}
-                      className={selectCls(false)}
-                    >
-                      <option value="">--분--</option>
+                    <select value="" onChange={e => {
+                      if (!e.target.value) return
+                      const mi = Number(e.target.value)
+                      const match = afterHour.find(m => parseMatchTime(m.time).minute === mi)
+                      if (match) {
+                        const pt = parseMatchTime(match.time)
+                        const pad = (n: number) => String(n).padStart(2, '0')
+                        setEditClosedTime(`${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`)
+                        setPriceMatches([]); setSelYearMonth(null); setSelDay(null); setSelHour(null)
+                      }
+                    }} className={selectCls(false)}>
+                      <option value="">분</option>
                       {minutes.map(mi => <option key={mi} value={mi}>{String(mi).padStart(2, '0')}분</option>)}
                     </select>
                   )}
-                  <span className="text-[9px] text-binance-text-dim whitespace-nowrap">
-                    ({afterHour.length}개)
-                  </span>
-                </div>
-              </div>
-            )
-          })()}
-        </td>
-        {/* Actions */}
-        <td className="py-1 px-2">
-          <div className="flex items-center gap-1">
-            <button onClick={saveEdit} disabled={searchingClosedTime || manualClosedTime} className={`px-2 py-1 text-[10px] bg-binance-yellow text-binance-bg rounded font-medium hover:bg-binance-yellow/90 ${(searchingClosedTime || manualClosedTime) ? "opacity-50 cursor-not-allowed" : ""}`}>Save</button>
-            <button onClick={cancelEdit} className="px-2 py-1 text-[10px] text-binance-text-dim hover:text-binance-text">Cancel</button>
+                  <span className="text-[9px] text-binance-text-dim">({afterHour.length})</span>
+                </>
+              )
+            })()}
+            <div className="flex items-center gap-1 ml-auto">
+              <button onClick={saveEdit} disabled={searchingClosedTime || manualClosedTime} className={`px-2 py-1 text-[10px] bg-binance-yellow text-binance-bg rounded font-medium hover:bg-binance-yellow/90 ${(searchingClosedTime || manualClosedTime) ? "opacity-50 cursor-not-allowed" : ""}`}>Save</button>
+              <button onClick={cancelEdit} className="px-2 py-1 text-[10px] text-binance-text-dim hover:text-binance-text">Cancel</button>
+            </div>
           </div>
         </td>
       </tr>
