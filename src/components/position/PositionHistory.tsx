@@ -205,12 +205,11 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
               <colgroup>
                 <col style={{ width: '3%' }} />     {/* # */}
                 <col style={{ width: '5%' }} />     {/* 생성 */}
-                <col style={{ width: '5%' }} />     {/* 페어 */}
+                <col style={{ width: '7%' }} />     {/* 페어 (+배율) */}
                 <col style={{ width: '9%' }} />     {/* 진입가 */}
                 <col style={{ width: '5.5%' }} />   {/* 청산가 */}
                 <col style={{ width: '4.5%' }} />   {/* 수량 */}
-                <col style={{ width: '3%' }} />     {/* 배율 */}
-                <col style={{ width: '5%' }} />     {/* 규모 */}
+                <col style={{ width: '5.5%' }} />   {/* 규모 */}
                 <col style={{ width: '8%' }} />     {/* 손익 */}
                 <col style={{ width: '5.5%' }} />   {/* 진입시간 */}
                 <col style={{ width: '30%' }} />    {/* 청산시간 */}
@@ -225,7 +224,6 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
                   <th className="text-left py-1.5 px-1 font-normal">진입가(입력/체결)</th>
                   <th className="text-left py-1.5 px-1 font-normal">청산가</th>
                   <th className="text-left py-1.5 px-2 font-normal">수량</th>
-                  <th className="text-left py-1.5 px-2 font-normal">배율</th>
                   <th className="text-left py-1.5 px-2 font-normal">규모</th>
                   <SortHeader label="손익" sortKeyName="pnlAmount" />
                   <SortHeader label="진입" sortKeyName="entryTime" />
