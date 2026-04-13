@@ -396,23 +396,7 @@ export default function SettingsPage() {
             {/* ── Teledit Management Tab ── */}
             {activeTab === 'teledit' && (
               <div className="animate-fade-in">
-                <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-sm font-bold text-binance-text">텔레딧 관리</h2>
-                  <div className="flex items-center gap-2">
-                    {s.teleditMsg && (
-                      <span className={`text-xs ${s.teleditMsg.includes('실패') ? 'text-binance-red' : 'text-green-400'}`}>
-                        {s.teleditMsg}
-                      </span>
-                    )}
-                    <button
-                      onClick={s.handleSaveTeledit}
-                      disabled={s.savingTeledit}
-                      className="px-4 py-1.5 text-xs bg-binance-yellow text-black font-bold rounded hover:opacity-90 transition-opacity disabled:opacity-50"
-                    >
-                      {s.savingTeledit ? '저장 중...' : '모든 설정 저장'}
-                    </button>
-                  </div>
-                </div>
+                <h2 className="text-sm font-bold text-binance-text mb-5">텔레딧 관리</h2>
                 <div className="flex gap-5 items-start">
                 {/* ── Left: message cards ── */}
                 <div className="flex-1 min-w-0 space-y-6">
@@ -658,26 +642,22 @@ export default function SettingsPage() {
 
                 </div>
 
-                {/* ── Save Button ── */}
-                <div className="flex items-center justify-end gap-3 pb-6">
-                  {s.teleditMsg && (
-                    <span className={`text-[11px] ${s.teleditMsg.startsWith('오류') ? 'text-red-400' : 'text-green-400'}`}>
-                      {s.teleditMsg}
-                    </span>
-                  )}
+                </div>{/* end left */}
+                {/* ── Right: variable reference panel ── */}
+                <div className="w-[280px] shrink-0 sticky top-6 space-y-3">
+                  <VarReferencePanel />
                   <button
                     onClick={s.handleSaveTeledit}
                     disabled={s.savingTeledit}
-                    className="px-5 py-2 text-xs bg-binance-yellow text-black font-bold rounded hover:opacity-90 transition-opacity disabled:opacity-50"
+                    className="w-full px-4 py-2.5 text-xs bg-binance-yellow text-black font-bold rounded hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
                     {s.savingTeledit ? '저장 중...' : '모든 설정 저장'}
                   </button>
-                </div>
-
-                </div>{/* end left */}
-                {/* ── Right: variable reference panel ── */}
-                <div className="w-[280px] shrink-0 sticky top-6">
-                  <VarReferencePanel />
+                  {s.teleditMsg && (
+                    <p className={`text-xs text-center ${s.teleditMsg.includes('실패') ? 'text-binance-red' : 'text-green-400'}`}>
+                      {s.teleditMsg}
+                    </p>
+                  )}
                 </div>
                 </div>{/* end flex */}
               </div>
