@@ -314,7 +314,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         {/* 청산 시간 */}
         <td className="py-1 px-1" colSpan={3}>
           <div className="flex items-center gap-1.5">
-            <input type="datetime-local" value={editClosedTime} onChange={e => setEditClosedTime(e.target.value)} className={editInputClass + ' text-[10px]'} style={{ width: 155 }} />
+            <input type="text" value={editClosedTime ? (() => { const d = new Date(editClosedTime); const pad = (n: number) => String(n).padStart(2, '0'); return `${String(d.getFullYear()).slice(2)}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}` })() : ''} readOnly className={editInputClass + ' text-[10px] cursor-default'} style={{ width: 110 }} />
             {searchingClosedTime && (
               <span className="text-[9px] text-binance-yellow animate-pulse">탐색...</span>
             )}
