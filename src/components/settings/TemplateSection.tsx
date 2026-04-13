@@ -54,7 +54,7 @@ export default function TemplateSection({
         <textarea
           value={value}
           onChange={e => onChange(templateKey, e.target.value)}
-          rows={2}
+          rows={10}
           className={textareaCls}
           placeholder={defaultValue}
         />
