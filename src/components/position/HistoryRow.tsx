@@ -428,7 +428,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
       <td className="py-2 px-1">
         <div className="flex flex-col leading-tight">
           <span className={`font-bold ${sideColor}`}>{p.side}</span>
-          <span className="text-binance-text font-bold text-[11px]">{base} {p.leverage}x</span>
+          <span className="text-[11px]"><span className="text-binance-text font-bold">{base}</span> <span className="text-binance-text-dim">{p.leverage}x</span></span>
         </div>
       </td>
       {/* Entry Price (입력가 + 체결가) */}
