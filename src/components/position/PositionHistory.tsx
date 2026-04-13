@@ -192,7 +192,7 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
       </div>
 
       {/* Content */}
-      <div className="overflow-auto px-2 flex-1 min-h-0">
+      <div className="overflow-auto flex-1 min-h-0">
         {tab === 'history' ? (
           /* 거래 내역 */
           closedPositions.length === 0 ? (
