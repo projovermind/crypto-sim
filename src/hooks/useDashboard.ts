@@ -85,9 +85,11 @@ export function applyTemplate(
   position: PositionWithLive | Position,
   user?: { name?: string; nickname1?: string; nickname2?: string } | null,
 ): string {
-  const roe = 'roeLive' in position && position.roeLive != null
-    ? position.roeLive.toFixed(1)  // ROE: 항상 소수 1자리
-    : 'N/A'
+  let roe = 'N/A'
+  if ('roeLive' in position && position.roeLive != null) {
+    const roeFloor = Math.floor(position.roeLive * 10) / 10  // 버림
+    roe = roeFloor % 1 === 0 ? String(Math.trunc(roeFloor)) : roeFloor.toFixed(1)
+  }
   const pnlValue = position.pnl != null
     ? position.pnl
     : ('pnlLive' in position && position.pnlLive != null ? position.pnlLive : null)
