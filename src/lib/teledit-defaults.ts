@@ -32,10 +32,7 @@ export const TELEDIT_TEMPLATE_DEFAULTS = {
 
 최종 청산가 : {{closePrice}}`,
 
-  teleditProfitTemplate: `💰 수익 인증
-{{symbol}} {{side}} {{leverage}}x
-진입 ${{entryPrice}} → 청산 ${{closePrice}}
-PnL {{pnl}}USDT ({{roe}}%)`,
+  teleditProfitTemplate: '\uD83D\uDCB0 수익 인증\n{{symbol}} {{side}} {{leverage}}x\n진입 ${{entryPrice}} \u2192 청산 ${{closePrice}}\nPnL {{pnl}}USDT ({{roe}}%)',
 
   teleditProfitTemplate2: `수익률 {{roe}}
 축하드립니다.`,
