@@ -209,10 +209,10 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
                 <col style={{ width: '9%' }} />     {/* 진입가 */}
                 <col style={{ width: '5.5%' }} />   {/* 청산가 */}
                 <col style={{ width: '4.5%' }} />   {/* 수량 */}
-                <col style={{ width: '5.5%' }} />   {/* 규모 */}
+                <col style={{ width: '7.5%' }} />   {/* 규모 */}
                 <col style={{ width: '8%' }} />     {/* 손익 */}
                 <col style={{ width: '5.5%' }} />   {/* 진입시간 */}
-                <col style={{ width: '30%' }} />    {/* 청산시간 */}
+                <col style={{ width: '28%' }} />    {/* 청산시간 */}
                 <col style={{ width: '8.5%' }} />   {/* 포지션 관리 */}
                 <col style={{ width: '8%' }} />     {/* Teledit */}
               </colgroup>

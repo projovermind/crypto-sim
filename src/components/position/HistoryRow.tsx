@@ -302,11 +302,11 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         <td className="py-1 px-2">
           <input type="number" step="any" value={editAmount} onChange={e => setEditAmount(e.target.value)} className={editInputClass} />
         </td>
-        {/* PnL Preview */}
+        {/* PnL Preview — 일반 행과 동일 스타일 */}
         <td className="py-2 px-2">
           <div className="flex flex-col" style={{ lineHeight: '14px' }}>
-            <span className={previewColor} style={{ fontVariantNumeric: 'tabular-nums' }}>{formatPnL(preview.pnl)}</span>
-            <span className={previewColor} style={{ fontVariantNumeric: 'tabular-nums' }}>({formatNumber(preview.roe)}%)</span>
+            <span className={previewColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>{formatPnL(preview.pnl)}</span>
+            <span className={previewColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>({formatNumber(preview.roe)}%)</span>
           </div>
         </td>
         {/* 진입 시간 — 일반 행과 동일 */}
