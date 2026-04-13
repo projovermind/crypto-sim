@@ -121,20 +121,8 @@ const ALL_VARS: { key: string; desc: string }[] = [
   { key: 'memo3',      desc: '메모 3' },
 ]
 
-function VarReferencePanel({
-  roundEnabled,
-  onRoundEnabled,
-  roundDecimals,
-  onRoundDecimals,
-}: {
-  roundEnabled: boolean
-  onRoundEnabled: (v: boolean) => void
-  roundDecimals: number
-  onRoundDecimals: (v: number) => void
-}) {
+function VarReferencePanel() {
   const [copied, setCopied] = useState<string | null>(null)
-  const EXAMPLE_RAW = 65432.12345
-  const exampleFormatted = roundEnabled ? EXAMPLE_RAW.toFixed(roundDecimals) : String(EXAMPLE_RAW)
 
   const handleCopy = (v: string) => {
     navigator.clipboard.writeText(`{{${v}}}`).then(() => {
@@ -144,43 +132,10 @@ function VarReferencePanel({
   }
 
   return (
-    <div className="rounded-lg border border-binance-border overflow-hidden text-[10px]">
-      <div className="px-3 py-2 bg-binance-card border-b border-binance-border">
-        <p className="font-semibold text-binance-text text-[11px]">변수 레퍼런스</p>
-        <p className="text-binance-text-dim/70 mt-0.5">클릭하면 복사됩니다</p>
-      </div>
-
-      {/* ── 숫자 포맷 섹션 ── */}
-      <div className="px-3 py-2.5 bg-binance-bg border-b border-binance-border space-y-2">
-        <p className="font-medium text-binance-text text-[10px]">숫자 포맷</p>
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={roundEnabled}
-            onChange={e => onRoundEnabled(e.target.checked)}
-            className="w-3 h-3 rounded accent-binance-yellow cursor-pointer"
-          />
-          <span className="text-binance-text-dim">반올림 활성화</span>
-        </label>
-        {roundEnabled && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-binance-text-dim">소수점</span>
-            <input
-              type="number"
-              min={0} max={8}
-              value={roundDecimals}
-              onChange={e => onRoundDecimals(Math.min(8, Math.max(0, Number(e.target.value))))}
-              className="w-10 bg-binance-card border border-binance-border rounded px-1.5 py-0.5 text-[10px] text-binance-text text-center focus:outline-none focus:border-binance-yellow/50"
-            />
-            <span className="text-binance-text-dim">자리</span>
-          </div>
-        )}
-        <p className="text-binance-text-dim/60">
-          예시:{' '}
-          <code className="text-binance-text-dim">{EXAMPLE_RAW}</code>
-          {' → '}
-          <code className="text-binance-yellow">{exampleFormatted}</code>
-        </p>
+    <div className="rounded-lg border border-binance-border overflow-hidden text-[12px]">
+      <div className="px-3 py-2.5 bg-binance-card border-b border-binance-border">
+        <p className="font-semibold text-binance-text text-[13px]">변수 레퍼런스</p>
+        <p className="text-binance-text-dim/70 mt-0.5 text-[11px]">클릭하면 복사됩니다 · 숫자는 가격 크기에 따라 자동 포맷</p>
       </div>
       <div className="divide-y divide-binance-border/30">
         {ALL_VARS.map(({ key, desc }) => {
@@ -192,12 +147,12 @@ function VarReferencePanel({
               onClick={() => handleCopy(key)}
               title={`클릭하여 {{${key}}} 복사`}
             >
-              <div className="px-2.5 py-1.5 flex-1 flex items-center">
+              <div className="px-3 py-2 flex-1 flex items-center">
                 <code className={`font-mono transition-colors ${isCopied ? 'text-green-400' : 'text-binance-yellow'}`}>
                   {isCopied ? '복사됨!' : `{{${key}}}`}
                 </code>
               </div>
-              <div className="px-2.5 py-1.5 text-binance-text-dim border-l border-binance-border/30 flex items-center w-[76px] shrink-0">
+              <div className="px-3 py-2 text-binance-text-dim border-l border-binance-border/30 flex items-center w-[80px] shrink-0">
                 {desc}
               </div>
             </div>
@@ -669,12 +624,7 @@ export default function SettingsPage() {
                 </div>{/* end left */}
                 {/* ── Right: variable reference panel ── */}
                 <div className="w-[220px] shrink-0 sticky top-6">
-                  <VarReferencePanel
-                    roundEnabled={s.varRoundEnabled}
-                    onRoundEnabled={s.setVarRoundEnabled}
-                    roundDecimals={s.varRoundDecimals}
-                    onRoundDecimals={s.setVarRoundDecimals}
-                  />
+                  <VarReferencePanel />
                 </div>
                 </div>{/* end flex */}
               </div>
