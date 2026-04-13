@@ -203,19 +203,19 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
           ) : (
             <table style={{ tableLayout: 'fixed', width: '100%', fontSize: 12, fontFamily: 'Inter, sans-serif' }}>
               <colgroup>
-                <col style={{ width: '3.5%' }} />   {/* # */}
-                <col style={{ width: '6%' }} />     {/* 생성 */}
-                <col style={{ width: '5.5%' }} />   {/* 페어 */}
-                <col style={{ width: '10%' }} />    {/* 진입가 */}
-                <col style={{ width: '6%' }} />     {/* 청산가 */}
-                <col style={{ width: '5%' }} />     {/* 수량 */}
-                <col style={{ width: '3.5%' }} />   {/* 배율 */}
-                <col style={{ width: '6%' }} />     {/* 규모 */}
-                <col style={{ width: '9%' }} />     {/* 손익 */}
-                <col style={{ width: '6%' }} />     {/* 진입시간 */}
-                <col style={{ width: '20%' }} />    {/* 청산시간 */}
-                <col style={{ width: '10.5%' }} />  {/* 포지션 관리 */}
-                <col style={{ width: '9%' }} />     {/* Teledit */}
+                <col style={{ width: '3%' }} />     {/* # */}
+                <col style={{ width: '5%' }} />     {/* 생성 */}
+                <col style={{ width: '5%' }} />     {/* 페어 */}
+                <col style={{ width: '9%' }} />     {/* 진입가 */}
+                <col style={{ width: '5.5%' }} />   {/* 청산가 */}
+                <col style={{ width: '4.5%' }} />   {/* 수량 */}
+                <col style={{ width: '3%' }} />     {/* 배율 */}
+                <col style={{ width: '5%' }} />     {/* 규모 */}
+                <col style={{ width: '8%' }} />     {/* 손익 */}
+                <col style={{ width: '5.5%' }} />   {/* 진입시간 */}
+                <col style={{ width: '30%' }} />    {/* 청산시간 */}
+                <col style={{ width: '8.5%' }} />   {/* 포지션 관리 */}
+                <col style={{ width: '8%' }} />     {/* Teledit */}
               </colgroup>
               <thead>
                 <tr className="text-binance-text-dim border-b border-binance-border" style={{ fontSize: 12 }}>
