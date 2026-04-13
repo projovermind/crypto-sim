@@ -185,7 +185,7 @@ export async function GET(
             <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 20 }}>
               <div style={{ fontSize: 12, lineHeight: '16px', color: 'rgba(255,255,255,0.8)', marginBottom: 0 }}>ROE</div>
               <div style={{ fontSize: 44, lineHeight: '44px', color: pnlColor, fontWeight: 600 }}>
-                {`${isProfit ? '+' : ''}${formatNumber(pnlData.roe)}%`}
+                {`${isProfit ? '+' : ''}${(() => { const f = Math.floor(pnlData.roe * 10) / 10; return f % 1 === 0 ? String(Math.trunc(f)) : f.toFixed(1); })()}%`}
               </div>
             </div>
 
