@@ -116,6 +116,9 @@ const ALL_VARS: { key: string; desc: string }[] = [
   { key: 'closePrice', desc: '청산가' },
   { key: 'pnl',        desc: '손익 USDT' },
   { key: 'roe',        desc: '수익률 %' },
+  { key: 'memo1',      desc: '메모 1' },
+  { key: 'memo2',      desc: '메모 2' },
+  { key: 'memo3',      desc: '메모 3' },
 ]
 
 function VarReferencePanel({
@@ -469,34 +472,6 @@ export default function SettingsPage() {
                         <p className="text-[11px] text-red-400 mt-1.5">{avatarError}</p>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                {/* ── Connection Info ── */}
-                <div className="bg-binance-card border border-binance-border rounded-lg p-5">
-                  <h3 className="text-xs font-medium text-binance-text-dim mb-3">Teledit 연결 정보</h3>
-                  <div className="space-y-2.5 max-w-lg">
-                    <input
-                      type="text"
-                      value={s.teleditApiUrl}
-                      onChange={e => s.setTeleditApiUrl(e.target.value)}
-                      placeholder="API URL (예: https://teledit.example.com)"
-                      className={inputCls}
-                    />
-                    <input
-                      type="text"
-                      value={s.teleditEmail}
-                      onChange={e => s.setTeleditEmail(e.target.value)}
-                      placeholder="이메일"
-                      className={inputCls}
-                    />
-                    <input
-                      type="password"
-                      value={s.teleditPassword}
-                      onChange={e => s.setTeleditPassword(e.target.value)}
-                      placeholder="비밀번호"
-                      className={inputCls}
-                    />
                   </div>
                 </div>
 
