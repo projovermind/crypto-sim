@@ -459,6 +459,15 @@ export default function SettingsPage() {
                         >
                           {avatarUploading ? 'loading...' : '이미지 업로드'}
                         </button>
+                        {s.channelAvatarUrl && (
+                          <button
+                            type="button"
+                            onClick={() => s.setChannelAvatarUrl('')}
+                            className="px-3 py-1.5 text-[11px] bg-binance-bg border border-binance-border rounded text-binance-red hover:bg-binance-red/10 transition-colors"
+                          >
+                            삭제
+                          </button>
+                        )}
                       </div>
                       {avatarError && (
                         <p className="text-[11px] text-red-400 mt-1.5">{avatarError}</p>
