@@ -87,6 +87,9 @@ export function applyTemplate(
     .replace(/\{\{pnl\}\}/g, pnlValue != null ? pnlValue.toFixed(2) : 'N/A')
     .replace(/\{\{roe\}\}/g, roe)
     .replace(/\{\{closePrice\}\}/g, fmtN(position.closedPrice))
+    .replace(/\{\{memo1\}\}/g, (position as any).memo1 || '')
+    .replace(/\{\{memo2\}\}/g, (position as any).memo2 || '')
+    .replace(/\{\{memo3\}\}/g, (position as any).memo3 || '')
 }
 
 // ─── Teledit Delayed Message Helper ────────────────────────

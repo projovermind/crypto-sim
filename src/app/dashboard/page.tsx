@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import { signOut } from 'next-auth/react'
 import { useDashboard } from '@/hooks/useDashboard'
 import NavBar from '@/components/NavBar'
@@ -12,6 +13,24 @@ import ProfitCard from '@/components/ProfitCard'
 
 export default function DashboardPage() {
   const d = useDashboard()
+  const [memoModal, setMemoModal] = useState<{ posId: string; field: 'memo1' | 'memo2' | 'memo3'; value: string } | null>(null)
+
+  const handleMemoEdit = useCallback((pos: any, field: 'memo1' | 'memo2' | 'memo3') => {
+    setMemoModal({ posId: pos.id, field, value: pos[field] || '' })
+  }, [])
+
+  const handleMemoSave = useCallback(async () => {
+    if (!memoModal) return
+    try {
+      await fetch(`/api/positions/${memoModal.posId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [memoModal.field]: memoModal.value }),
+      })
+      d.fetchPositions()
+      setMemoModal(null)
+    } catch { }
+  }, [memoModal, d])
 
   // Loading
   if (d.status === 'loading' || d.loading) {
@@ -60,6 +79,7 @@ export default function DashboardPage() {
                 onDeleteAllHistory={d.handleDeleteAllHistory}
                 onShareHistory={d.handleShareHistory}
                 onTeledditToggle={d.handleTeledditToggle}
+                onMemoEdit={handleMemoEdit}
                 onRefresh={d.fetchPositions}
               />
             </div>
@@ -75,12 +95,35 @@ export default function DashboardPage() {
             onSelect={d.handleSelectPosition}
             selectedId={d.selectedPosition?.id}
             onTeledditToggle={d.handleTeledditToggle}
+            onMemoEdit={handleMemoEdit}
           />
         </div>
       </div>
 
       {d.sharePosition && (
         <SharePopup position={d.sharePosition} onClose={() => d.setSharePosition(null)} />
+      )}
+
+      {/* 메모 편집 모달 */}
+      {memoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setMemoModal(null)}>
+          <div className="bg-binance-card rounded-lg p-4 w-80 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-binance-text mb-2">
+              {memoModal.field.replace('memo', '메모 ')} 편집
+            </h3>
+            <textarea
+              className="w-full h-32 bg-binance-bg border border-binance-border rounded p-2 text-sm text-binance-text resize-none focus:outline-none focus:border-binance-yellow"
+              value={memoModal.value}
+              onChange={e => setMemoModal(prev => prev ? { ...prev, value: e.target.value } : null)}
+              placeholder="메모를 입력하세요 (줄바꿈 가능)"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <button onClick={() => setMemoModal(null)} className="text-xs text-binance-text-dim hover:text-binance-text px-3 py-1">취소</button>
+              <button onClick={handleMemoSave} className="text-xs bg-binance-yellow text-black font-bold px-3 py-1 rounded hover:opacity-90">저장</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 자동 캡처용 숨겨진 ProfitCard */}

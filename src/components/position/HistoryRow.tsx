@@ -17,6 +17,7 @@ interface HistoryRowProps {
   onDelete: (id: string) => void
   onShare: (position: Position) => void
   onTeledditToggle?: (position: Position, checked: boolean) => void
+  onMemoEdit?: (position: Position, field: 'memo1' | 'memo2' | 'memo3') => void
 }
 
 const ICON_COLOR = 'rgb(129, 134, 147)'
@@ -33,10 +34,17 @@ function TapbitShareIcon({ size = 14, color = 'currentColor', className = '' }: 
 
 function formatDateTime(dateStr: string | null) {
   if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  const d = new Date(dateStr)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const h = d.getHours()
+  const ampm = h < 12 ? '오전' : '오후'
+  const hh = String(h % 12 || 12).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return `${mm}.${dd}\n${ampm} ${hh}:${min}`
 }
 
-export default function HistoryRow({ position: p, onEditHistory, onDelete, onShare, onTeledditToggle }: HistoryRowProps) {
+export default function HistoryRow({ position: p, onEditHistory, onDelete, onShare, onTeledditToggle, onMemoEdit }: HistoryRowProps) {
   const [editing, setEditing] = useState(false)
   const [editClosedPrice, setEditClosedPrice] = useState('')
   const [editAmount, setEditAmount] = useState('')
@@ -467,9 +475,9 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         </div>
       </td>
       {/* 진입 시간 */}
-      <td className="py-2 px-2 text-binance-text-dim">{entryTimeDate}</td>
+      <td className="py-2 px-2 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{entryTimeDate}</td>
       {/* 청산 시간 */}
-      <td className="py-2 px-2 text-binance-text-dim">{closedAtDate}</td>
+      <td className="py-2 px-2 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{closedAtDate}</td>
       {/* Actions */}
       <td className="py-1 px-2">
         <div className="flex items-center gap-1.5">
@@ -486,6 +494,16 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
             className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow"
             title="Teledit"
           />
+          {onMemoEdit && (['memo1', 'memo2', 'memo3'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => onMemoEdit(p, f)}
+              className={`text-[9px] px-1 py-0.5 rounded ${(p as any)[f] ? 'bg-binance-yellow/20 text-binance-yellow' : 'bg-binance-border/30 text-binance-text-dim'} hover:opacity-80`}
+              title={(p as any)[f] || `${f} 입력`}
+            >
+              {f.replace('memo', 'M')}
+            </button>
+          ))}
         </div>
       </td>
     </tr>

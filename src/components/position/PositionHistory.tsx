@@ -23,6 +23,7 @@ interface PositionHistoryProps {
   onDeleteAllHistory: () => void
   onShareHistory: (position: Position) => void
   onTeledditToggle?: (position: Position, checked: boolean) => void
+  onMemoEdit?: (position: Position, field: 'memo1' | 'memo2' | 'memo3') => void
   onRefresh?: () => void
 }
 
@@ -42,7 +43,7 @@ function daysUntilPurge(deletedAt: string): number {
   return Math.max(0, Math.ceil((purgeAt - Date.now()) / (24 * 60 * 60 * 1000)))
 }
 
-export default function PositionHistory({ positions, onEditHistory, onDeleteHistory, onDeleteAllHistory, onShareHistory, onTeledditToggle, onRefresh }: PositionHistoryProps) {
+export default function PositionHistory({ positions, onEditHistory, onDeleteHistory, onDeleteAllHistory, onShareHistory, onTeledditToggle, onMemoEdit, onRefresh }: PositionHistoryProps) {
   const [tab, setTab] = useState<Tab>('history')
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -241,6 +242,7 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
                     onTeledditToggle={(_, checked) => {
                       onTeledditToggle?.(p, checked)
                     }}
+                    onMemoEdit={onMemoEdit ? (_, field) => onMemoEdit(p, field) : undefined}
                   />
                 ))}
               </tbody>

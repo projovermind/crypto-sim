@@ -121,6 +121,9 @@ model Position {
   pnl         Float?
   shareImageUrl   String?  // Vercel Blob URL — html-to-image로 생성된 profit card
   teleditVisible  Boolean  @default(true)  // Teledit 확장에서 표시 여부
+  memo1       String?  // 메모 변수 1 (줄바꿈 가능)
+  memo2       String?  // 메모 변수 2
+  memo3       String?  // 메모 변수 3
   entryTime   DateTime
   deletedAt   DateTime?
   createdAt   DateTime @default(now())

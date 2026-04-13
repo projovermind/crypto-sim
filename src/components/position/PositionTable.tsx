@@ -13,6 +13,7 @@ interface PositionTableProps {
   selectedId?: string
   isPopup?: boolean
   onTeledditToggle?: (position: PositionWithLive, checked: boolean) => void
+  onMemoEdit?: (position: PositionWithLive, field: 'memo1' | 'memo2' | 'memo3') => void
 }
 
 /*
@@ -42,7 +43,7 @@ const TABLE_HEADERS = (
   </thead>
 )
 
-export default function PositionTable({ positions, onClose, onEdit, onSelect, selectedId, isPopup = false, onTeledditToggle }: PositionTableProps) {
+export default function PositionTable({ positions, onClose, onEdit, onSelect, selectedId, isPopup = false, onTeledditToggle, onMemoEdit }: PositionTableProps) {
   const [hideOtherPairs, setHideOtherPairs] = useState(false)
   const [sharePosition, setSharePosition] = useState<PositionWithLive | null>(null)
   // unchecked 셋: 기본 체크 상태 → 해제된 것만 추적
@@ -159,7 +160,21 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
                     }}
                     className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow mr-2"
                   />
-                  <span className="text-[11px] text-binance-text-dim truncate">#{p.positionNumber ?? '-'}</span>
+                  <span className="text-[11px] text-binance-text-dim truncate mr-2">#{p.positionNumber ?? '-'}</span>
+                  {onMemoEdit && (
+                    <div className="flex gap-1">
+                      {(['memo1', 'memo2', 'memo3'] as const).map(f => (
+                        <button
+                          key={f}
+                          onClick={() => onMemoEdit(p, f)}
+                          className={`text-[9px] px-1 py-0.5 rounded ${(p as any)[f] ? 'bg-binance-yellow/20 text-binance-yellow' : 'bg-binance-border/30 text-binance-text-dim'} hover:opacity-80`}
+                          title={(p as any)[f] || `${f} 입력`}
+                        >
+                          {f.replace('memo', 'M')}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </>
