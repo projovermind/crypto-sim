@@ -213,9 +213,9 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
                 <col style={{ width: '6%' }} />     {/* 규모 */}
                 <col style={{ width: '9%' }} />     {/* 손익 */}
                 <col style={{ width: '6%' }} />     {/* 진입시간 */}
-                <col style={{ width: '16%' }} />    {/* 청산시간 */}
+                <col style={{ width: '20%' }} />    {/* 청산시간 */}
                 <col style={{ width: '10.5%' }} />  {/* 포지션 관리 */}
-                <col style={{ width: '13%' }} />    {/* Teledit */}
+                <col style={{ width: '9%' }} />     {/* Teledit */}
               </colgroup>
               <thead>
                 <tr className="text-binance-text-dim border-b border-binance-border" style={{ fontSize: 12 }}>
