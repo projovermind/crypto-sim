@@ -202,19 +202,19 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
           ) : (
             <table style={{ tableLayout: 'fixed', width: '100%', fontSize: 12, fontFamily: 'Inter, sans-serif' }}>
               <colgroup>
-                <col style={{ width: 40 }} />
-                <col style={{ width: 70 }} />
-                <col style={{ width: 70 }} />
-                <col style={{ width: 100 }} />
-                <col style={{ width: 70 }} />
-                <col style={{ width: 55 }} />
-                <col style={{ width: 45 }} />
-                <col style={{ width: 65 }} />
-                <col style={{ width: 90 }} />
-                <col style={{ width: 70 }} />
-                <col style={{ width: 70 }} />
-                <col style={{ width: 140 }} />
-                <col style={{ width: 100 }} />
+                <col style={{ width: 35 }} />  {/* # */}
+                <col style={{ width: 58 }} />  {/* 생성 */}
+                <col style={{ width: 55 }} />  {/* 페어 */}
+                <col style={{ width: 95 }} />  {/* 진입가 */}
+                <col style={{ width: 65 }} />  {/* 청산가 */}
+                <col style={{ width: 50 }} />  {/* 수량 */}
+                <col style={{ width: 40 }} />  {/* 배율 */}
+                <col style={{ width: 60 }} />  {/* 규모 */}
+                <col style={{ width: 85 }} />  {/* 손익 */}
+                <col style={{ width: 58 }} />  {/* 진입시간 */}
+                <col style={{ width: 58 }} />  {/* 청산시간 */}
+                <col style={{ width: 195 }} /> {/* Actions — 청산시간 수정 공간 확보 */}
+                <col style={{ width: 90 }} />  {/* 메모 */}
               </colgroup>
               <thead>
                 <tr className="text-binance-text-dim border-b border-binance-border" style={{ fontSize: 12 }}>
