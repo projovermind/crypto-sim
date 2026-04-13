@@ -364,7 +364,6 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
                         const pt = parseMatchTime(match.time)
                         const pad = (n: number) => String(n).padStart(2, '0')
                         setEditClosedTime(`${pt.year}-${pad(pt.month)}-${pad(pt.day)}T${pad(pt.hour)}:${pad(pt.minute)}`)
-                        setPriceMatches([]); setSelYearMonth(null); setSelDay(null); setSelHour(null)
                       }
                     }} className={selectCls(false)}>
                       <option value="">분</option>
