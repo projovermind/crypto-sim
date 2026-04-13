@@ -93,6 +93,9 @@ export async function GET(request: NextRequest) {
 
       channelName: (u.channelName as string) || null,
       channelAvatarUrl: (u.channelAvatarUrl as string) || null,
+      userName: (u.name as string) || null,
+      nickname1: (u.nickname1 as string) || null,
+      nickname2: (u.nickname2 as string) || null,
 
       // ── 타이밍 (초) ──
       timing: {
