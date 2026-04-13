@@ -100,6 +100,7 @@ export function applyTemplate(
     .replace(/\{\{amount\}\}/g, fmtPrice(position.amount))
     .replace(/\{\{quantity\}\}/g, fmtPrice(position.quantity))
     .replace(/\{\{marginMode\}\}/g, position.marginMode)
+    .replace(/\{\{marginModeKR\}\}/g, position.marginMode === 'CROSS' ? '교차' : '격리')
     .replace(/\{\{takeProfit\}\}/g, fmtPriceN(position.takeProfit))
     .replace(/\{\{stopLoss\}\}/g, fmtPriceN(position.stopLoss))
     .replace(/\{\{pnl\}\}/g, pnlValue != null ? pnlValue.toFixed(2) : 'N/A')  // PnL: 소수 2자리

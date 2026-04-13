@@ -116,6 +116,7 @@ const ALL_VARS: { key: string; desc: string }[] = [
   { key: 'closePrice', desc: '청산가' },
   { key: 'pnl',        desc: '손익 USDT' },
   { key: 'roe',        desc: '수익률 %' },
+  { key: 'marginModeKR', desc: '마진(한글)' },
   { key: 'memo1',      desc: '메모 1' },
   { key: 'memo2',      desc: '메모 2' },
   { key: 'memo3',      desc: '메모 3' },

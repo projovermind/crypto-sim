@@ -139,6 +139,7 @@ export default function TeleditGuidePage() {
                 ['{{roe}}', '수익률 (%)'],
                 ['{{takeProfit}}', 'TP'],
                 ['{{stopLoss}}', 'SL'],
+                ['{{marginModeKR}}', '마진모드 (교차/격리)'],
                 ['{{memo1}}', '메모 1'],
                 ['{{memo2}}', '메모 2'],
                 ['{{memo3}}', '메모 3'],
