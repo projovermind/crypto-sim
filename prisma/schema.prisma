@@ -271,3 +271,9 @@ model PositionCommentAuthor {
 
   @@index([positionId])
 }
+
+model SystemSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
