@@ -342,6 +342,7 @@ export async function PATCH(
     }
 
     const updateData: any = {}
+    if (body.teleditVisible !== undefined) updateData.teleditVisible = Boolean(body.teleditVisible)
     if (body.takeProfit !== undefined) updateData.takeProfit = body.takeProfit ? parseFloat(body.takeProfit) : null
     if (body.stopLoss !== undefined) updateData.stopLoss = body.stopLoss ? parseFloat(body.stopLoss) : null
 

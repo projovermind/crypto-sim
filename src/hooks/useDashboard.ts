@@ -694,46 +694,17 @@ export function useDashboard(): UseDashboardReturn {
 
   // ─── Handler: teleddit toggle ───────────────────────────
   const handleTeledditToggle = useCallback(async (position: PositionWithLive | Position, checked: boolean) => {
-    const baseUrl = teleditApiUrl || process.env.NEXT_PUBLIC_TELEDIT_API_URL
-    if (!baseUrl) {
-      alert('TELEDIT_API_URL이 설정되지 않았습니다.')
-      return
-    }
-    const _email = teleditEmail || undefined
-    const _password = teleditPassword || undefined
-
     try {
-      const chRes = await teleditFetch(`${baseUrl}/api/telegram/channels`, {}, baseUrl, _email, _password)
-      if (!chRes.ok) throw new Error('채널 목록 조회 실패')
-      const data = await chRes.json()
-      const channelId = data?.channels?.[0]?.dbId
-      if (!channelId) throw new Error('연결된 텔레그램 채널이 없습니다.')
-
-      if (checked) {
-        const content = applyTemplate(teledditTemplate, position, { roundEnabled: varRoundEnabled, roundDecimals: varRoundDecimals })
-        const res = await teleditFetch(`${baseUrl}/api/telegram/overrides`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'INSERT',
-            channelId,
-            content,
-            senderName: 'CryptoSim',
-            insertAt: position.entryTime,
-            positionId: position.id,
-          }),
-        }, baseUrl, _email, _password)
-        if (!res.ok) throw new Error('Teledit INSERT 실패')
-      } else {
-        const res = await teleditFetch(`${baseUrl}/api/telegram/overrides/${position.id}`, {
-          method: 'DELETE',
-        }, baseUrl, _email, _password)
-        if (!res.ok) throw new Error('Teledit DELETE 실패')
-      }
+      const res = await fetch(`/api/positions/${position.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teleditVisible: checked }),
+      })
+      if (!res.ok) throw new Error('저장 실패')
     } catch (err) {
-      alert(`Teledit 오류: ${err instanceof Error ? err.message : String(err)}`)
+      alert(`Teledit 표시 변경 실패: ${err instanceof Error ? err.message : String(err)}`)
     }
-  }, [teledditTemplate, teleditApiUrl, teleditEmail, teleditPassword])
+  }, [])
 
   // ─── Handler: select position ───────────────────────────
   const handleSelectPosition = useCallback((position: PositionWithLive) => {

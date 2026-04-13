@@ -119,7 +119,8 @@ model Position {
   closedAt    DateTime?
   closedPrice Float?
   pnl         Float?
-  shareImageUrl String?  // Vercel Blob URL — html-to-image로 생성된 profit card
+  shareImageUrl   String?  // Vercel Blob URL — html-to-image로 생성된 profit card
+  teleditVisible  Boolean  @default(true)  // Teledit 확장에서 표시 여부
   entryTime   DateTime
   deletedAt   DateTime?
   createdAt   DateTime @default(now())
