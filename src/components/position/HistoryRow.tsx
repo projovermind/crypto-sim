@@ -257,7 +257,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
 
   if (editing) {
     return (
-      <tr className="border-b border-binance-border/50 bg-binance-yellow/5">
+      <tr className="border-b border-binance-border/50 bg-binance-yellow/5" style={{ height: 52 }}>
         {/* 포지션 번호 */}
         <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[10px] font-mono">#{p.positionNumber ?? '-'}</td>
         {/* 생성 시간 — 일반 행과 동일 */}
@@ -385,7 +385,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
   }
 
   return (
-    <tr className="border-b border-binance-border/50 hover:bg-binance-border/20 transition-colors">
+    <tr className="border-b border-binance-border/50 hover:bg-binance-border/20 transition-colors" style={{ height: 52 }}>
       {/* 포지션 번호 */}
       <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[10px] font-mono">#{p.positionNumber ?? '-'}</td>
       {/* 생성 시간 */}
@@ -425,7 +425,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         <div className="flex items-center">
           <div className="flex flex-col" style={{ lineHeight: '16px' }}>
             <span className={pnlColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>{formatPnL(pnlData.pnl)}</span>
-            <span className={pnlColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>({formatNumber(pnlData.roe)}%)</span>
+            <span className={pnlColor} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>({formatNumber(pnlData.roe)}%)</span>
           </div>
           <span
             className="cursor-pointer hover:opacity-70 transition-opacity shrink-0 ml-2"
