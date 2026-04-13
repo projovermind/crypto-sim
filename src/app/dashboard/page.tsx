@@ -118,9 +118,21 @@ export default function DashboardPage() {
               placeholder="메모를 입력하세요 (줄바꿈 가능)"
               autoFocus
             />
-            <div className="flex justify-end gap-2 mt-2">
-              <button onClick={() => setMemoModal(null)} className="text-xs text-binance-text-dim hover:text-binance-text px-3 py-1">취소</button>
-              <button onClick={handleMemoSave} className="text-xs bg-binance-yellow text-black font-bold px-3 py-1 rounded hover:opacity-90">저장</button>
+            <div className="flex justify-between mt-2">
+              <button onClick={async () => {
+                if (!memoModal) return
+                await fetch(`/api/positions/${memoModal.posId}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ [memoModal.field]: '' }),
+                })
+                d.fetchPositions()
+                setMemoModal(null)
+              }} className="text-xs text-binance-red hover:text-binance-red/80 px-3 py-1">삭제</button>
+              <div className="flex gap-2">
+                <button onClick={() => setMemoModal(null)} className="text-xs text-binance-text-dim hover:text-binance-text px-3 py-1">취소</button>
+                <button onClick={handleMemoSave} className="text-xs bg-binance-yellow text-black font-bold px-3 py-1 rounded hover:opacity-90">저장</button>
+              </div>
             </div>
           </div>
         </div>
