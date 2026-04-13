@@ -1,0 +1,44 @@
+name: Extension Release
+
+on:
+  push:
+    branches: [main]
+    paths: ['public/extension.zip']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from manifest
+        id: ver
+        run: |
+          VER=$(unzip -p public/extension.zip manifest.json | jq -r .version)
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Check if release exists
+        id: check
+        run: |
+          if gh release view "ext-v$VERSION" &>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+
+      - name: Create Release
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          gh release create "ext-v$VERSION" \
+            public/extension.zip \
+            --title "Extension v$VERSION" \
+            --notes "Teledit CryptoSim extension auto-release" \
+            --latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
