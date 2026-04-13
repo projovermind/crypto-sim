@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12)
+    const { TELEDIT_TEMPLATE_DEFAULTS } = await import('@/lib/teledit-defaults')
     const user = await prisma.user.create({
       data: {
         email: username,
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         role,
         status: 'APPROVED',
+        ...TELEDIT_TEMPLATE_DEFAULTS,
       },
     })
 

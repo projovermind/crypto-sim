@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { TELEDIT_TEMPLATE_DEFAULTS } from '@/lib/teledit-defaults'
 
 export async function POST(request: Request) {
   try {
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
         password: hashedPassword,
         role: 'USER',
         status: 'PENDING',
+        ...TELEDIT_TEMPLATE_DEFAULTS,
       },
     })
 
