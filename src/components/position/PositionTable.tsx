@@ -129,45 +129,48 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
       {/* Right: Teledit sidebar (only in non-popup) */}
       {!isPopup && (
         <div className="border-l border-binance-border flex flex-col" style={{ flex: '1 1 0%', minWidth: 0, overflow: 'hidden' }}>
-          {/* Control bar header - same height as control bar row */}
+          {/* 1행: Teledit 라벨 */}
           <div className="flex items-center px-4 py-0 border-b border-binance-border">
             <span className="text-xs font-medium text-binance-text py-2 border-b-2 border-transparent">Teledit</span>
           </div>
           {openPositions.length > 0 && (
             <>
-              {/* Column header row - same height as table headers (py-2.5, fontSize: 12) */}
+              {/* 2행: 컬럼 헤더 — 포지션 자동입력 | 포지션 메모 */}
               <div className="flex items-center px-4 py-2.5 border-b border-binance-border" style={{ fontSize: 12 }}>
-                <span className="text-binance-text-dim font-normal">포지션 자동 입력</span>
+                <span className="text-binance-text-dim font-normal flex-1">포지션 자동입력</span>
+                <span className="text-binance-text-dim font-normal">포지션 메모</span>
               </div>
-              {/* Per-position checkboxes - match td height 59px */}
+              {/* 3행: 체크박스 | M1 M2 M3 */}
               {openPositions.map(p => (
                 <div key={p.id} className="flex items-center px-4 border-b border-binance-border/50" style={{ height: 59 }}>
-                  <input
-                    type="checkbox"
-                    checked={!tdUnchecked.has(p.id)}
-                    onChange={() => {
-                      setTdUnchecked(prev => {
-                        const next = new Set(prev)
-                        if (next.has(p.id)) {
-                          next.delete(p.id)
-                          onTeledditToggle?.(p, true)
-                        } else {
-                          next.add(p.id)
-                          onTeledditToggle?.(p, false)
-                        }
-                        return next
-                      })
-                    }}
-                    className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow mr-2"
-                  />
-                  <span className="text-[11px] text-binance-text-dim truncate mr-2">#{p.positionNumber ?? '-'}</span>
+                  <div className="flex items-center flex-1">
+                    <input
+                      type="checkbox"
+                      checked={!tdUnchecked.has(p.id)}
+                      onChange={() => {
+                        setTdUnchecked(prev => {
+                          const next = new Set(prev)
+                          if (next.has(p.id)) {
+                            next.delete(p.id)
+                            onTeledditToggle?.(p, true)
+                          } else {
+                            next.add(p.id)
+                            onTeledditToggle?.(p, false)
+                          }
+                          return next
+                        })
+                      }}
+                      className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow mr-2"
+                    />
+                    <span className="text-[11px] text-binance-text-dim truncate">#{p.positionNumber ?? '-'}</span>
+                  </div>
                   {onMemoEdit && (
                     <div className="flex gap-1">
                       {(['memo1', 'memo2', 'memo3'] as const).map(f => (
                         <button
                           key={f}
                           onClick={() => onMemoEdit(p, f)}
-                          className={`text-[9px] px-1 py-0.5 rounded ${(p as any)[f] ? 'bg-binance-yellow/20 text-binance-yellow' : 'bg-binance-border/30 text-binance-text-dim'} hover:opacity-80`}
+                          className={`text-[9px] px-1.5 py-1 rounded ${(p as any)[f] ? 'bg-binance-yellow/20 text-binance-yellow' : 'bg-binance-border/30 text-binance-text-dim'} hover:opacity-80`}
                           title={(p as any)[f] || `${f} 입력`}
                         >
                           {f.replace('memo', 'M')}

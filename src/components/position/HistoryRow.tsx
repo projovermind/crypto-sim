@@ -423,9 +423,9 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
       {/* 포지션 번호 */}
       <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[10px] font-mono">#{p.positionNumber ?? '-'}</td>
       {/* 생성 시간 */}
-      <td className="py-2 pl-3 pr-2 text-binance-text-dim">{createdDate}</td>
+      <td className="py-2 pl-1 pr-1 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{createdDate}</td>
       {/* Pair */}
-      <td className="py-2 px-3">
+      <td className="py-2 px-1">
         <div className="flex flex-col">
           <div className="flex items-center gap-1">
             <span className={`font-bold ${sideColor}`}>{p.side}</span>
@@ -494,17 +494,24 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
             className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow"
             title="Teledit"
           />
-          {onMemoEdit && (['memo1', 'memo2', 'memo3'] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => onMemoEdit(p, f)}
-              className={`text-[9px] px-1 py-0.5 rounded ${(p as any)[f] ? 'bg-binance-yellow/20 text-binance-yellow' : 'bg-binance-border/30 text-binance-text-dim'} hover:opacity-80`}
-              title={(p as any)[f] || `${f} 입력`}
-            >
-              {f.replace('memo', 'M')}
-            </button>
-          ))}
         </div>
+      </td>
+      {/* 메모 */}
+      <td className="py-1 px-1">
+        {onMemoEdit && (
+          <div className="flex gap-1">
+            {(['memo1', 'memo2', 'memo3'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => onMemoEdit(p, f)}
+                className={`text-[9px] px-1.5 py-1 rounded ${(p as any)[f] ? 'bg-binance-yellow/20 text-binance-yellow' : 'bg-binance-border/30 text-binance-text-dim'} hover:opacity-80`}
+                title={(p as any)[f] || `${f} 입력`}
+              >
+                {f.replace('memo', 'M')}
+              </button>
+            ))}
+          </div>
+        )}
       </td>
     </tr>
   )

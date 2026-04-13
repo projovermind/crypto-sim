@@ -203,32 +203,34 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
             <table style={{ tableLayout: 'fixed', width: '100%', fontSize: 12, fontFamily: 'Inter, sans-serif' }}>
               <colgroup>
                 <col style={{ width: 40 }} />
-                <col style={{ width: 90 }} />
-                <col style={{ width: 85 }} />
+                <col style={{ width: 70 }} />
+                <col style={{ width: 70 }} />
                 <col style={{ width: 100 }} />
                 <col style={{ width: 70 }} />
                 <col style={{ width: 55 }} />
                 <col style={{ width: 45 }} />
                 <col style={{ width: 65 }} />
                 <col style={{ width: 90 }} />
-                <col style={{ width: 90 }} />
-                <col style={{ width: 260 }} />
+                <col style={{ width: 70 }} />
+                <col style={{ width: 70 }} />
                 <col style={{ width: 140 }} />
+                <col style={{ width: 100 }} />
               </colgroup>
               <thead>
                 <tr className="text-binance-text-dim border-b border-binance-border" style={{ fontSize: 12 }}>
                   <th className="text-left py-1.5 pl-3 pr-1 font-normal">#</th>
-                  <SortHeader label="생성 시간" sortKeyName="createdAt" className="pl-3 pr-2" />
-                  <th className="text-left py-1.5 px-2 font-normal">페어</th>
+                  <SortHeader label="생성" sortKeyName="createdAt" className="pl-1 pr-1" />
+                  <th className="text-left py-1.5 px-1 font-normal">페어</th>
                   <th className="text-left py-1.5 px-1 font-normal">진입가(입력/체결)</th>
                   <th className="text-left py-1.5 px-1 font-normal">청산가</th>
-                  <th className="text-left py-1.5 px-2 font-normal">수량(USDT)</th>
+                  <th className="text-left py-1.5 px-2 font-normal">수량</th>
                   <th className="text-left py-1.5 px-2 font-normal">배율</th>
                   <th className="text-left py-1.5 px-2 font-normal">규모</th>
                   <SortHeader label="손익" sortKeyName="pnlAmount" />
-                  <SortHeader label="진입 시간" sortKeyName="entryTime" />
-                  <th className="text-left py-1.5 px-2 font-normal">청산 시간</th>
+                  <SortHeader label="진입" sortKeyName="entryTime" />
+                  <th className="text-left py-1.5 px-1 font-normal">청산</th>
                   <th className="text-left py-1.5 px-2 font-normal"></th>
+                  <th className="text-left py-1.5 px-1 font-normal">메모</th>
                 </tr>
               </thead>
               <tbody>
