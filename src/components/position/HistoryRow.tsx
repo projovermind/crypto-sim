@@ -259,7 +259,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
     return (
       <tr className="border-b border-binance-border/50 bg-binance-yellow/5" style={{ height: 52 }}>
         {/* 포지션 번호 */}
-        <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[11px] font-mono">#{p.positionNumber ?? '-'}</td>
+        <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[12px] font-mono">#{p.positionNumber ?? '-'}</td>
         {/* 생성 시간 — 일반 행과 동일 */}
         <td className="py-2 pl-1 pr-1 text-binance-text-dim text-[12px] whitespace-pre leading-tight">{createdDate}</td>
         {/* Pair + 배율 편집 */}
@@ -387,7 +387,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
   return (
     <tr className="border-b border-binance-border/50 hover:bg-binance-border/20 transition-colors" style={{ height: 52 }}>
       {/* 포지션 번호 */}
-      <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[11px] font-mono">#{p.positionNumber ?? '-'}</td>
+      <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[12px] font-mono">#{p.positionNumber ?? '-'}</td>
       {/* 생성 시간 */}
       <td className="py-2 pl-1 pr-1 text-binance-text-dim text-[12px] whitespace-pre leading-tight">{createdDate}</td>
       {/* Pair */}
