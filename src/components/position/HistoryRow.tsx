@@ -260,16 +260,17 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
       <tr className="border-b border-binance-border/50 bg-binance-yellow/5">
         {/* 포지션 번호 */}
         <td className="py-2 pl-3 pr-1 text-binance-text-dim text-[10px] font-mono">#{p.positionNumber ?? '-'}</td>
-        {/* 생성 시간 */}
-        <td className="py-2 pl-3 pr-2 text-binance-text-dim">{createdDate}</td>
-        {/* Pair */}
-        <td className="py-2 px-3">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1">
-              <span className={`font-bold ${sideColor}`}>{p.side}</span>
-              <span className="text-binance-text font-bold">{base}</span>
+        {/* 생성 시간 — 일반 행과 동일 */}
+        <td className="py-2 pl-1 pr-1 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{createdDate}</td>
+        {/* Pair + 배율 편집 */}
+        <td className="py-2 px-1">
+          <div className="flex flex-col leading-tight">
+            <span className={`font-bold ${sideColor}`}>{p.side}</span>
+            <div className="flex items-center gap-0.5">
+              <span className="text-binance-text font-bold text-[11px]">{base}</span>
+              <input type="number" step="1" min="1" max="125" value={editLeverage} onChange={e => handleLeverageChange(e.target.value)} className="w-8 bg-binance-bg border border-binance-border rounded px-0.5 text-[10px] text-binance-text text-center focus:outline-none focus:border-binance-yellow/50" />
+              <span className="text-binance-text-dim text-[10px]">x</span>
             </div>
-            <span className="text-binance-text-dim text-[10px]">{p.leverage}x</span>
           </div>
         </td>
         {/* Entry Price (read-only) */}
@@ -297,10 +298,8 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
         <td className="py-2 px-2 text-binance-text">
           {formatNumber((parseFloat(editAmount) || p.amount) / (parseFloat(editLeverage) || p.leverage))}
         </td>
-        {/* Leverage */}
-        <td className="py-1 px-2">
-          <input type="number" step="1" min="1" max="125" value={editLeverage} onChange={e => handleLeverageChange(e.target.value)} className={editInputClass} />
-        </td>
+        {/* Leverage — 페어에 통합, 빈 셀 유지 (colgroup 맞춤) */}
+        <td className="py-1 px-1"></td>
         {/* Amount (규모) */}
         <td className="py-1 px-2">
           <input type="number" step="any" value={editAmount} onChange={e => setEditAmount(e.target.value)} className={editInputClass} />
@@ -312,8 +311,8 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
             <span className={previewColor} style={{ fontVariantNumeric: 'tabular-nums' }}>({formatNumber(preview.roe)}%)</span>
           </div>
         </td>
-        {/* 진입 시간 (read-only) */}
-        <td className="py-2 px-2 text-binance-text-dim">{entryTimeDate}</td>
+        {/* 진입 시간 — 일반 행과 동일 */}
+        <td className="py-2 px-2 text-binance-text-dim text-[11px] whitespace-pre leading-tight">{entryTimeDate}</td>
         {/* 청산 시간 */}
         <td className="py-1 px-2">
           <input type="datetime-local" value={editClosedTime} onChange={e => setEditClosedTime(e.target.value)} className={editInputClass + ' w-full text-[11px]'} />
