@@ -13,7 +13,7 @@ const inputCls =
 const timingInputCls =
   'w-16 bg-binance-bg border border-binance-border rounded px-2 py-1 text-xs text-binance-text text-center focus:outline-none focus:border-binance-yellow/50'
 
-type TabKey = 'account' | 'teledit'
+type TabKey = 'account' | 'teledit' | 'guide'
 
 // ─── TimingRow: inline timing min/max input ───────────────────
 function TimingRow({
@@ -249,7 +249,7 @@ export default function SettingsPage() {
           </button>
 
           <nav className="flex-1 py-2">
-            {(['account', 'teledit'] as TabKey[]).map(tab => (
+            {(['account', 'teledit', 'guide'] as TabKey[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -267,13 +267,20 @@ export default function SettingsPage() {
                       </svg>
                       계정 관리
                     </>
-                  ) : (
+                  ) : tab === 'teledit' ? (
                     <>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
                         <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767A2 2 0 0011 16h2l3 3v-3h1a2 2 0 002-2V9a2 2 0 00-2-2h-2z" />
                       </svg>
                       텔레딧 관리
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      텔레딧 가이드
                     </>
                   )}
                 </div>
@@ -673,6 +680,54 @@ export default function SettingsPage() {
                   <VarReferencePanel />
                 </div>
                 </div>{/* end flex */}
+              </div>
+            )}
+
+            {/* ── Guide Tab ── */}
+            {activeTab === 'guide' && (
+              <div className="animate-fade-in space-y-5">
+                <h2 className="text-sm font-bold text-binance-text mb-4">텔레딧 사용 가이드</h2>
+
+                <div className="bg-binance-card border border-binance-border rounded-lg p-5 space-y-3">
+                  <h3 className="text-xs font-bold text-binance-yellow">필수 설정</h3>
+                  <ul className="text-xs text-binance-text-dim space-y-1.5 list-disc list-inside">
+                    <li>Telegram Web <span className="text-binance-text font-semibold">K 버전</span> 사용 (<a href="https://web.telegram.org/k/" target="_blank" className="text-binance-yellow hover:underline">web.telegram.org/k/</a>)</li>
+                    <li>Settings &rarr; Language &rarr; <span className="text-binance-text font-semibold">English</span></li>
+                    <li>Settings &rarr; General &rarr; Time Format &rarr; <span className="text-binance-text font-semibold">12-hour</span></li>
+                  </ul>
+                </div>
+
+                <div className="bg-binance-card border border-binance-border rounded-lg p-5 space-y-3">
+                  <h3 className="text-xs font-bold text-binance-yellow">확장 설치</h3>
+                  <ol className="text-xs text-binance-text-dim space-y-1.5 list-decimal list-inside">
+                    <li>상단 바 Telegram 아이콘으로 extension.zip 다운로드</li>
+                    <li>압축 해제 후 <code className="bg-binance-bg px-1 rounded text-binance-yellow">chrome://extensions</code> 접속</li>
+                    <li>개발자 모드 ON &rarr; 압축해제된 확장 프로그램 로드</li>
+                  </ol>
+                </div>
+
+                <div className="bg-binance-card border border-binance-border rounded-lg p-5 space-y-3">
+                  <h3 className="text-xs font-bold text-binance-yellow">단축키</h3>
+                  <div className="text-xs text-binance-text-dim">
+                    <kbd className="bg-binance-bg border border-binance-border px-2 py-0.5 rounded text-binance-text font-mono">Alt</kbd> + <kbd className="bg-binance-bg border border-binance-border px-2 py-0.5 rounded text-binance-text font-mono">E</kbd> — 전체 포지션 삽입 (팝업 안 열어도 됨)
+                  </div>
+                </div>
+
+                <div className="bg-binance-card border border-binance-border rounded-lg p-5 space-y-3">
+                  <h3 className="text-xs font-bold text-binance-yellow">주의사항</h3>
+                  <ul className="text-xs text-binance-text-dim space-y-1.5 list-disc list-inside">
+                    <li>채널 뷰에서만 작동 (1:1 채팅, 그룹 불가)</li>
+                    <li>페이지 새로고침 시 삽입된 포지션 초기화</li>
+                    <li>현재 로드된 채팅 범위 안의 포지션만 삽입</li>
+                    <li>업데이트: 새 zip 다운 &rarr; 덮어쓰기 &rarr; chrome://extensions 리로드 &rarr; F5</li>
+                  </ul>
+                </div>
+
+                <div className="text-center">
+                  <a href="/teledit" target="_blank" className="text-xs text-binance-yellow hover:underline">
+                    전체 가이드 보기 &rarr;
+                  </a>
+                </div>
               </div>
             )}
           </div>

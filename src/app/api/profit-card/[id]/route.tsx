@@ -102,9 +102,9 @@ export async function GET(
     const sideColor = position.side === 'LONG' ? '#00ff85' : '#ff3d55'
     const entryPrice = (position as any).inputPrice ?? position.entryPrice
 
-    const now = new Date()
+    const cardDate = position.closedAt ? new Date(position.closedAt) : new Date()
     const pad = (n: number) => n.toString().padStart(2, '0')
-    const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+    const dateStr = `${cardDate.getFullYear()}-${pad(cardDate.getMonth() + 1)}-${pad(cardDate.getDate())} ${pad(cardDate.getHours())}:${pad(cardDate.getMinutes())}:${pad(cardDate.getSeconds())}`
 
     // ── JSX: ProfitCard.tsx와 1:1 동일 구조 ─────────────────────────────────
     return new ImageResponse(
