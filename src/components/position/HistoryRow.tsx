@@ -491,24 +491,17 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
             className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow"
             title="Teledit"
           />
+          {onMemoEdit && (['memo1', 'memo2', 'memo3'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => onMemoEdit(p, f)}
+              className={`text-[9px] px-1 py-0.5 rounded ${(p as any)[f] ? 'bg-binance-yellow/20 text-binance-yellow' : 'bg-binance-border/30 text-binance-text-dim'} hover:opacity-80`}
+              title={(p as any)[f] || `${f} 입력`}
+            >
+              {f.replace('memo', 'M')}
+            </button>
+          ))}
         </div>
-      </td>
-      {/* 메모 */}
-      <td className="py-1 px-1">
-        {onMemoEdit && (
-          <div className="flex gap-1">
-            {(['memo1', 'memo2', 'memo3'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => onMemoEdit(p, f)}
-                className={`text-[9px] px-1.5 py-1 rounded ${(p as any)[f] ? 'bg-binance-yellow/20 text-binance-yellow' : 'bg-binance-border/30 text-binance-text-dim'} hover:opacity-80`}
-                title={(p as any)[f] || `${f} 입력`}
-              >
-                {f.replace('memo', 'M')}
-              </button>
-            ))}
-          </div>
-        )}
       </td>
     </tr>
   )

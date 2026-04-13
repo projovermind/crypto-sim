@@ -60,8 +60,8 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
       {/* Left: main table area */}
       <div style={{ width: 1607, flexShrink: 0 }}>
         {/* Header row */}
-        <div className="flex items-center px-4 py-0 border-b border-binance-border" style={{ width: 1607 }}>
-          <span className="px-3 py-2 text-xs font-medium text-binance-text border-b-2 border-white">
+        <div className="flex items-center px-4 border-b border-binance-border" style={{ width: 1607, height: 37 }}>
+          <span className="px-3 text-xs font-medium text-binance-text border-b-2 border-white">
             Positions ({openPositions.length})
           </span>
           {!isPopup && (
@@ -129,16 +129,16 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
       {/* Right: Teledit sidebar (only in non-popup) */}
       {!isPopup && (
         <div className="border-l border-binance-border flex flex-col" style={{ flex: '1 1 0%', minWidth: 0, overflow: 'hidden' }}>
-          {/* 1행: Teledit 라벨 — 가운데 */}
-          <div className="flex items-center justify-center px-4 py-0 border-b border-binance-border">
-            <span className="text-xs font-medium text-binance-text py-2">Teledit</span>
+          {/* 1행: Teledit 라벨 — 컨트롤바와 동일 높이 */}
+          <div className="flex items-center justify-center px-4 border-b border-binance-border" style={{ height: 37 }}>
+            <span className="text-xs font-medium text-binance-text">Teledit</span>
           </div>
           {openPositions.length > 0 && (
             <>
-              {/* 2행: 컬럼 헤더 — 가운데 + 구분선 */}
-              <div className="flex items-center border-b border-binance-border" style={{ fontSize: 11 }}>
-                <div className="flex-1 text-center py-2 text-binance-text-dim border-r border-binance-border/50">포지션 자동입력</div>
-                <div className="flex-1 text-center py-2 text-binance-text-dim">포지션 메모</div>
+              {/* 2행: 컬럼 헤더 — thead와 동일 높이 */}
+              <div className="flex items-center border-b border-binance-border" style={{ fontSize: 11, height: 37 }}>
+                <div className="flex-1 text-center text-binance-text-dim border-r border-binance-border/50">포지션 자동입력</div>
+                <div className="flex-1 text-center text-binance-text-dim">포지션 메모</div>
               </div>
               {/* 3행: 체크박스 | M1 M2 M3 — 구분선 */}
               {openPositions.map(p => (

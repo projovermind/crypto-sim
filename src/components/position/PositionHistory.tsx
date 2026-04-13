@@ -212,9 +212,8 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
                 <col style={{ width: 60 }} />  {/* 규모 */}
                 <col style={{ width: 85 }} />  {/* 손익 */}
                 <col style={{ width: 58 }} />  {/* 진입시간 */}
-                <col style={{ width: 58 }} />  {/* 청산시간 */}
-                <col style={{ width: 195 }} /> {/* Actions — 청산시간 수정 공간 확보 */}
-                <col style={{ width: 90 }} />  {/* 메모 */}
+                <col style={{ width: 90 }} />  {/* 청산시간 — 수정 공간 확보 */}
+                <col style={{ width: 155 }} /> {/* Actions + 메모 (붙어있음) */}
               </colgroup>
               <thead>
                 <tr className="text-binance-text-dim border-b border-binance-border" style={{ fontSize: 12 }}>
@@ -229,8 +228,7 @@ export default function PositionHistory({ positions, onEditHistory, onDeleteHist
                   <SortHeader label="손익" sortKeyName="pnlAmount" />
                   <SortHeader label="진입" sortKeyName="entryTime" />
                   <th className="text-left py-1.5 px-1 font-normal">청산</th>
-                  <th className="text-left py-1.5 px-2 font-normal"></th>
-                  <th className="text-left py-1.5 px-1 font-normal">메모</th>
+                  <th className="text-left py-1.5 px-1 font-normal"></th>
                 </tr>
               </thead>
               <tbody>
