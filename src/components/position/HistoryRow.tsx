@@ -54,7 +54,7 @@ export default function HistoryRow({ position: p, onEditHistory, onDelete, onSha
   const [searchingClosedTime, setSearchingClosedTime] = useState(false)
   const [manualClosedTime, setManualClosedTime] = useState(false)
   const prevClosedPriceRef = useRef('')
-  const [teledditChecked, setTeledditChecked] = useState(true)
+  const [teledditChecked, setTeledditChecked] = useState((p as any).teleditVisible !== false)
   const [selYearMonth, setSelYearMonth] = useState<string | null>(null)
   const [selDay, setSelDay] = useState<number | null>(null)
   const [selHour, setSelHour] = useState<number | null>(null)

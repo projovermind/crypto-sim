@@ -47,7 +47,11 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
   const [hideOtherPairs, setHideOtherPairs] = useState(false)
   const [sharePosition, setSharePosition] = useState<PositionWithLive | null>(null)
   // unchecked 셋: 기본 체크 상태 → 해제된 것만 추적
-  const [tdUnchecked, setTdUnchecked] = useState<Set<string>>(new Set())
+  const [tdUnchecked, setTdUnchecked] = useState<Set<string>>(() => {
+    const unchecked = new Set<string>()
+    positions.filter(p => p.status === 'OPEN' && (p as any).teleditVisible === false).forEach(p => unchecked.add(p.id))
+    return unchecked
+  })
 
   const openPositions = positions.filter(p => p.status === 'OPEN')
 
