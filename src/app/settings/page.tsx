@@ -155,7 +155,7 @@ function VarReferencePanel() {
                   {isCopied ? '복사됨!' : `{{${key}}}`}
                 </code>
               </div>
-              <div className="px-3 py-2 text-binance-text-dim border-l border-binance-border/30 flex items-center w-[80px] shrink-0">
+              <div className="px-3 py-2 text-binance-text-dim border-l border-binance-border/30 flex items-center w-[100px] shrink-0">
                 {desc}
               </div>
             </div>
@@ -371,7 +371,23 @@ export default function SettingsPage() {
             {/* ── Teledit Management Tab ── */}
             {activeTab === 'teledit' && (
               <div className="animate-fade-in">
-                <h2 className="text-sm font-bold text-binance-text mb-5">텔레딧 관리</h2>
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-sm font-bold text-binance-text">텔레딧 관리</h2>
+                  <div className="flex items-center gap-2">
+                    {s.teleditMsg && (
+                      <span className={`text-xs ${s.teleditMsg.includes('실패') ? 'text-binance-red' : 'text-green-400'}`}>
+                        {s.teleditMsg}
+                      </span>
+                    )}
+                    <button
+                      onClick={s.handleSaveTeledit}
+                      disabled={s.savingTeledit}
+                      className="px-4 py-1.5 text-xs bg-binance-yellow text-black font-bold rounded hover:opacity-90 transition-opacity disabled:opacity-50"
+                    >
+                      {s.savingTeledit ? '저장 중...' : '모든 설정 저장'}
+                    </button>
+                  </div>
+                </div>
                 <div className="flex gap-5 items-start">
                 {/* ── Left: message cards ── */}
                 <div className="flex-1 min-w-0 space-y-6">
@@ -626,7 +642,7 @@ export default function SettingsPage() {
 
                 </div>{/* end left */}
                 {/* ── Right: variable reference panel ── */}
-                <div className="w-[220px] shrink-0 sticky top-6">
+                <div className="w-[280px] shrink-0 sticky top-6">
                   <VarReferencePanel />
                 </div>
                 </div>{/* end flex */}
