@@ -58,18 +58,31 @@ async function teleditFetch(
   return res
 }
 
+// 가격 크기에 따른 자동 소수점 결정
+function autoDecimals(val: number): number {
+  const abs = Math.abs(val)
+  if (abs >= 1000) return 0
+  if (abs >= 100) return 0
+  if (abs >= 1) return 1
+  if (abs >= 0.01) return 3
+  return 5
+}
+
+function fmtPrice(val: number): string {
+  return val.toFixed(autoDecimals(val))
+}
+
+function fmtPriceN(val: number | null | undefined): string {
+  return val != null ? fmtPrice(val) : 'N/A'
+}
+
 export function applyTemplate(
   template: string,
   position: PositionWithLive | Position,
-  options?: { roundEnabled?: boolean; roundDecimals?: number }
 ): string {
-  const { roundEnabled = false, roundDecimals = 2 } = options ?? {}
-  const fmt = (val: number): string =>
-    roundEnabled ? val.toFixed(roundDecimals) : String(val)
-  const fmtN = (val: number | null | undefined): string =>
-    val != null ? fmt(val) : 'N/A'
-
-  const roe = 'roeLive' in position && position.roeLive != null ? position.roeLive.toFixed(2) : 'N/A'
+  const roe = 'roeLive' in position && position.roeLive != null
+    ? position.roeLive.toFixed(1)  // ROE: 항상 소수 1자리
+    : 'N/A'
   const pnlValue = position.pnl != null
     ? position.pnl
     : ('pnlLive' in position && position.pnlLive != null ? position.pnlLive : null)
@@ -77,16 +90,16 @@ export function applyTemplate(
     .replace(/\{\{symbol\}\}/g, position.symbol)
     .replace(/\{\{side\}\}/g, position.side)
     .replace(/\{\{leverage\}\}/g, String(position.leverage))
-    .replace(/\{\{entryPrice\}\}/g, fmt(position.entryPrice))
-    .replace(/\{\{inputPrice\}\}/g, fmtN(position.inputPrice))
-    .replace(/\{\{amount\}\}/g, fmt(position.amount))
-    .replace(/\{\{quantity\}\}/g, fmt(position.quantity))
+    .replace(/\{\{entryPrice\}\}/g, fmtPrice(position.entryPrice))
+    .replace(/\{\{inputPrice\}\}/g, fmtPriceN(position.inputPrice))
+    .replace(/\{\{amount\}\}/g, fmtPrice(position.amount))
+    .replace(/\{\{quantity\}\}/g, fmtPrice(position.quantity))
     .replace(/\{\{marginMode\}\}/g, position.marginMode)
-    .replace(/\{\{takeProfit\}\}/g, fmtN(position.takeProfit))
-    .replace(/\{\{stopLoss\}\}/g, fmtN(position.stopLoss))
-    .replace(/\{\{pnl\}\}/g, pnlValue != null ? pnlValue.toFixed(2) : 'N/A')
+    .replace(/\{\{takeProfit\}\}/g, fmtPriceN(position.takeProfit))
+    .replace(/\{\{stopLoss\}\}/g, fmtPriceN(position.stopLoss))
+    .replace(/\{\{pnl\}\}/g, pnlValue != null ? pnlValue.toFixed(2) : 'N/A')  // PnL: 소수 2자리
     .replace(/\{\{roe\}\}/g, roe)
-    .replace(/\{\{closePrice\}\}/g, fmtN(position.closedPrice))
+    .replace(/\{\{closePrice\}\}/g, fmtPriceN(position.closedPrice))
     .replace(/\{\{memo1\}\}/g, (position as any).memo1 || '')
     .replace(/\{\{memo2\}\}/g, (position as any).memo2 || '')
     .replace(/\{\{memo3\}\}/g, (position as any).memo3 || '')
@@ -108,7 +121,7 @@ async function scheduleTeleditMessage(
     if (!chRes.ok) return
     const channels = await chRes.json()
     if (!Array.isArray(channels) || channels.length === 0) return
-    const content = applyTemplate(template, position, formatOptions)
+    const content = applyTemplate(template, position)
     for (const channel of channels) {
       await teleditFetch(`${baseUrl}/api/telegram/overrides`, {
         method: 'POST',
