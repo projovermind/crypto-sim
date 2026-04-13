@@ -136,7 +136,7 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
           {openPositions.length > 0 && (
             <>
               {/* 2행: 컬럼 헤더 */}
-              <div className="flex items-center border-b border-binance-border" style={{ fontSize: 11, height: 38 }}>
+              <div className="flex items-center border-b border-binance-border" style={{ fontSize: 11, height: 39 }}>
                 <div className="flex-1 text-center text-binance-text-dim border-r border-binance-border/50">포지션 자동입력</div>
                 <div className="flex-1 text-center text-binance-text-dim">포지션 메모</div>
               </div>
