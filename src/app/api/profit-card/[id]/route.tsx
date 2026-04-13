@@ -216,6 +216,8 @@ export async function GET(
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache',
         },
         fonts: [
           { name: 'Inter', data: FONT_REGULAR,  weight: 400 as const, style: 'normal' as const },
