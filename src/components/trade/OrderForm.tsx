@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { formatNumber } from '@/lib/calculations'
 
-const MAX_POSITION_USDT = 10000000
+const MAX_MARGIN_USDT = 25000
 
 interface OrderFormProps {
   symbol: string
@@ -29,6 +29,8 @@ interface OrderFormProps {
   setQtyUnit: (v: string) => void
   volatileMode: boolean
   setVolatileMode: (v: boolean) => void
+  enableSlippage: boolean
+  setEnableSlippage: (v: boolean) => void
 }
 
 const inputClass = "w-full h-[34px] bg-transparent border border-binance-border rounded px-3 text-binance-text text-[13px] focus:outline-none focus:border-binance-yellow/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -68,6 +70,7 @@ export default function OrderForm({
   showTPSL, setShowTPSL, entryTime, setEntryTime,
   sliderValue, setSliderValue, qtyUnit, setQtyUnit,
   volatileMode, setVolatileMode,
+  enableSlippage, setEnableSlippage,
 }: OrderFormProps) {
   const base = symbol.replace('USDT', '')
   const [showQtyDropdown, setShowQtyDropdown] = useState(false)
@@ -158,8 +161,8 @@ export default function OrderForm({
     setSliderValue(pct)
     const price = parseFloat(entryPrice) || currentPrice
     if (price <= 0) return
-    // 슬라이더 = 최대 증거금(= 최대 포지션 / 레버리지) 기준
-    const maxMargin = MAX_POSITION_USDT / leverage
+    // 슬라이더 = 최대 증거금 기준
+    const maxMargin = MAX_MARGIN_USDT
     const marginForPct = (maxMargin * pct) / 100
     if (qtyUnit === 'USDT') {
       setAmount(marginForPct > 0 ? marginForPct.toFixed(2) : '')
@@ -193,8 +196,8 @@ export default function OrderForm({
       <div className="flex-1 flex flex-col px-3 py-1.5 gap-1.5 overflow-y-auto">
         {/* Max position info */}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-binance-text-dim">최대 포지션:</span>
-          <span className="text-xs text-binance-text">{MAX_POSITION_USDT.toLocaleString()} USDT</span>
+          <span className="text-xs text-binance-text-dim">최대 증거금:</span>
+          <span className="text-xs text-binance-text">{MAX_MARGIN_USDT.toLocaleString()} USDT</span>
         </div>
 
         {/* Price */}
@@ -333,16 +336,27 @@ export default function OrderForm({
           </div>
         </div>
 
-        {/* TP/SL toggle */}
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showTPSL}
-            onChange={e => setShowTPSL(e.target.checked)}
-            className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow"
-          />
-          <span className="text-xs text-binance-text-dim">TP/SL</span>
-        </label>
+        {/* TP/SL toggle + Slippage toggle */}
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showTPSL}
+              onChange={e => setShowTPSL(e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow"
+            />
+            <span className="text-xs text-binance-text-dim">TP/SL</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={enableSlippage}
+              onChange={e => setEnableSlippage(e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-binance-border accent-binance-yellow"
+            />
+            <span className="text-xs text-binance-text-dim">슬리피지</span>
+          </label>
+        </div>
 
         {showTPSL && (
           <div className="grid grid-cols-2 gap-2">

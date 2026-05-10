@@ -6,7 +6,7 @@ import LeverageSelector from './LeverageSelector'
 import OrderForm from './OrderForm'
 import TradeButtons from './TradeButtons'
 
-const MAX_POSITION_USDT = 10000000
+const MAX_MARGIN_USDT = 25000
 const SETTINGS_KEY_PREFIX = 'tappo_trade_'
 
 interface TradePanelProps {
@@ -32,6 +32,7 @@ export default function TradePanel({ symbol, currentPrice, onSubmit }: TradePane
   const [qtyUnit, setQtyUnit] = useState<string>('USDT')
   const [entryTime, setEntryTime] = useState('')
   const [volatileMode, setVolatileMode] = useState(false)
+  const [enableSlippage, setEnableSlippage] = useState(true)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
 
   const userId = (session?.user as any)?.id
@@ -87,8 +88,8 @@ export default function TradePanel({ symbol, currentPrice, onSubmit }: TradePane
       // 입력값 = 증거금(마진), 포지션 크기 = 증거금 × 레버리지
       const margin = qtyUnit === 'USDT' ? rawAmount : rawAmount * price
       const positionSize = margin * leverage
-      if (positionSize > MAX_POSITION_USDT) {
-        alert(`최대 포지션 크기는 ${MAX_POSITION_USDT.toLocaleString()} USDT입니다. (현재: ${positionSize.toLocaleString()} USDT)`)
+      if (margin > MAX_MARGIN_USDT) {
+        alert(`최대 증거금은 25,000 USDT입니다.`)
         return
       }
       await onSubmit({
@@ -103,6 +104,7 @@ export default function TradePanel({ symbol, currentPrice, onSubmit }: TradePane
         stopLoss: stopLoss ? parseFloat(stopLoss) : null,
         entryTime: orderType === 'Market' ? new Date().toISOString() : (entryTime ? new Date(entryTime).toISOString() : new Date().toISOString()),
         volatileMode,
+        enableSlippage,
       })
       setAmount('')
       setTakeProfit('')
@@ -156,6 +158,7 @@ export default function TradePanel({ symbol, currentPrice, onSubmit }: TradePane
         sliderValue={sliderValue} setSliderValue={setSliderValue}
         qtyUnit={qtyUnit} setQtyUnit={setQtyUnit}
         volatileMode={volatileMode} setVolatileMode={setVolatileMode}
+        enableSlippage={enableSlippage} setEnableSlippage={setEnableSlippage}
       />
 
       {/* Trade Buttons + Cost */}

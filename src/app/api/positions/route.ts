@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     const userId = user.id
     const body = await request.json()
 
-    const { symbol, side, leverage, marginMode, entryPrice, inputPrice: rawInputPrice, amount, takeProfit, stopLoss, entryTime, orderType: rawOrderType, volatileMode } = body
+    const { symbol, side, leverage, marginMode, entryPrice, inputPrice: rawInputPrice, amount, takeProfit, stopLoss, entryTime, orderType: rawOrderType, volatileMode, enableSlippage = true } = body
     const orderType = rawOrderType === 'LIMIT' ? 'LIMIT' : 'MARKET'
 
     // 숫자 안전 변환
@@ -97,15 +97,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '가격, 금액, 레버리지는 0보다 커야 합니다.' }, { status: 400 })
     }
 
-    if (numAmount > 10000000) {
-      return NextResponse.json({ error: '최대 포지션 크기는 10,000,000 USDT입니다.' }, { status: 400 })
+    if ((numAmount / numLeverage) > 25000) {
+      return NextResponse.json({ error: '최대 증거금은 25,000 USDT입니다.' }, { status: 400 })
     }
 
     // 슬리피지 적용 (시장가: 랜덤, 지정가: 랜덤 범위, 급등락: 0.25~0.35% 랜덤)
     const volatileRate = volatileMode ? 0.0008 + Math.random() * 0.0007 + (Math.random() - 0.5) * 0.0001 : undefined
-    const finalEntryPrice = orderType === 'MARKET'
-      ? applySlippage(numEntryPrice, side as 'LONG' | 'SHORT')
-      : applyLimitSlippage(numEntryPrice, side as 'LONG' | 'SHORT', volatileRate)
+    const finalEntryPrice = !enableSlippage
+      ? numEntryPrice
+      : orderType === 'MARKET'
+        ? applySlippage(numEntryPrice, side as 'LONG' | 'SHORT')
+        : applyLimitSlippage(numEntryPrice, side as 'LONG' | 'SHORT', volatileRate)
 
     // TP/SL validation (슬리피지 적용 후 가격 기준)
     if (side === 'LONG') {
@@ -127,6 +129,22 @@ export async function POST(request: NextRequest) {
     const quantity = numAmount / finalEntryPrice
     const entryFee = calculateFee(numAmount, orderType)
 
+    // 반응 개수 확정 (유저 설정 범위에서 랜덤 → DB 고정)
+    const _rxRand = (a: number, b: number) => a + Math.floor(Math.random() * (b - a + 1))
+    const _u = user as any
+    let _rxS: Record<string, any> | null = null
+    try { if (_u.reactionSettings) _rxS = JSON.parse(_u.reactionSettings) } catch {}
+    const _rxD = { heart: [Number(_u.reactionHeartMin ?? 20), Number(_u.reactionHeartMax ?? 30)], thumb: [Number(_u.reactionThumbMin ?? 20), Number(_u.reactionThumbMax ?? 30)], fire: [Number(_u.reactionFireMin ?? 20), Number(_u.reactionFireMax ?? 30)] }
+    const reactionData: Record<string, { heart: number; thumb: number; fire: number }> = {}
+    for (const t of ['preEntry','long','short','postEntry','preClose','close','profit1','profit2']) {
+      const s = _rxS?.[t]
+      reactionData[t] = {
+        heart: _rxRand(s?.heart?.[0] ?? _rxD.heart[0], s?.heart?.[1] ?? _rxD.heart[1]),
+        thumb: _rxRand(s?.thumb?.[0] ?? _rxD.thumb[0], s?.thumb?.[1] ?? _rxD.thumb[1]),
+        fire:  _rxRand(s?.fire?.[0]  ?? _rxD.fire[0],  s?.fire?.[1]  ?? _rxD.fire[1]),
+      }
+    }
+
     const position = await prisma.position.create({
       data: {
         userId,
@@ -144,6 +162,7 @@ export async function POST(request: NextRequest) {
         stopLoss: numSL,
         status: 'OPEN',
         entryTime: entryTime ? new Date(entryTime) : new Date(),
+        reactionData: JSON.stringify(reactionData),
       },
     })
 
