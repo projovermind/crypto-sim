@@ -566,13 +566,13 @@ export default function SettingsPage() {
                         <input
                           type="number" min={0}
                           value={s.subscriberCount}
-                          onChange={e => s.setSubscriberCount(Number(e.target.value) || 0)}
+                          onChange={e => { s.setSubscriberCount(Number(e.target.value) || 0); s.setSubscriberDirty(true) }}
                           className={inputCls + ' w-20'}
                         />
                         <span className="text-[11px] text-binance-text-dim">명</span>
                         <button
                           type="button"
-                          onClick={() => s.setSubscriberCount(800 + Math.floor(Math.random() * 301))}
+                          onClick={() => { s.setSubscriberCount(800 + Math.floor(Math.random() * 301)); s.setSubscriberDirty(true) }}
                           className="px-2 py-1 text-[10px] bg-binance-bg border border-binance-border rounded text-binance-yellow hover:bg-binance-border/30"
                         >
                           초기화 (800~1100)
@@ -656,6 +656,9 @@ export default function SettingsPage() {
                       mockType="entry"
                       enabled={s.templateEnabled.teleditPreEntryTemplate}
                       onToggleEnabled={s.updateEnabled}
+                      imageUrl={s.teleditTemplateImages?.['teleditPreEntryTemplate']}
+                      onImageChange={s.updateTemplateImage}
+                      onImageRemove={s.removeTemplateImage}
                     />
                   </MessageCard>
 
@@ -670,6 +673,9 @@ export default function SettingsPage() {
                       mockType="entry"
                       enabled={s.templateEnabled.teledditLongTemplate}
                       onToggleEnabled={s.updateEnabled}
+                      imageUrl={s.teleditTemplateImages?.['teledditLongTemplate']}
+                      onImageChange={s.updateTemplateImage}
+                      onImageRemove={s.removeTemplateImage}
                     />
                     <ReactionRow msgType="long" settings={s.reactionSettings.long} onUpdate={s.updateReaction} />
                     <CommentRow
@@ -686,6 +692,9 @@ export default function SettingsPage() {
                       mockType="entry"
                       enabled={s.templateEnabled.teledditShortTemplate}
                       onToggleEnabled={s.updateEnabled}
+                      imageUrl={s.teleditTemplateImages?.['teledditShortTemplate']}
+                      onImageChange={s.updateTemplateImage}
+                      onImageRemove={s.removeTemplateImage}
                     />
                     <ReactionRow msgType="short" settings={s.reactionSettings.short} onUpdate={s.updateReaction} />
                     <CommentRow
@@ -715,6 +724,9 @@ export default function SettingsPage() {
                       mockType="entry"
                       enabled={s.templateEnabled.teleditPostEntryTemplate}
                       onToggleEnabled={s.updateEnabled}
+                      imageUrl={s.teleditTemplateImages?.['teleditPostEntryTemplate']}
+                      onImageChange={s.updateTemplateImage}
+                      onImageRemove={s.removeTemplateImage}
                     />
                   </MessageCard>
 
@@ -739,6 +751,9 @@ export default function SettingsPage() {
                       mockType="close"
                       enabled={s.templateEnabled.teleditPreCloseTemplate}
                       onToggleEnabled={s.updateEnabled}
+                      imageUrl={s.teleditTemplateImages?.['teleditPreCloseTemplate']}
+                      onImageChange={s.updateTemplateImage}
+                      onImageRemove={s.removeTemplateImage}
                     />
                   </MessageCard>
 
@@ -758,6 +773,9 @@ export default function SettingsPage() {
                       mockType="close"
                       enabled={s.templateEnabled.teleditCloseTemplate}
                       onToggleEnabled={s.updateEnabled}
+                      imageUrl={s.teleditTemplateImages?.['teleditCloseTemplate']}
+                      onImageChange={s.updateTemplateImage}
+                      onImageRemove={s.removeTemplateImage}
                     />
                   </MessageCard>
 
@@ -810,6 +828,9 @@ export default function SettingsPage() {
                       mockType="close"
                       enabled={s.templateEnabled.teleditProfitTemplate2}
                       onToggleEnabled={s.updateEnabled}
+                      imageUrl={s.teleditTemplateImages?.['teleditProfitTemplate2']}
+                      onImageChange={s.updateTemplateImage}
+                      onImageRemove={s.removeTemplateImage}
                     />
                   </MessageCard>
 

@@ -89,10 +89,24 @@ model User {
   profit1CommentMax         Int        @default(23)
   profit2CommentMin         Int        @default(16)
   profit2CommentMax         Int        @default(42)
-  channelName      String?    // 채널명
-  channelAvatarUrl String?    // 채널 아바타 URL
+  reactionHeartMin  Int        @default(20)
+  reactionHeartMax  Int        @default(30)
+  reactionThumbMin  Int        @default(20)
+  reactionThumbMax  Int        @default(30)
+  reactionFireMin   Int        @default(20)
+  reactionFireMax   Int        @default(30)
+  reactionSettings  String?    @db.Text  // JSON: 유형별 반응 개수 {"preEntry":{"heart":[20,30],"thumb":[20,30],"fire":[20,30]},...}
+  teleditTemplateImages  String?    @db.Text  // JSON: 템플릿별 이미지 URL {"teleditPreEntryTemplate":"/uploads/xxx.jpg",...}
+  channelName          String?    // 채널명
+  channelGeneration    Int?       // 기수 (null이면 표시안함)
+  genAutoIncrement     Boolean    @default(false)  // 매월 1일 +1 자동증가
+  subscriberCount      Int        @default(0)      // 현재 구독자수
+  subscriberResetDay   DateTime?  // 마지막 초기화 날짜
+  subscriberLastDaily  DateTime?  // 마지막 일일증가 날짜
+  channelAvatarUrl     String?    // 채널 아바타 URL
   createdAt         DateTime   @default(now())
   positions         Position[]
+  teleditMessages   TeleditMessage[]
   telegramAccount   TelegramAccount?
   telegramChannels  TelegramChannel[]
   messageOverrides  MessageOverride[]
@@ -124,6 +138,7 @@ model Position {
   memo1       String?  // 메모 변수 1 (줄바꿈 가능)
   memo2       String?  // 메모 변수 2
   memo3       String?  // 메모 변수 3
+  reactionData String?  @db.Text  // JSON: 유형별 확정 반응 {"preEntry":{"heart":25,"thumb":22,"fire":28},...}
   entryTime   DateTime
   deletedAt   DateTime?
   createdAt   DateTime @default(now())
@@ -270,6 +285,29 @@ model PositionCommentAuthor {
   createdAt  DateTime  @default(now())
 
   @@index([positionId])
+}
+
+model TeleditMessage {
+  id             String   @id @default(cuid())
+  messageNumber  Int      @default(autoincrement())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content        String   @db.Text
+  imageUrl       String?
+  commentMin     Int      @default(0)
+  commentMax     Int      @default(0)
+  heartMin       Int?
+  heartMax       Int?
+  thumbMin       Int?
+  thumbMax       Int?
+  fireMin        Int?
+  fireMax        Int?
+  sendTime       DateTime
+  visible        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId, sendTime])
 }
 
 model SystemSetting {

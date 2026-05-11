@@ -142,9 +142,35 @@ export async function GET(request: NextRequest) {
         fire:  { min: Number(u.reactionFireMin  ?? 20), max: Number(u.reactionFireMax  ?? 30) },
       },
 
-      // ── 템플릿별 이미지 URL ──
+      // ── 템플릿별 이미지 URL (DB키 → 확장키 매핑) ──
       templateImages: (() => {
-        try { return u.teleditTemplateImages ? JSON.parse(u.teleditTemplateImages as string) : {} } catch { return {} }
+        try {
+          console.log('[settings] teleditTemplateImages raw:', u.teleditTemplateImages)
+          const raw = u.teleditTemplateImages ? JSON.parse(u.teleditTemplateImages as string) : {}
+          // DB 필드명 → 확장 slot.templateKey 매핑 (templates 섹션과 동일 키)
+          const keyMap: Record<string, string> = {
+            teleditPreEntryTemplate: 'preEntry',
+            teledditLongTemplate: 'long',
+            teledditShortTemplate: 'short',
+            teleditPostEntryTemplate: 'postEntry',
+            teleditPostEntry1Template: 'postEntry1',
+            teleditPostEntry2Template: 'postEntry2',
+            teleditPostEntry3Template: 'postEntry3',
+            teleditPreCloseTemplate: 'preClose',
+            teleditCloseTemplate: 'close',
+            teleditPostClose1Template: 'postClose1',
+            teleditPostClose2Template: 'postClose2',
+            teleditPostClose3Template: 'postClose3',
+            teleditProfitTemplate: 'profit1',
+            teleditProfitTemplate2: 'profit2',
+          }
+          const mapped: Record<string, string> = {}
+          for (const [dbKey, url] of Object.entries(raw)) {
+            const shortKey = keyMap[dbKey] || dbKey
+            if (url) mapped[shortKey] = url as string
+          }
+          return mapped
+        } catch { return {} }
       })(),
 
       // ── 타이밍 (초) ──

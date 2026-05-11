@@ -116,6 +116,12 @@ export function applyTemplate(
     .replace(/\{\{nickname2\}\}/g, user?.nickname2 || '')
 }
 
+// ─── Template Image Lookup Helper ──────────────────────────
+function getTemplateImage(imagesJson: string | null, key: string): string | undefined {
+  if (!imagesJson) return undefined
+  try { return JSON.parse(imagesJson)[key] || undefined } catch { return undefined }
+}
+
 // ─── Teledit Delayed Message Helper ────────────────────────
 async function scheduleTeleditMessage(
   baseUrl: string,
@@ -125,20 +131,43 @@ async function scheduleTeleditMessage(
   position: Position,
   delayMs: number,
   formatOptions?: { roundEnabled?: boolean; roundDecimals?: number },
+  mediaUrl?: string,
 ): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, delayMs))
   try {
-    const chRes = await teleditFetch(`${baseUrl}/api/telegram/channels`, {}, baseUrl, email, password)
-    if (!chRes.ok) return
-    const channels = await chRes.json()
-    if (!Array.isArray(channels) || channels.length === 0) return
     const content = applyTemplate(template, position)
-    for (const channel of channels) {
-      await teleditFetch(`${baseUrl}/api/telegram/overrides`, {
+
+    // 1. Teledit 서버로 POST (웹앱용)
+    const chRes = await teleditFetch(`${baseUrl}/api/telegram/channels`, {}, baseUrl, email, password)
+    if (chRes.ok) {
+      const channels = await chRes.json()
+      if (Array.isArray(channels) && channels.length > 0) {
+        for (const channel of channels) {
+          await teleditFetch(`${baseUrl}/api/telegram/overrides`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ positionId: position.id, channelId: channel.id, content, active: true, ...(mediaUrl ? { mediaUrl } : {}) }),
+          }, baseUrl, email, password)
+        }
+      }
+    }
+
+    // 2. Posi 자체 DB TeleditMessage 테이블에 INSERT (크롬 확장용)
+    try {
+      const msgRes = await fetch('/api/teledit-messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ positionId: position.id, channelId: channel.id, content, active: true }),
-      }, baseUrl, email, password)
+        body: JSON.stringify({
+          content,
+          sendTime: new Date().toISOString(),
+          imageUrl: mediaUrl || null,
+        }),
+      })
+      if (!msgRes.ok) {
+        console.warn('[scheduleTeleditMessage] Posi DB INSERT 실패:', msgRes.status)
+      }
+    } catch (e) {
+      console.warn('[scheduleTeleditMessage] Posi DB INSERT 에러:', e)
     }
   } catch {
     // silent — 딜레이 메시지 실패는 무시
@@ -248,6 +277,7 @@ export function useDashboard(): UseDashboardReturn {
   const [preCloseMaxSec, setPreCloseMaxSec] = useState(120)
   const [varRoundEnabled, setVarRoundEnabled] = useState(false)
   const [varRoundDecimals, setVarRoundDecimals] = useState(2)
+  const [teleditTemplateImages, setTeleditTemplateImages] = useState<string | null>(null)
 
   // ── 자동 캡처 ────────────────────────────────────────────────────────────────
   const [capturePos, setCapturePos] = useState<PositionWithLive | null>(null)
@@ -365,6 +395,7 @@ export function useDashboard(): UseDashboardReturn {
       if (data.preCloseMaxSec != null) setPreCloseMaxSec(data.preCloseMaxSec)
       if (data.varRoundEnabled != null) setVarRoundEnabled(data.varRoundEnabled)
       if (data.varRoundDecimals != null) setVarRoundDecimals(data.varRoundDecimals)
+      if (data.teleditTemplateImages != null) setTeleditTemplateImages(data.teleditTemplateImages)
     }).catch(() => {})
   }, [session])
 
@@ -588,13 +619,14 @@ export function useDashboard(): UseDashboardReturn {
       if (baseUrl && teleditPreEntryTemplate && newPosition?.id) {
         const range = Math.max(0, preEntryMaxSec - preEntryMinSec)
         const delayMs = (preEntryMinSec + Math.random() * range) * 1000
-        scheduleTeleditMessage(baseUrl, teleditEmail || undefined, teleditPassword || undefined, teleditPreEntryTemplate, newPosition, delayMs, { roundEnabled: varRoundEnabled, roundDecimals: varRoundDecimals })
+        const mediaUrl = getTemplateImage(teleditTemplateImages, 'teleditPreEntryTemplate')
+        scheduleTeleditMessage(baseUrl, teleditEmail || undefined, teleditPassword || undefined, teleditPreEntryTemplate, newPosition, delayMs, { roundEnabled: varRoundEnabled, roundDecimals: varRoundDecimals }, mediaUrl)
       }
     } else {
       const err = await res.json()
       alert(err.error || 'Position creation failed')
     }
-  }, [fetchPositions, teleditApiUrl, teleditEmail, teleditPassword, teleditPreEntryTemplate, preEntryMinSec, preEntryMaxSec])
+  }, [fetchPositions, teleditApiUrl, teleditEmail, teleditPassword, teleditPreEntryTemplate, preEntryMinSec, preEntryMaxSec, teleditTemplateImages])
 
   // ─── Handler: close position (전체/부분 익절) ────────────
   const handleClosePosition = useCallback(async (id: string, options?: number | { closeMargin?: number; closeQuantity?: number }) => {
@@ -637,13 +669,14 @@ export function useDashboard(): UseDashboardReturn {
       if (baseUrl && positionSnap && teleditPreCloseTemplate) {
         const range = Math.max(0, preCloseMaxSec - preCloseMinSec)
         const delayMs = (preCloseMinSec + Math.random() * range) * 1000
-        scheduleTeleditMessage(baseUrl, teleditEmail || undefined, teleditPassword || undefined, teleditPreCloseTemplate, positionSnap, delayMs, { roundEnabled: varRoundEnabled, roundDecimals: varRoundDecimals })
+        const mediaUrl = getTemplateImage(teleditTemplateImages, 'teleditPreCloseTemplate')
+        scheduleTeleditMessage(baseUrl, teleditEmail || undefined, teleditPassword || undefined, teleditPreCloseTemplate, positionSnap, delayMs, { roundEnabled: varRoundEnabled, roundDecimals: varRoundDecimals }, mediaUrl)
       }
     } else {
       const err = await res.json()
       alert(err.error || '청산 실패')
     }
-  }, [fetchPositions, teleditApiUrl, teleditEmail, teleditPassword, teleditPreCloseTemplate, preCloseMinSec, preCloseMaxSec])
+  }, [fetchPositions, teleditApiUrl, teleditEmail, teleditPassword, teleditPreCloseTemplate, preCloseMinSec, preCloseMaxSec, teleditTemplateImages])
 
   // ─── Handler: edit position ─────────────────────────────
   const handleEditPosition = useCallback(async (id: string, data: { takeProfit?: number | null; stopLoss?: number | null }) => {

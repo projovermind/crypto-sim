@@ -74,6 +74,10 @@ export function useSettings() {
   const [teleditEmail, setTeleditEmail] = useState('')
   const [teleditPassword, setTeleditPassword] = useState('')
   const [channelName, setChannelName] = useState('')
+  const [channelGeneration, setChannelGeneration] = useState<number | null>(null)
+  const [genAutoIncrement, setGenAutoIncrement] = useState(false)
+  const [subscriberCount, setSubscriberCount] = useState(0)
+  const [subscriberDirty, setSubscriberDirty] = useState(false)  // 유저가 직접 변경했을 때만 true
   const [channelAvatarUrl, setChannelAvatarUrl] = useState('')
 
   // Comment count settings
@@ -108,9 +112,36 @@ export function useSettings() {
   const [profit2MinSec, setProfit2MinSec] = useState(30)
   const [profit2MaxSec, setProfit2MaxSec] = useState(60)
 
+  // Reactions (global fallback)
+  const [reactionHeartMin, setReactionHeartMin] = useState(20)
+  const [reactionHeartMax, setReactionHeartMax] = useState(30)
+  const [reactionThumbMin, setReactionThumbMin] = useState(20)
+  const [reactionThumbMax, setReactionThumbMax] = useState(30)
+  const [reactionFireMin, setReactionFireMin] = useState(20)
+  const [reactionFireMax, setReactionFireMax] = useState(30)
+
+  // Reactions per message type: { preEntry: {heart:[20,30],thumb:[20,30],fire:[20,30]}, ... }
+  const defaultRx = { heart: [20, 30] as [number, number], thumb: [20, 30] as [number, number], fire: [20, 30] as [number, number] }
+  const [reactionSettings, setReactionSettings] = useState<Record<string, { heart: [number, number]; thumb: [number, number]; fire: [number, number] }>>({
+    preEntry: { ...defaultRx }, long: { ...defaultRx }, short: { ...defaultRx },
+    postEntry: { ...defaultRx }, preClose: { ...defaultRx }, close: { ...defaultRx },
+    profit1: { ...defaultRx }, profit2: { ...defaultRx },
+  })
+  const updateReaction = (msgType: string, emoji: 'heart' | 'thumb' | 'fire', idx: 0 | 1, val: number) => {
+    setReactionSettings(prev => {
+      const next = { ...prev }
+      const entry = { ...(next[msgType] || { heart: [20, 30], thumb: [20, 30], fire: [20, 30] }) }
+      entry[emoji] = [...entry[emoji]] as [number, number]
+      entry[emoji][idx] = val
+      next[msgType] = entry as any
+      return next
+    })
+  }
+
   // Templates
   const [templates, setTemplates] = useState<Record<TemplateKey, string>>({ ...DEFAULT_TEMPLATES })
   const [templateEnabled, setTemplateEnabled] = useState<Record<TemplateKey, boolean>>({ ...DEFAULT_ENABLED })
+  const [teleditTemplateImages, setTeleditTemplateImages] = useState<Record<string, string>>({})
   const [savingTeledit, setSavingTeledit] = useState(false)
   const [teleditMsg, setTeleditMsg] = useState('')
 
@@ -148,6 +179,9 @@ export function useSettings() {
         if (data.teleditEmail) setTeleditEmail(data.teleditEmail)
         if (data.teleditPassword) setTeleditPassword(data.teleditPassword)
         if (data.channelName) setChannelName(data.channelName)
+        if (data.channelGeneration != null) setChannelGeneration(data.channelGeneration)
+        if (data.genAutoIncrement != null) setGenAutoIncrement(data.genAutoIncrement)
+        if (data.subscriberCount != null) setSubscriberCount(data.subscriberCount)
         if (data.channelAvatarUrl) setChannelAvatarUrl(data.channelAvatarUrl)
         if (data.preEntryCommentMin != null) setPreEntryCommentMin(data.preEntryCommentMin)
         if (data.preEntryCommentMax != null) setPreEntryCommentMax(data.preEntryCommentMax)
@@ -177,6 +211,18 @@ export function useSettings() {
         if (data.varRoundDecimals != null) setVarRoundDecimals(data.varRoundDecimals)
         if (data.profit2MinSec != null) setProfit2MinSec(data.profit2MinSec)
         if (data.profit2MaxSec != null) setProfit2MaxSec(data.profit2MaxSec)
+        if (data.reactionHeartMin != null) setReactionHeartMin(data.reactionHeartMin)
+        if (data.reactionHeartMax != null) setReactionHeartMax(data.reactionHeartMax)
+        if (data.reactionThumbMin != null) setReactionThumbMin(data.reactionThumbMin)
+        if (data.reactionThumbMax != null) setReactionThumbMax(data.reactionThumbMax)
+        if (data.reactionFireMin != null) setReactionFireMin(data.reactionFireMin)
+        if (data.reactionFireMax != null) setReactionFireMax(data.reactionFireMax)
+        if (data.reactionSettings) {
+          try { setReactionSettings(prev => ({ ...prev, ...JSON.parse(data.reactionSettings) })) } catch {}
+        }
+        if (data.teleditTemplateImages) {
+          try { setTeleditTemplateImages(JSON.parse(data.teleditTemplateImages)) } catch {}
+        }
         // Load enabled states
         const enabledUpdate: Partial<Record<TemplateKey, boolean>> = {}
         for (const key of Object.keys(DEFAULT_ENABLED) as TemplateKey[]) {
@@ -202,6 +248,18 @@ export function useSettings() {
 
   const updateEnabled = useCallback((key: TemplateKey, value: boolean) => {
     setTemplateEnabled(prev => ({ ...prev, [key]: value }))
+  }, [])
+
+  const updateTemplateImage = useCallback((key: TemplateKey, url: string) => {
+    setTeleditTemplateImages(prev => ({ ...prev, [key]: url }))
+  }, [])
+
+  const removeTemplateImage = useCallback((key: TemplateKey) => {
+    setTeleditTemplateImages(prev => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
   }, [])
 
   // ─── Save profile ────────────────────────────────────────
@@ -271,6 +329,9 @@ export function useSettings() {
           teleditEmail: teleditEmail || null,
           teleditPassword: teleditPassword || null,
           channelName: channelName || null,
+          channelGeneration: channelGeneration,
+          genAutoIncrement: genAutoIncrement,
+          ...(subscriberDirty ? { subscriberCount: subscriberCount } : {}),
           channelAvatarUrl: channelAvatarUrl || null,
           preEntryCommentMin, preEntryCommentMax,
           longCommentMin, longCommentMax,
@@ -292,6 +353,11 @@ export function useSettings() {
           varRoundEnabled,
           varRoundDecimals,
           profit2MaxSec,
+          reactionHeartMin, reactionHeartMax,
+          reactionThumbMin, reactionThumbMax,
+          reactionFireMin, reactionFireMax,
+          reactionSettings: JSON.stringify(reactionSettings),
+          teleditTemplateImages: JSON.stringify(teleditTemplateImages),
           ...templates,
           ...Object.fromEntries(
             (Object.entries(templateEnabled) as [TemplateKey, boolean][])
@@ -304,6 +370,7 @@ export function useSettings() {
         throw new Error(data.error || '저장 실패')
       }
       setTeleditMsg('저장되었습니다.')
+      setSubscriberDirty(false)
       setTimeout(() => setTeleditMsg(''), 3000)
     } catch (err) {
       setTeleditMsg(`오류: ${err instanceof Error ? err.message : String(err)}`)
@@ -312,7 +379,7 @@ export function useSettings() {
     }
   }, [
     teleditApiUrl, teleditEmail, teleditPassword,
-    channelName, channelAvatarUrl,
+    channelName, channelGeneration, genAutoIncrement, subscriberCount, channelAvatarUrl,
     preEntryCommentMin, preEntryCommentMax,
     longCommentMin, longCommentMax,
     shortCommentMin, shortCommentMax,
@@ -327,6 +394,9 @@ export function useSettings() {
     profit1MinSec, profit1MaxSec,
     profit2MinSec, profit2MaxSec,
     varRoundEnabled, varRoundDecimals,
+    reactionHeartMin, reactionHeartMax, reactionThumbMin, reactionThumbMax, reactionFireMin, reactionFireMax,
+    reactionSettings,
+    teleditTemplateImages,
     templates, templateEnabled,
   ])
 
@@ -351,10 +421,14 @@ export function useSettings() {
     teleditEmail, setTeleditEmail,
     teleditPassword, setTeleditPassword,
     channelName, setChannelName,
+    channelGeneration, setChannelGeneration,
+    genAutoIncrement, setGenAutoIncrement,
+    subscriberCount, setSubscriberCount, setSubscriberDirty,
     channelAvatarUrl, setChannelAvatarUrl,
     // Templates
     templates, updateTemplate, resetTemplate,
     templateEnabled, updateEnabled,
+    teleditTemplateImages, updateTemplateImage, removeTemplateImage,
     // Comment counts
     preEntryCommentMin, setPreEntryCommentMin,
     preEntryCommentMax, setPreEntryCommentMax,
@@ -385,6 +459,10 @@ export function useSettings() {
     profit2MaxSec, setProfit2MaxSec,
     varRoundEnabled, setVarRoundEnabled,
     varRoundDecimals, setVarRoundDecimals,
+    reactionHeartMin, setReactionHeartMin, reactionHeartMax, setReactionHeartMax,
+    reactionThumbMin, setReactionThumbMin, reactionThumbMax, setReactionThumbMax,
+    reactionFireMin, setReactionFireMin, reactionFireMax, setReactionFireMax,
+    reactionSettings, updateReaction,
     savingTeledit, teleditMsg,
     handleSaveTeledit,
   }
