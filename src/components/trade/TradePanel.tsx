@@ -18,7 +18,7 @@ interface TradePanelProps {
 export default function TradePanel({ symbol, currentPrice, onSubmit }: TradePanelProps) {
   const { data: session } = useSession()
   const [leverage, setLeverage] = useState(10)
-  const [marginMode, setMarginMode] = useState<'CROSS' | 'ISOLATED'>('CROSS')
+  const [marginMode, setMarginMode] = useState<'CROSS' | 'ISOLATED'>('ISOLATED')
   const [showLeverage, setShowLeverage] = useState(false)
   const [activeTab, setActiveTab] = useState<'open' | 'close'>('open')
   const [orderType, setOrderType] = useState<'Limit' | 'Market'>('Market')
