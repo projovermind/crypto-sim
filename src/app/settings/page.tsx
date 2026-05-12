@@ -247,6 +247,7 @@ export default function SettingsPage() {
   // ── Custom Messages State ──
   const [cmList, setCmList] = useState<TeleditMsg[]>([])
   const [cmLoading, setCmLoading] = useState(false)
+  const [cmError, setCmError] = useState<string | null>(null)
   const [cmEditingId, setCmEditingId] = useState<string | null>(null) // null = 신규, id = 수정
   const [cmForm, setCmForm] = useState({
     content: '', sendTime: '', imageUrl: null as string | null,
@@ -258,10 +259,17 @@ export default function SettingsPage() {
 
   const fetchCmList = useCallback(async () => {
     setCmLoading(true)
+    setCmError(null)
     try {
       const res = await fetch('/api/teledit-messages')
-      if (res.ok) setCmList(await res.json())
-    } catch {} finally { setCmLoading(false) }
+      if (res.ok) {
+        setCmList(await res.json())
+      } else if (res.status === 401) {
+        setCmError('세션이 만료되었습니다. 다시 로그인해주세요.')
+      } else {
+        setCmError('메시지를 불러오지 못했습니다.')
+      }
+    } catch { setCmError('네트워크 오류가 발생했습니다.') } finally { setCmLoading(false) }
   }, [])
 
   useEffect(() => { if (activeTab === 'messages') fetchCmList() }, [activeTab, fetchCmList])
@@ -983,6 +991,10 @@ export default function SettingsPage() {
                     <h3 className="text-xs font-bold text-binance-text mb-3">등록된 메시지 ({cmList.length})</h3>
                     {cmLoading ? (
                       <div className="text-center text-xs text-binance-text-dim py-10">로딩 중...</div>
+                    ) : cmError ? (
+                      <div className="text-center text-xs text-binance-red py-10 bg-binance-card border border-binance-border rounded-lg">
+                        {cmError}
+                      </div>
                     ) : cmList.length === 0 ? (
                       <div className="text-center text-xs text-binance-text-dim py-10 bg-binance-card border border-binance-border rounded-lg">
                         등록된 메시지가 없습니다
