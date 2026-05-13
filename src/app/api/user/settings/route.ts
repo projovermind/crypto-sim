@@ -49,10 +49,10 @@ export async function GET(request: NextRequest) {
     let _genChanged = false
     const autoUpdate: Record<string, unknown> = {}
 
-    // 매월 1일: 기수 +1 + 구독자수 초기화 (800~1100 랜덤)
+    // 매월 1일: 기수 +1 + 구독자수 초기화 (800~1100 랜덤) — genAutoIncrement 활성 시만
     const resetDay = u.subscriberResetDay ? new Date(u.subscriberResetDay as string) : null
-    if (now.getDate() === 1 && (!resetDay || resetDay.getMonth() !== now.getMonth() || resetDay.getFullYear() !== now.getFullYear())) {
-      if (u.genAutoIncrement && u.channelGeneration != null) {
+    if (u.genAutoIncrement && now.getDate() === 1 && (!resetDay || resetDay.getMonth() !== now.getMonth() || resetDay.getFullYear() !== now.getFullYear())) {
+      if (u.channelGeneration != null) {
         autoUpdate.channelGeneration = (Number(u.channelGeneration) || 0) + 1
         _genChanged = true
       }
@@ -60,9 +60,9 @@ export async function GET(request: NextRequest) {
       autoUpdate.subscriberResetDay = todayStart
     }
 
-    // 매일 00시 이후: 구독자수 +17~31
+    // 매일 00시 이후: 구독자수 +17~31 — genAutoIncrement 활성 + 구독자수 설정된 경우만
     const lastDaily = u.subscriberLastDaily ? new Date(u.subscriberLastDaily as string) : null
-    if (!lastDaily || lastDaily.getTime() < todayStart.getTime()) {
+    if (u.genAutoIncrement && Number(u.subscriberCount) > 0 && (!lastDaily || lastDaily.getTime() < todayStart.getTime())) {
       autoUpdate.subscriberCount = (Number(autoUpdate.subscriberCount ?? u.subscriberCount) || 0) + rand(17, 31)
       autoUpdate.subscriberLastDaily = todayStart
     }
