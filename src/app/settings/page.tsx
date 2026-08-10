@@ -1159,6 +1159,20 @@ export default function SettingsPage() {
                     <li>Time Format &rarr; <span className="text-binance-text font-semibold">12-hour</span> 선택</li>
                   </ol>
                   <p className="text-xs text-binance-text-dim mt-1">24시간제에서는 시간 표시가 맞지 않을 수 있습니다.</p>
+                  <h4 className="text-xs font-semibold text-binance-text mt-4 mb-1">Telegram Web 접속이 안 될 때</h4>
+                  <p className="text-xs text-binance-text-dim leading-relaxed">국내 통신사 환경에서 <code className="bg-binance-bg px-1 rounded text-binance-yellow">web.telegram.org</code> 접속이 막히는 경우가 있습니다. 아래 순서로 해결하세요.</p>
+                  <p className="text-xs text-binance-text-dim mt-2"><span className="text-binance-text font-semibold">① DNS를 공개 DNS로 변경</span> — 차단이 DNS 방식이면 즉시 해결됩니다.</p>
+                  <ol className="text-xs text-binance-text-dim space-y-1 list-decimal list-inside">
+                    <li>설정 &rarr; 네트워크 &rarr; 어댑터 &rarr; DNS를 <code className="bg-binance-bg px-1 rounded text-binance-yellow">1.1.1.1</code> / <code className="bg-binance-bg px-1 rounded text-binance-yellow">8.8.8.8</code> 로 변경</li>
+                    <li>명령 프롬프트에서 <code className="bg-binance-bg px-1 rounded text-binance-yellow">ipconfig /flushdns</code> 실행</li>
+                    <li>Chrome으로 <a href="https://web.telegram.org/k/" target="_blank" rel="noopener noreferrer" className="text-binance-yellow hover:underline">web.telegram.org/k/</a> 재시도</li>
+                  </ol>
+                  <p className="text-xs text-binance-text-dim mt-2"><span className="text-binance-text font-semibold">② Chrome 보안 DNS(DoH) 켜기</span> <span className="text-binance-yellow">(가장 효과적)</span></p>
+                  <ol className="text-xs text-binance-text-dim space-y-1 list-decimal list-inside">
+                    <li>Chrome 설정 &rarr; 개인정보 및 보안 &rarr; 보안</li>
+                    <li><span className="text-binance-text font-semibold">보안 DNS 사용</span> 켜기 &rarr; <span className="text-binance-text font-semibold">Cloudflare (1.1.1.1)</span> 선택</li>
+                    <li>Telegram Web 재시도</li>
+                  </ol>
                 </div>
 
                 {/* 확장 설치 */}

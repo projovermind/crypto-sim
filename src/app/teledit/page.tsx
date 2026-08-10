@@ -45,6 +45,23 @@ export default function TeleditGuidePage() {
               <Li>Time Format &rarr; <B>12-hour</B> 선택</Li>
             </Ol>
             <P>24시간제에서는 시간 표시가 맞지 않을 수 있습니다.</P>
+
+            <H4>Telegram Web 접속이 안 될 때</H4>
+            <P>국내 통신사 환경에서 <Code>web.telegram.org</Code> 접속이 막히는 경우가 있습니다. 아래 순서로 해결하세요.</P>
+
+            <P className="mt-3"><B>① DNS를 공개 DNS로 변경</B> — 차단이 DNS 방식이면 즉시 해결됩니다.</P>
+            <Ol>
+              <Li>설정 &rarr; 네트워크 &rarr; 어댑터 &rarr; DNS를 <Code>1.1.1.1</Code> / <Code>8.8.8.8</Code> 로 변경</Li>
+              <Li>명령 프롬프트에서 <Code>ipconfig /flushdns</Code> 실행</Li>
+              <Li>Chrome으로 <A href="https://web.telegram.org/k/">web.telegram.org/k/</A> 재시도</Li>
+            </Ol>
+
+            <P className="mt-3"><B>② Chrome 보안 DNS(DoH) 켜기</B> <span className="text-binance-yellow">(가장 효과적)</span></P>
+            <Ol>
+              <Li>Chrome 설정 &rarr; 개인정보 및 보안 &rarr; 보안</Li>
+              <Li><B>보안 DNS 사용</B> 켜기 &rarr; <B>Cloudflare (1.1.1.1)</B> 선택</Li>
+              <Li>Telegram Web 재시도</Li>
+            </Ol>
           </Section>
 
           {/* 확장 설치 */}
