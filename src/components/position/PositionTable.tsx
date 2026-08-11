@@ -12,6 +12,7 @@ interface PositionTableProps {
   onSelect: (position: PositionWithLive) => void
   selectedId?: string
   isPopup?: boolean
+  symbol?: string
   onTeledditToggle?: (position: PositionWithLive, checked: boolean) => void
   onMemoEdit?: (position: PositionWithLive, field: 'memo1' | 'memo2' | 'memo3') => void
 }
@@ -43,7 +44,7 @@ const TABLE_HEADERS = (
   </thead>
 )
 
-export default function PositionTable({ positions, onClose, onEdit, onSelect, selectedId, isPopup = false, onTeledditToggle, onMemoEdit }: PositionTableProps) {
+export default function PositionTable({ positions, onClose, onEdit, onSelect, selectedId, isPopup = false, symbol, onTeledditToggle, onMemoEdit }: PositionTableProps) {
   const [hideOtherPairs, setHideOtherPairs] = useState(false)
   const [sharePosition, setSharePosition] = useState<PositionWithLive | null>(null)
   // unchecked 셋: 기본 체크 상태 → 해제된 것만 추적
@@ -53,7 +54,9 @@ export default function PositionTable({ positions, onClose, onEdit, onSelect, se
     return unchecked
   })
 
-  const openPositions = positions.filter(p => p.status === 'OPEN')
+  const openPositions = positions.filter(
+    p => p.status === 'OPEN' && (!hideOtherPairs || !symbol || p.symbol === symbol)
+  )
 
   const openInNewWindow = () => {
     window.open('/dashboard/positions', '_blank', 'width=1650,height=500,scrollbars=yes,resizable=no')

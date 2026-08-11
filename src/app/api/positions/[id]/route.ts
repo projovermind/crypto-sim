@@ -3,6 +3,30 @@ import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { TAKER_FEE_RATE, applySlippage } from '@/lib/calculations'
 
+// 응답이 실패하거나 숫자가 아니면 parseFloat 이 NaN 을 돌려주고,
+// 그 NaN 이 closedPrice/pnl 로 저장되면 컬럼이 NULL 이 되어 포지션이 영구 손상된다.
+// (텔레딧 확장은 그런 포지션을 "N/A" 로 채널에 그대로 올린다.)
+async function fetchMarkPrice(symbol: string): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://api.binance.com/api/v3/ticker/price?symbol=${encodeURIComponent(symbol)}`
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const n = parseFloat(data?.price)
+    return Number.isFinite(n) && n > 0 ? n : null
+  } catch {
+    return null
+  }
+}
+
+function priceUnavailable() {
+  return NextResponse.json(
+    { error: '현재가를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.' },
+    { status: 502 },
+  )
+}
+
 // DELETE /api/positions/[id] - 포지션 수동 청산 (전체/부분 익절)
 // Body (optional): { partialMargin?: number } — 부분 청산 시 마진 금액
 export async function DELETE(
@@ -43,11 +67,8 @@ export async function DELETE(
     }
 
     // Get current price from Binance (시장가)
-    const priceRes = await fetch(
-      `https://api.binance.com/api/v3/ticker/price?symbol=${position.symbol}`
-    )
-    const priceData = await priceRes.json()
-    const binancePrice = parseFloat(priceData.price)
+    const binancePrice = await fetchMarkPrice(position.symbol)
+    if (binancePrice === null) return priceUnavailable()
     // Flash Close / 전체 청산 시 슬리피지 적용: LONG은 가격 상승(불리), SHORT은 가격 하락(불리)
     const currentPrice = applySlippage(binancePrice, position.side as 'LONG' | 'SHORT')
 
@@ -177,11 +198,8 @@ export async function PATCH(
     // ── Reverse: 현재 포지션 청산 + 반대 방향 신규 진입 ──
     if (body.action === 'reverse' && position.status === 'OPEN') {
       // 1) 현재가 조회 (슬리피지 적용)
-      const priceRes = await fetch(
-        `https://api.binance.com/api/v3/ticker/price?symbol=${position.symbol}`
-      )
-      const priceData = await priceRes.json()
-      const binancePrice = parseFloat(priceData.price)
+      const binancePrice = await fetchMarkPrice(position.symbol)
+      if (binancePrice === null) return priceUnavailable()
       // 청산 시 불리 슬리피지
       const closePrice = applySlippage(binancePrice, position.side as 'LONG' | 'SHORT')
 
@@ -289,11 +307,8 @@ export async function PATCH(
       const closeAmount = position.amount * ratio
 
       // 현재가 조회 (시장가 청산)
-      const priceRes = await fetch(
-        `https://api.binance.com/api/v3/ticker/price?symbol=${position.symbol}`
-      )
-      const priceData = await priceRes.json()
-      const currentPrice = parseFloat(priceData.price)
+      const currentPrice = await fetchMarkPrice(position.symbol)
+      if (currentPrice === null) return priceUnavailable()
 
       // 청산 부분 PnL 계산
       let rawPnl: number
@@ -342,20 +357,37 @@ export async function PATCH(
     }
 
     const updateData: any = {}
+
+    // parseFloat('') 은 NaN 이고, NaN 을 그대로 저장하면 컬럼이 NULL 이 된다.
+    // closedPrice/pnl 이 NULL 이 된 포지션은 텔레딧 확장이 채널에 "N/A" 로 그대로 올린다.
+    const invalid: string[] = []
+    const num = (v: any, field: string, parse: (s: any) => number = parseFloat) => {
+      const n = parse(v)
+      if (!Number.isFinite(n)) { invalid.push(field); return undefined }
+      return n
+    }
+
     if (body.teleditVisible !== undefined) updateData.teleditVisible = Boolean(body.teleditVisible)
     if (body.memo1 !== undefined) updateData.memo1 = body.memo1 || null
     if (body.memo2 !== undefined) updateData.memo2 = body.memo2 || null
     if (body.memo3 !== undefined) updateData.memo3 = body.memo3 || null
-    if (body.takeProfit !== undefined) updateData.takeProfit = body.takeProfit ? parseFloat(body.takeProfit) : null
-    if (body.stopLoss !== undefined) updateData.stopLoss = body.stopLoss ? parseFloat(body.stopLoss) : null
+    if (body.takeProfit !== undefined) updateData.takeProfit = body.takeProfit ? num(body.takeProfit, 'takeProfit') : null
+    if (body.stopLoss !== undefined) updateData.stopLoss = body.stopLoss ? num(body.stopLoss, 'stopLoss') : null
 
     // History editing fields
-    if (body.entryPrice !== undefined) updateData.entryPrice = parseFloat(body.entryPrice)
-    if (body.closedPrice !== undefined) updateData.closedPrice = parseFloat(body.closedPrice)
-    if (body.amount !== undefined) updateData.amount = parseFloat(body.amount)
-    if (body.leverage !== undefined) updateData.leverage = parseInt(body.leverage)
+    if (body.entryPrice !== undefined) updateData.entryPrice = num(body.entryPrice, 'entryPrice')
+    if (body.closedPrice !== undefined) updateData.closedPrice = num(body.closedPrice, 'closedPrice')
+    if (body.amount !== undefined) updateData.amount = num(body.amount, 'amount')
+    if (body.leverage !== undefined) updateData.leverage = num(body.leverage, 'leverage', parseInt)
     if (body.entryTime !== undefined) updateData.entryTime = new Date(body.entryTime)
     if (body.closedAt !== undefined) updateData.closedAt = body.closedAt ? new Date(body.closedAt) : null
+
+    if (invalid.length) {
+      return NextResponse.json(
+        { error: `숫자로 해석할 수 없는 값입니다: ${invalid.join(', ')}` },
+        { status: 400 },
+      )
+    }
 
     // OPEN position: leverage 변경 시 margin 유지, amount/quantity 재계산
     if (position.status === 'OPEN' && body.leverage !== undefined) {
@@ -369,8 +401,10 @@ export async function PATCH(
       updateData.entryFee = newEntryFee
     }
 
-    // Recalculate PnL if core fields changed on a closed position
-    if (position.status !== 'OPEN' && (body.entryPrice !== undefined || body.closedPrice !== undefined || body.amount !== undefined || body.leverage !== undefined)) {
+    // Recalculate PnL if core fields changed on a closed position.
+    // pnl 이 비어 있는 과거 손상 레코드도 수정 시 함께 복구한다.
+    const coreChanged = body.entryPrice !== undefined || body.closedPrice !== undefined || body.amount !== undefined || body.leverage !== undefined
+    if (position.status !== 'OPEN' && (coreChanged || position.pnl == null)) {
       const ep = updateData.entryPrice ?? position.entryPrice
       const cp = updateData.closedPrice ?? position.closedPrice ?? ep
       const amt = updateData.amount ?? position.amount

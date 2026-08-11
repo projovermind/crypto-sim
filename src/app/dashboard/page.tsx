@@ -90,6 +90,7 @@ export default function DashboardPage() {
         <div className="overflow-hidden border-t border-binance-border" style={{ height: '40%' }}>
           <PositionTable
             positions={d.positionsWithLive}
+            symbol={d.symbol}
             onClose={d.handleClosePosition}
             onEdit={d.handleEditPosition}
             onSelect={d.handleSelectPosition}
