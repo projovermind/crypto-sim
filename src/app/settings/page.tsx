@@ -1132,33 +1132,24 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* K버전 전환 방법 */}
+                {/* 지원 버전 */}
                 <div className="bg-binance-card border border-binance-border rounded-lg p-5 space-y-2">
-                  <h3 className="text-xs font-bold text-binance-yellow flex items-center gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-binance-yellow text-binance-bg text-[10px] font-black flex-shrink-0">K</span>K 버전으로 전환하는 방법</h3>
-                  <p className="text-xs text-binance-text-dim leading-relaxed">Teledit은 반드시 <span className="text-binance-text font-semibold">Telegram Web K 버전</span>에서만 작동합니다.</p>
-                  <ol className="text-xs text-binance-text-dim space-y-1.5 list-decimal list-inside mt-1">
-                    <li>브라우저에서 <a href="https://web.telegram.org/k/" target="_blank" rel="noopener noreferrer" className="text-binance-yellow hover:underline">web.telegram.org/k/</a> 로 접속</li>
-                    <li>기존에 <code className="bg-binance-bg px-1 rounded text-binance-yellow">web.telegram.org/a/</code> (A 버전)을 사용 중이라면 해당 탭 닫기</li>
-                    <li>URL 주소가 <code className="bg-binance-bg px-1 rounded text-binance-yellow">/k/</code>로 끝나는지 확인</li>
-                  </ol>
-                  <p className="text-xs text-binance-yellow mt-1">A 버전(web.telegram.org/a/)에서는 작동하지 않습니다.</p>
+                  <h3 className="text-xs font-bold text-binance-yellow flex items-center gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-binance-yellow text-binance-bg text-[10px] font-black flex-shrink-0">KA</span>K 버전 · A 버전 모두 지원</h3>
+                  <p className="text-xs text-binance-text-dim leading-relaxed">Teledit은 <a href="https://web.telegram.org/k/" target="_blank" rel="noopener noreferrer" className="text-binance-yellow hover:underline">web.telegram.org/k/</a> (K 버전)과 <a href="https://web.telegram.org/a/" target="_blank" rel="noopener noreferrer" className="text-binance-yellow hover:underline">web.telegram.org/a/</a> (A 버전) 어느 쪽에서든 작동합니다.</p>
+                  <p className="text-xs text-binance-text-dim leading-relaxed">확장이 주소가 아니라 화면 구조로 K/A를 스스로 판별하므로 따로 지정할 것은 없습니다. 주소창이 없는 텔레그램 데스크톱 앱에서도 동일합니다.</p>
                 </div>
 
                 {/* Telegram 설정 */}
                 <div className="bg-binance-card border border-binance-border rounded-lg p-5 space-y-2">
-                  <h3 className="text-xs font-bold text-binance-yellow flex items-center gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-binance-yellow text-binance-bg text-[10px] font-black flex-shrink-0">1</span>Telegram Web 설정 (필수)</h3>
-                  <h4 className="text-xs font-semibold text-binance-text mt-3 mb-1">언어 설정: English</h4>
+                  <h3 className="text-xs font-bold text-binance-yellow flex items-center gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-binance-yellow text-binance-bg text-[10px] font-black flex-shrink-0">1</span>Telegram Web 설정</h3>
+                  <h4 className="text-xs font-semibold text-binance-text mt-3 mb-1">언어 · 시간 형식 &mdash; K 버전만 해당</h4>
+                  <p className="text-xs text-binance-text-dim leading-relaxed"><span className="text-binance-text font-semibold">K 버전</span>을 쓴다면 언어를 English, 시간 형식을 12시간제로 맞춰야 합니다.</p>
                   <ol className="text-xs text-binance-text-dim space-y-1 list-decimal list-inside">
-                    <li>Telegram Web K 좌측 상단 ☰ 메뉴 클릭</li>
-                    <li>Settings &rarr; Language &rarr; <span className="text-binance-text font-semibold">English</span> 선택</li>
+                    <li>좌측 상단 ☰ 메뉴 &rarr; Settings &rarr; Language &rarr; <span className="text-binance-text font-semibold">English</span> 선택</li>
+                    <li>Settings &rarr; General Settings &rarr; Time Format &rarr; <span className="text-binance-text font-semibold">12-hour</span> 선택</li>
                   </ol>
-                  <p className="text-xs text-binance-yellow mt-1">한국어 등 다른 언어에서는 날짜 헤더가 올바르게 처리되지 않습니다.</p>
-                  <h4 className="text-xs font-semibold text-binance-text mt-3 mb-1">시간 형식: 12시간제</h4>
-                  <ol className="text-xs text-binance-text-dim space-y-1 list-decimal list-inside">
-                    <li>Settings &rarr; General Settings</li>
-                    <li>Time Format &rarr; <span className="text-binance-text font-semibold">12-hour</span> 선택</li>
-                  </ol>
-                  <p className="text-xs text-binance-text-dim mt-1">24시간제에서는 시간 표시가 맞지 않을 수 있습니다.</p>
+                  <p className="text-xs text-binance-yellow mt-1">K에서 한국어·24시간제를 쓰면 날짜 헤더와 시간 표시가 어긋납니다.</p>
+                  <p className="text-xs text-binance-text-dim mt-1"><span className="text-binance-text font-semibold">A 버전</span>은 화면에 표시된 언어와 시간 형식을 그대로 읽어 따라가므로 이 설정이 필요 없습니다.</p>
                   <h4 className="text-xs font-semibold text-binance-text mt-4 mb-1">Telegram Web 접속이 안 될 때</h4>
                   <p className="text-xs text-binance-text-dim leading-relaxed">국내 통신사 환경에서 <code className="bg-binance-bg px-1 rounded text-binance-yellow">web.telegram.org</code> 접속이 막히는 경우가 있습니다. 아래 순서로 해결하세요.</p>
                   <p className="text-xs text-binance-text-dim mt-2"><span className="text-binance-text font-semibold">① DNS를 공개 DNS로 변경</span> — 차단이 DNS 방식이면 즉시 해결됩니다.</p>
@@ -1203,7 +1194,7 @@ export default function SettingsPage() {
                 <div className="bg-binance-card border border-binance-border rounded-lg p-5 space-y-2">
                   <h3 className="text-xs font-bold text-binance-yellow flex items-center gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-binance-yellow text-binance-bg text-[10px] font-black flex-shrink-0">3</span>로그인</h3>
                   <ol className="text-xs text-binance-text-dim space-y-1 list-decimal list-inside">
-                    <li>Telegram Web K에서 채널 열기</li>
+                    <li>Telegram Web(K 또는 A)에서 채널 열기</li>
                     <li>Chrome 우측 상단 확장 아이콘 &rarr; Teledit 클릭</li>
                     <li>CryptoSim 계정의 아이디/비밀번호 입력 후 로그인</li>
                   </ol>
@@ -1350,9 +1341,8 @@ export default function SettingsPage() {
                 <div className="bg-binance-card border border-binance-border rounded-lg p-5 space-y-2">
                   <h3 className="text-xs font-bold text-binance-yellow flex items-center gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-binance-yellow text-binance-bg text-[10px] font-black flex-shrink-0">8</span>주의사항</h3>
                   <ul className="text-xs text-binance-text-dim space-y-1.5 list-disc list-inside">
-                    <li>Telegram Web <span className="text-binance-text font-semibold">K 버전</span>만 지원됩니다 (A 버전 불가)</li>
-                    <li>언어는 반드시 <span className="text-binance-text font-semibold">English</span>로 설정해야 합니다</li>
-                    <li>시간은 <span className="text-binance-text font-semibold">12시간제</span>로 설정해야 합니다</li>
+                    <li>Telegram Web <span className="text-binance-text font-semibold">K 버전</span>과 <span className="text-binance-text font-semibold">A 버전</span> 모두 지원됩니다</li>
+                    <li>K 버전은 언어를 <span className="text-binance-text font-semibold">English</span>, 시간을 <span className="text-binance-text font-semibold">12시간제</span>로 설정해야 합니다 (A 버전은 불필요)</li>
                     <li>채널 뷰에서만 작동합니다 (1:1 채팅, 그룹은 불가)</li>
                     <li>삽입된 포지션은 페이지 새로고침 시 사라집니다 (Telegram의 실제 메시지가 아닙니다)</li>
                     <li>스크롤 시 Telegram의 가상 스크롤에 의해 일부 버블이 일시적으로 사라질 수 있으나, 스크롤하면 다시 나타납니다</li>

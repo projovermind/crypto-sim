@@ -27,24 +27,19 @@ export default function TeleditGuidePage() {
           </Section>
 
           {/* 텔레그램 설정 */}
-          <Section title="1. Telegram Web 설정 (필수)">
-            <H4>K 버전 사용</H4>
-            <P>반드시 <A href="https://web.telegram.org/k/">web.telegram.org/k/</A> (K 버전)을 사용해야 합니다.</P>
-            <P>A 버전(web.telegram.org/a/)에서는 작동하지 않습니다.</P>
+          <Section title="1. Telegram Web 설정">
+            <H4>K 버전 · A 버전 모두 지원</H4>
+            <P><A href="https://web.telegram.org/k/">web.telegram.org/k/</A> (K 버전)과 <A href="https://web.telegram.org/a/">web.telegram.org/a/</A> (A 버전) 어느 쪽에서든 동작합니다.</P>
+            <P>확장이 주소가 아니라 화면 구조로 K/A를 스스로 판별하므로 따로 지정할 것은 없습니다. 주소창이 없는 텔레그램 데스크톱 앱에서도 동일합니다.</P>
 
-            <H4>언어 설정: English</H4>
+            <H4>언어 · 시간 형식 &mdash; K 버전만 해당</H4>
+            <P><B>K 버전</B>을 쓴다면 언어를 <B>English</B>, 시간 형식을 <B>12시간제</B>로 맞춰야 합니다.</P>
             <Ol>
-              <Li>Telegram Web K 좌측 상단 ☰ 메뉴 클릭</Li>
-              <Li>Settings &rarr; Language &rarr; <B>English</B> 선택</Li>
+              <Li>좌측 상단 ☰ 메뉴 &rarr; Settings &rarr; Language &rarr; <B>English</B> 선택</Li>
+              <Li>Settings &rarr; General Settings &rarr; Time Format &rarr; <B>12-hour</B> 선택</Li>
             </Ol>
-            <P className="text-binance-yellow">한국어 등 다른 언어에서는 날짜 헤더가 올바르게 처리되지 않습니다.</P>
-
-            <H4>시간 형식: 12시간제</H4>
-            <Ol>
-              <Li>Settings &rarr; General Settings</Li>
-              <Li>Time Format &rarr; <B>12-hour</B> 선택</Li>
-            </Ol>
-            <P>24시간제에서는 시간 표시가 맞지 않을 수 있습니다.</P>
+            <P className="text-binance-yellow">K에서 한국어·24시간제를 쓰면 날짜 헤더와 시간 표시가 어긋납니다.</P>
+            <P><B>A 버전</B>은 화면에 표시된 언어와 시간 형식을 그대로 읽어 따라가므로 이 설정이 필요 없습니다.</P>
 
             <H4>Telegram Web 접속이 안 될 때</H4>
             <P>국내 통신사 환경에서 <Code>web.telegram.org</Code> 접속이 막히는 경우가 있습니다. 아래 순서로 해결하세요.</P>
@@ -92,7 +87,7 @@ export default function TeleditGuidePage() {
           {/* 로그인 */}
           <Section title="3. 로그인">
             <Ol>
-              <Li>Telegram Web K에서 채널 열기</Li>
+              <Li>Telegram Web(K 또는 A)에서 채널 열기</Li>
               <Li>Chrome 우측 상단 확장 아이콘 &rarr; Teledit 클릭</Li>
               <Li>CryptoSim 계정의 아이디/비밀번호 입력 후 로그인</Li>
             </Ol>
@@ -186,9 +181,8 @@ export default function TeleditGuidePage() {
           {/* 주의사항 */}
           <Section title="8. 주의사항">
             <Ul>
-              <Li>Telegram Web <B>K 버전</B>만 지원됩니다 (A 버전 불가)</Li>
-              <Li>언어는 반드시 <B>English</B>로 설정해야 합니다</Li>
-              <Li>시간은 <B>12시간제</B>로 설정해야 합니다</Li>
+              <Li>Telegram Web <B>K 버전</B>과 <B>A 버전</B> 모두 지원됩니다</Li>
+              <Li>K 버전은 언어를 <B>English</B>, 시간을 <B>12시간제</B>로 설정해야 합니다 (A 버전은 불필요)</Li>
               <Li>채널 뷰에서만 작동합니다 (1:1 채팅, 그룹은 불가)</Li>
               <Li>삽입된 포지션은 페이지 새로고침 시 사라집니다 (Telegram의 실제 메시지가 아닙니다)</Li>
               <Li>스크롤 시 Telegram의 가상 스크롤에 의해 일부 버블이 일시적으로 사라질 수 있으나, 스크롤하면 다시 나타납니다</Li>

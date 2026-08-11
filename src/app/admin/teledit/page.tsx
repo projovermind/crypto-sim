@@ -42,26 +42,21 @@ cat state.js constants.js utils.js storage.js api.js dom-builders.js \\
 
 node --check bundle.js  # 문법 검증`}</Pre>
 
-            <H4>난독화 (배포용)</H4>
-            <Pre>{`npx javascript-obfuscator bundle.js --output bundle.obf.js \\
-  --compact true --string-array true \\
-  --string-array-encoding base64 \\
-  --rename-globals true \\
-  --identifier-names-generator hexadecimal`}</Pre>
+            <H4>난독화 + extension.zip 패키징</H4>
+            <P>손으로 하지 않습니다. 난독화 옵션이 스크립트에 박혀 있어 언제 다시 빌드해도 같은 결과가 나옵니다.</P>
+            <Pre>{`cd /Volumes/Core/Vault/hivemind/💻\\ Projects/Teledit
 
-            <H4>extension.zip 패키징</H4>
-            <Pre>{`# 난독화된 bundle을 bundle.js로 교체하여 zip
-mkdir -p /tmp/teledit-dist
-cp manifest.json background.js page-script.js popup.html popup.js /tmp/teledit-dist/
-cp bundle.obf.js /tmp/teledit-dist/bundle.js
-cd /tmp/teledit-dist
-zip -r /tmp/teledit-ext.zip .
+node scripts/build-extension.js            # chrome-extension/extension.zip
+node scripts/build-extension.js --publish  # + CryptoSim/public/extension.zip 까지 갱신`}</Pre>
+            <P>bundle.js · webz-inject.js · webz-adapter.js 만 난독화하고 나머지는 그대로 담습니다. manifest가 가리키는 파일이 하나라도 빠지면 빌드가 실패합니다.</P>
+            <P className="text-binance-yellow">난독화 옵션 <Code>--rename-globals</Code>는 반드시 false여야 합니다. content_script 세 파일이 같은 isolated world의 전역을 통해 서로를 부르므로, 전역 이름이 바뀌면 A 버전이 통째로 죽습니다.</P>
+            <P className="text-binance-yellow">개발자 PC의 확장은 원본 bundle.js를 사용합니다. 난독화는 배포용 zip에만 적용됩니다.</P>
 
-# CryptoSim public에 복사 (다운로드 API용)
-cp /tmp/teledit-ext.zip /Volumes/Core/Vault/hivemind/💻\\ Projects/CryptoSim/public/extension.zip
-
-rm -rf /tmp/teledit-dist`}</Pre>
-            <P className="text-binance-yellow">주의: 개발자 PC의 확장은 원본 bundle.js를 사용합니다. 난독화는 배포용 zip에만 적용됩니다.</P>
+            <H4>배포 전 검증 (배포될 zip 그대로)</H4>
+            <Pre>{`rm -rf /tmp/ext-verify
+unzip -q chrome-extension/extension.zip -d /tmp/ext-verify
+TELEDIT_EXT_DIR=/tmp/ext-verify node scripts/webz-bundle-test.js`}</Pre>
+            <P>Playwright로 file:// 픽스처를 띄워 <Code>난독화된 진짜 bundle.js</Code>를 그대로 실행합니다. 텔레그램 로그인도 DB도 필요 없습니다.</P>
           </Section>
 
           {/* 배포 */}
@@ -70,11 +65,12 @@ rm -rf /tmp/teledit-dist`}</Pre>
 
 git add public/extension.zip
 git commit -m "chore: update extension.zip"
-git push origin main
-
-# Vercel 수동 배포 (자동 배포가 Canceled될 경우)
-vercel --prod --yes`}</Pre>
+git push origin main`}</Pre>
+            <P>push 하면 Vercel이 자동 배포합니다. <Code>vercel --prod</Code> 같은 CLI 배포는 쓰지 않습니다 &mdash; 로컬 워킹트리에 다른 세션의 미완성 작업이 섞여 올라갈 수 있습니다.</P>
             <P>GitHub push 시 <Code>.github/workflows/extension-release.yml</Code>이 자동으로 GitHub Release를 생성합니다.</P>
+            <H4>배포 확인</H4>
+            <Pre>{`curl -sI https://crypto-sim-nu.vercel.app/extension.zip | grep -i content-length`}</Pre>
+            <P>빌드가 찍어준 zip 크기와 같은지 봅니다.</P>
           </Section>
 
           {/* 확장 구조 */}
@@ -96,11 +92,15 @@ bubble-groups.js  그룹/위치/날짜그룹 삽입
 bubble.js         오케스트레이터 (insertBubble)
 content.js        엔트리포인트 (스크롤, Alt+E, 채널헤더)
 
+webz-inject.js    A버전(.Message) 버블 생성 — 복제/시각복원/리액션
+webz-adapter.js   bundle.js ↔ webz-inject 다리 (값 계산은 bundle.js 것을 그대로 씀)
+
 background.js     서비스워커 (업데이트 체크, fetch 프록시)
 popup.js          팝업 UI
 popup.html        팝업 HTML
 page-script.js    MAIN world 스크립트
 manifest.json     확장 매니페스트`}</Pre>
+            <P>K/A 판별은 주소가 아니라 DOM으로 합니다 &mdash; 주소창이 없는 텔레그램 데스크톱 앱에서도 동작해야 하기 때문입니다. bundle.js는 삽입·채널헤더·감시자·초기화 네 지점에서 A로 갈라집니다.</P>
           </Section>
 
           {/* 주요 설정 */}
