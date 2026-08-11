@@ -2,6 +2,9 @@ node_modules
 .next
 .vercel
 
+# Claude Code 자동 메모리 (로컬 전용)
+memory/
+
 # macOS
 .DS_Store
 ._*
