@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Position, PositionWithLive } from '@/types'
 import { usePriceStore, subscribeSymbols } from '@/lib/hooks'
 import { calculatePnL, checkTPSL } from '@/lib/calculations'
+import { clampPnLResult, evaluateLiveAutoClose } from '@/lib/auto-close-rules'
 import PositionTable from '@/components/position/PositionTable'
 import ProfitCard from '@/components/ProfitCard'
 
@@ -54,6 +55,48 @@ export default function PositionsPopupPage() {
     const openSymbols = positions.filter(p => p.status === 'OPEN').map(p => p.symbol)
     if (openSymbols.length > 0) subscribeSymbols(openSymbols)
   }, [positions])
+
+  // ── 자동 종료 규칙 (수익 상한 / 기간 만료) ───────────────────────────────────
+  // 종료가/pnl 판정은 서버(PATCH action=autoClose)가 하고, 여기서는 후보만 골라 요청한다.
+  const autoClosingIds = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!session) return
+
+    const targets = positions.filter(
+      p =>
+        p.status === 'OPEN' &&
+        !autoClosingIds.current.has(p.id) &&
+        evaluateLiveAutoClose(p, prices[p.symbol] || p.entryPrice) !== null
+    )
+    if (targets.length === 0) return
+
+    targets.forEach(p => autoClosingIds.current.add(p.id))
+
+    let cancelled = false
+    ;(async () => {
+      let anyClosed = false
+      for (const p of targets) {
+        try {
+          const res = await fetch(`/api/positions/${p.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'autoClose' }),
+          })
+          if (res.ok) {
+            anyClosed = true
+          } else if (res.status !== 409) {
+            autoClosingIds.current.delete(p.id)
+          }
+        } catch {
+          autoClosingIds.current.delete(p.id)
+        }
+      }
+      if (anyClosed && !cancelled) fetchPositions()
+    })()
+
+    return () => { cancelled = true }
+  }, [positions, prices, session, fetchPositions])
 
   // ── 헬퍼: 다음 캡처 시작 ─────────────────────────────────────────────────────
   const startNextCapture = useCallback(() => {
@@ -136,7 +179,10 @@ export default function PositionsPopupPage() {
     .filter(p => p.status === 'OPEN')
     .map(p => {
       const currentPrice = prices[p.symbol] || p.entryPrice
-      const pnl = calculatePnL(p.side, p.entryPrice, currentPrice, p.leverage, p.amount, p.quantity)
+      const pnl = clampPnLResult(
+        calculatePnL(p.side, p.entryPrice, currentPrice, p.leverage, p.amount, p.quantity),
+        p.amount / p.leverage
+      )
       const tpsl = checkTPSL(p.side, p.entryPrice, currentPrice, p.takeProfit, p.stopLoss)
       return { ...p, currentPrice, pnlLive: pnl.pnl, roeLive: pnl.roe, liquidationPrice: pnl.liquidationPrice, hitTP: tpsl.hitTP, hitSL: tpsl.hitSL }
     })

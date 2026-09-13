@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { PositionWithLive, Position } from '@/types'
 import { usePriceStore, subscribeSymbols } from '@/lib/hooks'
 import { calculatePnL, checkTPSL } from '@/lib/calculations'
+import { clampPnLResult, evaluateLiveAutoClose } from '@/lib/auto-close-rules'
 
 
 const DEFAULT_TEMPLATE = '🟢 {{symbol}} {{side}} {{leverage}}x | 진입 ${{entryPrice}}'
@@ -412,7 +413,10 @@ export function useDashboard(): UseDashboardReturn {
   const positionsWithLive: PositionWithLive[] = useMemo(() =>
     positions.map(p => {
       const currentPrice = prices[p.symbol] || p.entryPrice
-      const pnl = calculatePnL(p.side, p.entryPrice, currentPrice, p.leverage, p.amount, p.quantity)
+      const pnl = clampPnLResult(
+        calculatePnL(p.side, p.entryPrice, currentPrice, p.leverage, p.amount, p.quantity),
+        p.amount / p.leverage
+      )
       const tpsl = checkTPSL(p.side, p.entryPrice, currentPrice, p.takeProfit, p.stopLoss)
       return {
         ...p,
@@ -429,6 +433,50 @@ export function useDashboard(): UseDashboardReturn {
 
   // ─── Sync ref ────────────────────────────────────────────
   positionsWithLiveRef.current = positionsWithLive
+
+  // ─── 자동 종료 규칙 (수익 상한 / 기간 만료) ───────────────
+  // 서버 크론이 주기적으로 처리하지만, 화면이 열려 있는 동안은 실시간 가격으로 즉시 반영한다.
+  // 종료가/pnl 은 서버가 재판정하므로(PATCH action=autoClose) 여기서는 후보만 골라 요청한다.
+  const autoClosingIds = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!session) return
+
+    const targets = positionsWithLive.filter(
+      p =>
+        p.status === 'OPEN' &&
+        !autoClosingIds.current.has(p.id) &&
+        evaluateLiveAutoClose(p, p.currentPrice) !== null
+    )
+    if (targets.length === 0) return
+
+    targets.forEach(p => autoClosingIds.current.add(p.id))
+
+    let cancelled = false
+    ;(async () => {
+      let anyClosed = false
+      for (const p of targets) {
+        try {
+          const res = await fetch(`/api/positions/${p.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'autoClose' }),
+          })
+          if (res.ok) {
+            anyClosed = true
+          } else if (res.status !== 409) {
+            // 409 = 서버가 조건 미달로 판정 (재요청 무의미). 그 외는 일시적 실패 → 재시도 허용
+            autoClosingIds.current.delete(p.id)
+          }
+        } catch {
+          autoClosingIds.current.delete(p.id)
+        }
+      }
+      if (anyClosed && !cancelled) fetchPositions()
+    })()
+
+    return () => { cancelled = true }
+  }, [positionsWithLive, session, fetchPositions])
 
   // ─── Computed: currentPrice ─────────────────────────────
   const currentPrice = prices[symbol] || marketData?.price || 0

@@ -3,6 +3,15 @@
   "functions": {
     "src/app/api/price-touches/route.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/cron/auto-close/route.ts": {
+      "maxDuration": 300
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/auto-close",
+      "schedule": "0 * * * *"
+    }
+  ]
 }

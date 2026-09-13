@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { TAKER_FEE_RATE, applySlippage } from '@/lib/calculations'
+import { evaluateLiveAutoClose } from '@/lib/auto-close-rules'
 
 // 응답이 실패하거나 숫자가 아니면 parseFloat 이 NaN 을 돌려주고,
 // 그 NaN 이 closedPrice/pnl 로 저장되면 컬럼이 NULL 이 되어 포지션이 영구 손상된다.
@@ -354,6 +355,34 @@ export async function PATCH(
       })
 
       return NextResponse.json(updated)
+    }
+
+    // ── AutoClose: 자동 종료 규칙(수익 상한 / 기간 만료) 적용 ──
+    // 클라이언트는 "검사해달라"고만 요청하고, 종료가·pnl 은 서버가 직접 판정한다.
+    // (크론을 기다리지 않고 UI 에 즉시 반영하기 위한 경로 — src/lib/auto-close.ts 와 동일 규칙)
+    if (body.action === 'autoClose' && position.status === 'OPEN') {
+      const binancePrice = await fetchMarkPrice(position.symbol)
+      if (binancePrice === null) return priceUnavailable()
+
+      const trigger = evaluateLiveAutoClose(position, binancePrice)
+      if (!trigger) {
+        return NextResponse.json(
+          { error: '자동 종료 조건을 만족하지 않습니다.' },
+          { status: 409 },
+        )
+      }
+
+      const updated = await prisma.position.update({
+        where: { id: params.id },
+        data: {
+          status: trigger.status,
+          closedAt: new Date(),
+          closedPrice: trigger.closedPrice,
+          pnl: trigger.pnl,
+        },
+      })
+
+      return NextResponse.json({ ...updated, autoCloseReason: trigger.reason })
     }
 
     const updateData: any = {}

@@ -117,6 +117,61 @@ export function calculatePnL(
   };
 }
 
+// === 포지션 자동 종료 규칙 ===
+// 포지션은 아래 둘 중 먼저 오는 시점에 자동으로 종료된다.
+//   1) 순수익(수수료 차감 후)이 MAX_PROFIT_USDT 에 도달  → CLOSED_TP
+//   2) 진입 후 MAX_POSITION_AGE_DAYS 경과               → CLOSED_MANUAL
+export const MAX_POSITION_AGE_DAYS = 21;
+export const MAX_PROFIT_USDT = 10000;
+
+/**
+ * 순수익(PnL)이 정확히 targetPnl 이 되는 가격을 역산한다.
+ *
+ * calculatePnL 과 동일한 정의를 사용:
+ *   LONG:  pnl = qty*(P - E) - entryFee - qty*P*TAKER_FEE_RATE
+ *   SHORT: pnl = qty*(E - P) - entryFee - qty*P*TAKER_FEE_RATE
+ * 를 P 에 대해 푼 것.
+ *
+ * @returns 목표 PnL 을 만드는 가격. 계산 불가(수량 0 등)면 null.
+ */
+export function priceForTargetPnL(
+  side: 'LONG' | 'SHORT',
+  entryPrice: number,
+  quantity: number,
+  targetPnl: number,
+  entryFee: number = 0
+): number | null {
+  if (!Number.isFinite(quantity) || quantity <= 0) return null;
+  if (!Number.isFinite(entryPrice) || entryPrice <= 0) return null;
+
+  const fee = Number.isFinite(entryFee) ? entryFee : 0;
+
+  const price =
+    side === 'LONG'
+      ? (targetPnl + fee + quantity * entryPrice) / (quantity * (1 - TAKER_FEE_RATE))
+      : (quantity * entryPrice - fee - targetPnl) / (quantity * (1 + TAKER_FEE_RATE));
+
+  return Number.isFinite(price) && price > 0 ? price : null;
+}
+
+/**
+ * 특정 종료가에서의 순수익. calculatePnL 과 동일한 수수료 모델.
+ */
+export function realizedPnL(
+  side: 'LONG' | 'SHORT',
+  entryPrice: number,
+  closePrice: number,
+  quantity: number,
+  entryFee: number = 0
+): number {
+  const rawPnl =
+    side === 'LONG'
+      ? (closePrice - entryPrice) * quantity
+      : (entryPrice - closePrice) * quantity;
+  const closeFee = quantity * closePrice * TAKER_FEE_RATE;
+  return rawPnl - (Number.isFinite(entryFee) ? entryFee : 0) - closeFee;
+}
+
 /**
  * TP/SL 도달 여부 체크
  */
