@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { TAKER_FEE_RATE, applySlippage } from '@/lib/calculations'
-import { evaluateLiveAutoClose } from '@/lib/auto-close-rules'
+import { evaluateLiveAutoClose, profitCapDeadlineMs } from '@/lib/auto-close-rules'
 
 // 응답이 실패하거나 숫자가 아니면 parseFloat 이 NaN 을 돌려주고,
 // 그 NaN 이 closedPrice/pnl 로 저장되면 컬럼이 NULL 이 되어 포지션이 영구 손상된다.
@@ -364,25 +364,41 @@ export async function PATCH(
       const binancePrice = await fetchMarkPrice(position.symbol)
       if (binancePrice === null) return priceUnavailable()
 
-      const trigger = evaluateLiveAutoClose(position, binancePrice)
-      if (!trigger) {
+      const action = evaluateLiveAutoClose(position, binancePrice)
+      if (!action) {
         return NextResponse.json(
           { error: '자동 종료 조건을 만족하지 않습니다.' },
           { status: 409 },
         )
       }
 
+      // 수익 상한 최초 도달 — 종료하지 않고 도달 시각만 기록한다(유예 시작).
+      if (action.kind === 'mark-profit-cap') {
+        const marked = await prisma.position.update({
+          where: { id: params.id },
+          data: { profitCapAt: new Date(action.profitCapAt) },
+        })
+        return NextResponse.json({
+          ...marked,
+          autoCloseReason: 'profit-cap-pending',
+          deadlineAt: new Date(action.deadlineAt),
+        })
+      }
+
+      // 상한 도달로 종료하는 건은 "유예 마감 시각"에 체결된 것으로 본다.
+      const deadline = action.reason === 'profit-cap' ? profitCapDeadlineMs(position.profitCapAt) : null
+
       const updated = await prisma.position.update({
         where: { id: params.id },
         data: {
-          status: trigger.status,
-          closedAt: new Date(),
-          closedPrice: trigger.closedPrice,
-          pnl: trigger.pnl,
+          status: action.status,
+          closedAt: deadline !== null ? new Date(deadline) : new Date(),
+          closedPrice: action.closedPrice,
+          pnl: action.pnl,
         },
       })
 
-      return NextResponse.json({ ...updated, autoCloseReason: trigger.reason })
+      return NextResponse.json({ ...updated, autoCloseReason: action.reason })
     }
 
     const updateData: any = {}

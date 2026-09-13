@@ -2,6 +2,7 @@ import { prisma } from './prisma'
 import {
   MAX_POSITION_AGE_DAYS,
   MAX_PROFIT_USDT,
+  PROFIT_CAP_GRACE_DAYS,
   priceForTargetPnL,
   realizedPnL,
 } from './calculations'
@@ -22,12 +23,30 @@ export interface AutoCloseDecision {
   pnl: number
 }
 
+/** 수익 상한에 도달했지만 아직 유예 기간이 남은 포지션 — profitCapAt 만 기록한다 */
+export interface ProfitCapMark {
+  positionId: string
+  symbol: string
+  side: 'LONG' | 'SHORT'
+  /** 상한에 최초 도달한 시각 */
+  profitCapAt: Date
+  /** 이 시각을 넘기면 강제 종료 (profitCapAt + PROFIT_CAP_GRACE_DAYS) */
+  deadlineAt: Date
+}
+
+export type AutoCloseAction =
+  | { type: 'close'; decision: AutoCloseDecision }
+  | { type: 'mark-profit-cap'; mark: ProfitCapMark }
+
 export interface AutoCloseSummary {
   scanned: number
   closed: number
+  /** 상한 도달을 새로 기록한 건수 (종료는 아님) */
+  marked: number
   skipped: number
   failed: number
   decisions: AutoCloseDecision[]
+  marks: ProfitCapMark[]
   errors: { positionId: string; message: string }[]
   truncated: boolean
 }
@@ -123,16 +142,23 @@ type OpenPosition = {
   quantity: number
   entryFee: number
   entryTime: Date
+  profitCapAt?: Date | null
 }
 
 /**
- * 포지션 하나의 종료 여부 판정. 아직 종료 조건 미충족이면 null.
+ * 포지션 하나에 대한 조치 판정. 아직 아무 조치도 필요 없으면 null.
+ *
+ *   - 수익 상한 최초 도달 → 'mark-profit-cap' (종료하지 않고 시각만 기록)
+ *   - 상한 도달 + PROFIT_CAP_GRACE_DAYS 경과 → CLOSED_TP (상한가, pnl 정확히 상한)
+ *   - 진입 후 MAX_POSITION_AGE_DAYS 경과 → CLOSED_MANUAL (만료 시점 시세)
+ * 유예 마감과 기간 만료 중 먼저 오는 쪽이 이긴다.
+ *
  * 조회 실패 시 throw — 값을 추측해서 포지션을 손상시키지 않는다.
  */
 export async function decideAutoClose(
   position: OpenPosition,
   now: number = Date.now()
-): Promise<AutoCloseDecision | null> {
+): Promise<AutoCloseAction | null> {
   const side = position.side === 'SHORT' ? 'SHORT' : 'LONG'
   const entryMs = position.entryTime.getTime()
   const expiryMs = entryMs + MAX_POSITION_AGE_DAYS * DAY_MS
@@ -148,31 +174,57 @@ export async function decideAutoClose(
     position.entryFee || 0
   )
 
+  // 이미 기록된 도달 시각이 있으면 klines 를 다시 스캔하지 않는다 (멱등 + 호출 절약).
+  const recordedMs = position.profitCapAt ? position.profitCapAt.getTime() : NaN
+  let capTouchMs: number | null = Number.isFinite(recordedMs) ? recordedMs : null
+  let newlyTouched = false
+
   // SHORT 은 가격 하한이 0 이라 목표 수익이 구조적으로 불가능할 수 있다 → 기간 만료만 적용
-  if (targetPrice !== null) {
-    const touchMs = await findFirstTouchMs(
+  if (targetPrice !== null && capTouchMs === null) {
+    capTouchMs = await findFirstTouchMs(
       position.symbol,
       side,
       targetPrice,
       entryMs,
       scanEndMs
     )
+    newlyTouched = capTouchMs !== null
+  }
 
-    if (touchMs !== null) {
-      return {
+  const deadlineMs = capTouchMs !== null ? capTouchMs + PROFIT_CAP_GRACE_DAYS * DAY_MS : null
+
+  // 유예 마감이 기간 만료보다 먼저 오고, 그 시각이 지났으면 수익 상한으로 종료
+  if (targetPrice !== null && deadlineMs !== null && deadlineMs <= expiryMs && now >= deadlineMs) {
+    return {
+      type: 'close',
+      decision: {
         positionId: position.id,
         symbol: position.symbol,
         side,
         status: 'CLOSED_TP',
         reason: 'profit-cap',
-        closedAt: new Date(touchMs),
+        closedAt: new Date(deadlineMs),
         closedPrice: targetPrice,
         pnl: MAX_PROFIT_USDT,
-      }
+      },
     }
   }
 
-  if (expiryMs > now) return null
+  if (expiryMs > now) {
+    if (newlyTouched && capTouchMs !== null && deadlineMs !== null) {
+      return {
+        type: 'mark-profit-cap',
+        mark: {
+          positionId: position.id,
+          symbol: position.symbol,
+          side,
+          profitCapAt: new Date(capTouchMs),
+          deadlineAt: new Date(deadlineMs),
+        },
+      }
+    }
+    return null
+  }
 
   const expiryPrice = await priceAt(position.symbol, expiryMs)
   if (expiryPrice === null) {
@@ -185,14 +237,17 @@ export async function decideAutoClose(
   )
 
   return {
-    positionId: position.id,
-    symbol: position.symbol,
-    side,
-    status: 'CLOSED_MANUAL',
-    reason: 'max-age',
-    closedAt: new Date(expiryMs),
-    closedPrice: expiryPrice,
-    pnl,
+    type: 'close',
+    decision: {
+      positionId: position.id,
+      symbol: position.symbol,
+      side,
+      status: 'CLOSED_MANUAL',
+      reason: 'max-age',
+      closedAt: new Date(expiryMs),
+      closedPrice: expiryPrice,
+      pnl,
+    },
   }
 }
 
@@ -235,15 +290,18 @@ export async function runAutoClose(
       quantity: true,
       entryFee: true,
       entryTime: true,
+      profitCapAt: true,
     },
   })
 
   const summary: AutoCloseSummary = {
     scanned: 0,
     closed: 0,
+    marked: 0,
     skipped: 0,
     failed: 0,
     decisions: [],
+    marks: [],
     errors: [],
     truncated: false,
   }
@@ -259,19 +317,31 @@ export async function runAutoClose(
     const batch = positions.slice(i, i + concurrency)
     const results = await Promise.allSettled(
       batch.map(async (p) => {
-        const decision = await decideAutoClose(p, now)
-        if (!decision || dryRun) return decision
+        const action = await decideAutoClose(p, now)
+        if (!action || dryRun) return action
 
-        await prisma.position.update({
-          where: { id: p.id },
-          data: {
-            status: decision.status,
-            closedAt: decision.closedAt,
-            closedPrice: decision.closedPrice,
-            pnl: decision.pnl,
-          },
-        })
-        return decision
+        if (action.type === 'close') {
+          const { decision } = action
+          await prisma.position.update({
+            where: { id: p.id },
+            data: {
+              status: decision.status,
+              closedAt: decision.closedAt,
+              closedPrice: decision.closedPrice,
+              pnl: decision.pnl,
+              // 상한 도달로 종료한 건은 도달 시각도 남겨 둔다 (사후 확인용)
+              ...(decision.reason === 'profit-cap' && !p.profitCapAt
+                ? { profitCapAt: new Date(decision.closedAt.getTime() - PROFIT_CAP_GRACE_DAYS * DAY_MS) }
+                : {}),
+            },
+          })
+        } else {
+          await prisma.position.update({
+            where: { id: p.id },
+            data: { profitCapAt: action.mark.profitCapAt },
+          })
+        }
+        return action
       })
     )
 
@@ -285,11 +355,15 @@ export async function runAutoClose(
         })
         return
       }
-      if (result.value) {
-        summary.closed++
-        summary.decisions.push(result.value)
-      } else {
+      const action = result.value
+      if (!action) {
         summary.skipped++
+      } else if (action.type === 'close') {
+        summary.closed++
+        summary.decisions.push(action.decision)
+      } else {
+        summary.marked++
+        summary.marks.push(action.mark)
       }
     })
   }

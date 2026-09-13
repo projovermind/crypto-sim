@@ -10,6 +10,7 @@ import PositionTable from '@/components/position/PositionTable'
 import PositionHistory from '@/components/position/PositionHistory'
 import SharePopup from '@/components/SharePopup'
 import ProfitCard from '@/components/ProfitCard'
+import ProfitCapAlertModal from '@/components/ProfitCapAlertModal'
 
 export default function DashboardPage() {
   const d = useDashboard()
@@ -18,6 +19,11 @@ export default function DashboardPage() {
   const handleMemoEdit = useCallback((pos: any, field: 'memo1' | 'memo2' | 'memo3') => {
     setMemoModal({ posId: pos.id, field, value: pos[field] || '' })
   }, [])
+
+  const handleAlertSelect = useCallback((positionId: string) => {
+    const pos = d.positionsWithLive.find(p => p.id === positionId)
+    if (pos) d.handleSelectPosition(pos)
+  }, [d])
 
   const handleMemoSave = useCallback(async () => {
     if (!memoModal) return
@@ -100,6 +106,11 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      <ProfitCapAlertModal
+        userId={(d.session?.user as any)?.id}
+        onSelectPosition={handleAlertSelect}
+      />
 
       {d.sharePosition && (
         <SharePopup position={d.sharePosition} onClose={() => d.setSharePosition(null)} />

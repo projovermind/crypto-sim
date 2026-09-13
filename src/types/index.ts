@@ -15,6 +15,7 @@ export interface Position {
   takeProfit: number | null
   stopLoss: number | null
   status: 'OPEN' | 'CLOSED_TP' | 'CLOSED_SL' | 'CLOSED_MANUAL'
+  profitCapAt?: string | null
   deletedAt: string | null
   closedAt: string | null
   closedPrice: number | null

@@ -8,7 +8,7 @@
  *
  * DB 를 Teledit 과 공유하므로 반드시 --dry-run 으로 먼저 확인할 것.
  */
-import { MAX_POSITION_AGE_DAYS, MAX_PROFIT_USDT } from '../src/lib/calculations'
+import { MAX_POSITION_AGE_DAYS, MAX_PROFIT_USDT, PROFIT_CAP_GRACE_DAYS } from '../src/lib/calculations'
 import { runAutoClose } from '../src/lib/auto-close'
 
 function argValue(flag: string): string | undefined {
@@ -21,7 +21,7 @@ async function main() {
   const limit = parseInt(argValue('--limit') || '1000')
 
   console.log(
-    `자동 종료 소급 적용 — 수익상한 ${MAX_PROFIT_USDT} USDT / 최대 ${MAX_POSITION_AGE_DAYS}일` +
+    `자동 종료 소급 적용 — 수익상한 ${MAX_PROFIT_USDT} USDT (유예 ${PROFIT_CAP_GRACE_DAYS}일) / 최대 ${MAX_POSITION_AGE_DAYS}일` +
       `${dryRun ? ' (DRY RUN — DB 변경 없음)' : ''}`
   )
 
@@ -38,12 +38,19 @@ async function main() {
     )
   }
 
+  for (const m of summary.marks) {
+    console.log(
+      `  ${m.positionId} ${m.symbol} ${m.side} → 상한 도달 기록 ${m.profitCapAt.toISOString()} ` +
+        `(강제 종료 예정 ${m.deadlineAt.toISOString()})`
+    )
+  }
+
   for (const e of summary.errors) {
     console.error(`  [실패] ${e.positionId}: ${e.message}`)
   }
 
   console.log(
-    `검사 ${summary.scanned} / 종료 ${summary.closed} / 유지 ${summary.skipped} / 실패 ${summary.failed}` +
+    `검사 ${summary.scanned} / 종료 ${summary.closed} / 상한기록 ${summary.marked} / 유지 ${summary.skipped} / 실패 ${summary.failed}` +
       (summary.truncated ? ' (시간 초과로 일부 미처리 — 재실행 필요)' : '')
   )
 

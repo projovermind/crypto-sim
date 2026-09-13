@@ -130,6 +130,7 @@ model Position {
   takeProfit  Float?   // TP price
   stopLoss    Float?   // SL price
   status      String   @default("OPEN") // "OPEN", "CLOSED_TP", "CLOSED_SL", "CLOSED_MANUAL"
+  profitCapAt DateTime? // 순수익 상한($10,000)에 최초 도달한 시각. +PROFIT_CAP_GRACE_DAYS 후 강제 종료
   closedAt    DateTime?
   closedPrice Float?
   pnl         Float?

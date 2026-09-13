@@ -119,10 +119,14 @@ export function calculatePnL(
 
 // === 포지션 자동 종료 규칙 ===
 // 포지션은 아래 둘 중 먼저 오는 시점에 자동으로 종료된다.
-//   1) 순수익(수수료 차감 후)이 MAX_PROFIT_USDT 에 도달  → CLOSED_TP
-//   2) 진입 후 MAX_POSITION_AGE_DAYS 경과               → CLOSED_MANUAL
+//   1) 순수익(수수료 차감 후)이 MAX_PROFIT_USDT 에 도달한 뒤
+//      PROFIT_CAP_GRACE_DAYS 유예가 지난 시점              → CLOSED_TP
+//   2) 진입 후 MAX_POSITION_AGE_DAYS 경과                  → CLOSED_MANUAL
+// 상한 도달 시각 자체는 Position.profitCapAt 에 기록해 두고, 유예가 끝나면 강제 종료한다.
 export const MAX_POSITION_AGE_DAYS = 21;
 export const MAX_PROFIT_USDT = 10000;
+/** 수익 상한 도달 후 강제 종료까지의 유예 기간(일) */
+export const PROFIT_CAP_GRACE_DAYS = 2;
 
 /**
  * 순수익(PnL)이 정확히 targetPnl 이 되는 가격을 역산한다.

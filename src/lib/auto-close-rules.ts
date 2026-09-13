@@ -5,13 +5,15 @@
 // 크론 주기를 기다리지 않고 UI 에서 즉시 반영하기 위한 것이다.
 //
 // 규칙 (먼저 발생한 조건이 이긴다):
-//   1) 순수익이 MAX_PROFIT_USDT 도달  → CLOSED_TP     (priceForTargetPnL 가격, pnl 정확히 상한)
+//   1) 순수익이 MAX_PROFIT_USDT 도달 → profitCapAt 기록, 그로부터 PROFIT_CAP_GRACE_DAYS
+//      유예가 지나면 CLOSED_TP (priceForTargetPnL 가격, pnl 정확히 상한)
 //   2) 진입 후 MAX_POSITION_AGE_DAYS 경과 → CLOSED_MANUAL (현재가)
 // 사용자 지정 TP/SL 은 단독으로 자동 종료를 유발하지 않는다(기존 동작). 다만 위 규칙이
 // 발동할 때 TP/SL 이 더 먼저 도달해 있었다면 그 가격/상태로 체결된 것으로 본다.
 import {
   MAX_POSITION_AGE_DAYS,
   MAX_PROFIT_USDT,
+  PROFIT_CAP_GRACE_DAYS,
   PnLResult,
   checkTPSL,
   priceForTargetPnL,
@@ -23,6 +25,7 @@ const DAY_MS = 24 * 3600 * 1000
 export type AutoCloseReason = 'profit-cap' | 'max-age' | 'take-profit' | 'stop-loss'
 
 export interface LiveAutoCloseTrigger {
+  kind: 'close'
   reason: AutoCloseReason
   status: 'CLOSED_TP' | 'CLOSED_SL' | 'CLOSED_MANUAL'
   /** 이 가격에 도달해서 규칙이 발동했다 */
@@ -30,6 +33,17 @@ export interface LiveAutoCloseTrigger {
   /** closedPrice 기준 순수익 (상한 클램프 적용) */
   pnl: number
 }
+
+/** 수익 상한에 막 도달 — 아직 종료하지 않고 도달 시각만 기록해야 한다 */
+export interface LiveProfitCapMark {
+  kind: 'mark-profit-cap'
+  /** 도달 시각(ms) */
+  profitCapAt: number
+  /** 이 시각을 넘기면 강제 종료(ms) */
+  deadlineAt: number
+}
+
+export type LiveAutoCloseResult = LiveAutoCloseTrigger | LiveProfitCapMark
 
 /** 규칙에 필요한 포지션 필드만 — Position / PositionWithLive 모두 그대로 넘길 수 있다 */
 export interface AutoCloseCandidate {
@@ -43,6 +57,8 @@ export interface AutoCloseCandidate {
   stopLoss?: number | null
   entryTime: string | Date
   status?: string
+  /** 수익 상한 최초 도달 시각 (기록되어 있으면 유예 계산에 사용) */
+  profitCapAt?: string | Date | null
 }
 
 /** 미실현/실현 수익 상한. 표시용 값도 서버 규칙(MAX_PROFIT_USDT) 이상으로 보이지 않게 한다. */
@@ -80,8 +96,19 @@ export function expiryMs(entryTime: string | Date): number | null {
   return entryMs + MAX_POSITION_AGE_DAYS * DAY_MS
 }
 
+/** 수익 상한 도달 후 강제 종료 시각(ms). 기록이 없거나 깨졌으면 null. */
+export function profitCapDeadlineMs(profitCapAt?: string | Date | null): number | null {
+  if (!profitCapAt) return null
+  const capMs = toMs(profitCapAt)
+  if (!Number.isFinite(capMs)) return null
+  return capMs + PROFIT_CAP_GRACE_DAYS * DAY_MS
+}
+
 /**
- * 실시간 가격 기준으로 자동 종료 대상인지 판정한다. 아니면 null.
+ * 실시간 가격 기준으로 지금 필요한 조치를 판정한다. 없으면 null.
+ *
+ *   - 'mark-profit-cap': 수익 상한에 막 도달 → profitCapAt 기록만 (종료 아님)
+ *   - 'close': 유예 마감 또는 기간 만료 → 종료
  *
  * 우선순위: 기간 만료는 "이미 지난 시각"에 발동한 것이므로 가격 조건보다 앞선다.
  * 가격 조건들끼리는 진입가에서 가까운 트리거가 먼저 도달한 것이므로 그쪽이 이긴다
@@ -91,7 +118,7 @@ export function evaluateLiveAutoClose(
   position: AutoCloseCandidate,
   currentPrice: number,
   now: number = Date.now()
-): LiveAutoCloseTrigger | null {
+): LiveAutoCloseResult | null {
   if (position.status && position.status !== 'OPEN') return null
   if (!Number.isFinite(currentPrice) || currentPrice <= 0) return null
 
@@ -108,6 +135,7 @@ export function evaluateLiveAutoClose(
   const expiry = expiryMs(position.entryTime)
   if (expiry !== null && now >= expiry) {
     return {
+      kind: 'close',
       reason: 'max-age',
       status: 'CLOSED_MANUAL',
       closedPrice: currentPrice,
@@ -117,13 +145,28 @@ export function evaluateLiveAutoClose(
 
   // 2) 수익 상한 — SHORT 은 가격 하한이 0 이라 상한 자체가 불가능할 수 있다(capPrice=null).
   const capPrice = priceForTargetPnL(side, entryPrice, quantity, MAX_PROFIT_USDT, entryFee)
-  const capReached =
-    capPrice !== null &&
-    realizedPnL(side, entryPrice, currentPrice, quantity, entryFee) >= MAX_PROFIT_USDT
-  if (!capReached || capPrice === null) return null
+  if (capPrice === null) return null
+
+  const deadline = profitCapDeadlineMs(position.profitCapAt)
+
+  // 2-a) 아직 도달 기록이 없으면 — 지금 도달했는지만 보고, 도달했으면 시각만 기록한다.
+  if (deadline === null) {
+    const capReached =
+      realizedPnL(side, entryPrice, currentPrice, quantity, entryFee) >= MAX_PROFIT_USDT
+    if (!capReached) return null
+    return {
+      kind: 'mark-profit-cap',
+      profitCapAt: now,
+      deadlineAt: now + PROFIT_CAP_GRACE_DAYS * DAY_MS,
+    }
+  }
+
+  // 2-b) 기록이 있으면 유예가 끝난 뒤에야 종료한다 (그 사이 가격이 되돌아와도 종료 대상 유지).
+  if (now < deadline) return null
 
   const candidates: LiveAutoCloseTrigger[] = [
     {
+      kind: 'close',
       reason: 'profit-cap',
       status: 'CLOSED_TP',
       closedPrice: capPrice,
@@ -136,6 +179,7 @@ export function evaluateLiveAutoClose(
   const { hitTP, hitSL } = checkTPSL(side, entryPrice, currentPrice, position.takeProfit, position.stopLoss)
   if (hitTP && position.takeProfit) {
     candidates.push({
+      kind: 'close',
       reason: 'take-profit',
       status: 'CLOSED_TP',
       closedPrice: position.takeProfit,
@@ -144,6 +188,7 @@ export function evaluateLiveAutoClose(
   }
   if (hitSL && position.stopLoss) {
     candidates.push({
+      kind: 'close',
       reason: 'stop-loss',
       status: 'CLOSED_SL',
       closedPrice: position.stopLoss,
