@@ -14,7 +14,6 @@ import {
   MAX_POSITION_AGE_DAYS,
   MAX_PROFIT_USDT,
   PROFIT_CAP_GRACE_DAYS,
-  PnLResult,
   checkTPSL,
   priceForTargetPnL,
   realizedPnL,
@@ -61,28 +60,10 @@ export interface AutoCloseCandidate {
   profitCapAt?: string | Date | null
 }
 
-/** 미실현/실현 수익 상한. 표시용 값도 서버 규칙(MAX_PROFIT_USDT) 이상으로 보이지 않게 한다. */
-export function clampProfit(pnl: number): number {
+/** 종료 시 확정되는 수익의 상한. 표시용 미실현 값에는 적용하지 않는다(유예 기간에는 초과가 정상). */
+function clampProfit(pnl: number): number {
   if (!Number.isFinite(pnl)) return pnl
   return Math.min(pnl, MAX_PROFIT_USDT)
-}
-
-/**
- * calculatePnL 결과에 수익 상한을 적용한다.
- * pnl 을 자르면 그로부터 파생되는 roe / currentMargin 도 함께 맞춰야 표시가 일관된다.
- */
-export function clampPnLResult(result: PnLResult, margin: number): PnLResult {
-  const pnl = clampProfit(result.pnl)
-  if (pnl === result.pnl) return result
-
-  const roe = margin > 0 ? (pnl / margin) * 100 : result.roe
-  return {
-    ...result,
-    pnl,
-    pnlPercent: roe,
-    roe,
-    currentMargin: Math.max(0, margin + pnl),
-  }
 }
 
 function toMs(value: string | Date): number {

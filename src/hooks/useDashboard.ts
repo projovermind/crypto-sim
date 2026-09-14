@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { PositionWithLive, Position } from '@/types'
 import { usePriceStore, subscribeSymbols } from '@/lib/hooks'
 import { calculatePnL, checkTPSL } from '@/lib/calculations'
-import { clampPnLResult, evaluateLiveAutoClose } from '@/lib/auto-close-rules'
+import { evaluateLiveAutoClose } from '@/lib/auto-close-rules'
 
 
 const DEFAULT_TEMPLATE = '🟢 {{symbol}} {{side}} {{leverage}}x | 진입 ${{entryPrice}}'
@@ -413,10 +413,7 @@ export function useDashboard(): UseDashboardReturn {
   const positionsWithLive: PositionWithLive[] = useMemo(() =>
     positions.map(p => {
       const currentPrice = prices[p.symbol] || p.entryPrice
-      const pnl = clampPnLResult(
-        calculatePnL(p.side, p.entryPrice, currentPrice, p.leverage, p.amount, p.quantity),
-        p.amount / p.leverage
-      )
+      const pnl = calculatePnL(p.side, p.entryPrice, currentPrice, p.leverage, p.amount, p.quantity)
       const tpsl = checkTPSL(p.side, p.entryPrice, currentPrice, p.takeProfit, p.stopLoss)
       return {
         ...p,

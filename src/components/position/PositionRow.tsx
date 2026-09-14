@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { PositionWithLive } from '@/types'
 import { formatPrice, formatPnL, formatNumber, calculatePnL } from '@/lib/calculations'
-import { clampPnLResult } from '@/lib/auto-close-rules'
 import ADLIndicator from './ADLIndicator'
 
 /* ── Tapbit exact icons — extracted from iui-icon font (iconfont.ttf) ── */
@@ -57,11 +56,7 @@ export default function PositionRow({ position: p, isSelected, onSelect, onClose
 
   const price = p.currentPrice
   const margin = p.amount / p.leverage
-  // 미실현 수익은 자동 종료 상한(MAX_PROFIT_USDT)을 넘겨 보이지 않는다 — 그 지점에서 종료되므로.
-  const pnlData = clampPnLResult(
-    calculatePnL(p.side, p.entryPrice, price, p.leverage, p.amount, p.quantity, p.entryFee),
-    margin
-  )
+  const pnlData = calculatePnL(p.side, p.entryPrice, price, p.leverage, p.amount, p.quantity, p.entryFee)
   const pnlColor = pnlData.pnl >= 0 ? 'text-binance-green' : 'text-binance-red'
   const sideColor = p.side === 'LONG' ? 'text-binance-green' : 'text-binance-red'
   const holding = p.quantity

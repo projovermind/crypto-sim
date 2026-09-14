@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { PositionWithLive } from '@/types'
 import { calculatePnL, formatPnL, formatNumber } from '@/lib/calculations'
-import { clampProfit } from '@/lib/auto-close-rules'
 
 interface WalletBarProps {
   positions: PositionWithLive[]
@@ -28,8 +27,7 @@ export default function WalletBar({ positions, balance, onUpdateBalance }: Walle
 
   const unrealizedPnL = openPositions.reduce((sum, p) => {
     const pnl = calculatePnL(p.side, p.entryPrice, p.currentPrice, p.leverage, p.amount, p.quantity, p.entryFee)
-    // 포지션별 미실현 수익은 자동 종료 상한을 넘지 않는다 (합산 전에 클램프)
-    return sum + clampProfit(pnl.pnl)
+    return sum + pnl.pnl
   }, 0)
 
   const usedMargin = openPositions.reduce((sum, p) => sum + (p.amount / p.leverage), 0)

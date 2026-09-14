@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Position, PositionWithLive } from '@/types'
 import { usePriceStore, subscribeSymbols } from '@/lib/hooks'
 import { calculatePnL, checkTPSL } from '@/lib/calculations'
-import { clampPnLResult, evaluateLiveAutoClose } from '@/lib/auto-close-rules'
+import { evaluateLiveAutoClose } from '@/lib/auto-close-rules'
 import PositionTable from '@/components/position/PositionTable'
 import ProfitCard from '@/components/ProfitCard'
 
@@ -179,10 +179,7 @@ export default function PositionsPopupPage() {
     .filter(p => p.status === 'OPEN')
     .map(p => {
       const currentPrice = prices[p.symbol] || p.entryPrice
-      const pnl = clampPnLResult(
-        calculatePnL(p.side, p.entryPrice, currentPrice, p.leverage, p.amount, p.quantity),
-        p.amount / p.leverage
-      )
+      const pnl = calculatePnL(p.side, p.entryPrice, currentPrice, p.leverage, p.amount, p.quantity)
       const tpsl = checkTPSL(p.side, p.entryPrice, currentPrice, p.takeProfit, p.stopLoss)
       return { ...p, currentPrice, pnlLive: pnl.pnl, roeLive: pnl.roe, liquidationPrice: pnl.liquidationPrice, hitTP: tpsl.hitTP, hitSL: tpsl.hitSL }
     })
