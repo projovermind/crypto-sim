@@ -127,12 +127,15 @@ export async function DELETE(
     // 트랜잭션: 원본 축소 + 신규 CLOSED_MANUAL 생성
     const [updatedOriginal, closedPosition] = await prisma.$transaction([
       // 원본 포지션: 남은 만큼 축소
+      // 수량이 줄면 상한 목표가가 재계산되므로 옛 profitCapAt(마감기한)을 초기화 —
+      // 그대로 두면 크론이 옛 마감기한 기준으로 강제 종료해버림
       prisma.position.update({
         where: { id: params.id },
         data: {
           amount: remainAmount,
           quantity: remainQuantity,
           entryFee: remainEntryFee,
+          profitCapAt: null,
         },
       }),
       // 청산 분량으로 신규 히스토리 생성
@@ -345,12 +348,15 @@ export async function PATCH(
       })
 
       // 원본 포지션 감소
+      // 수량이 줄면 상한 목표가가 재계산되므로 옛 profitCapAt(마감기한)을 초기화 —
+      // 그대로 두면 크론이 옛 마감기한 기준으로 강제 종료해버림
       const updated = await prisma.position.update({
         where: { id: params.id },
         data: {
           amount: position.amount - closeAmount,
           quantity: position.quantity - closeQty,
           entryFee: (position.entryFee || 0) - entryFeePortion,
+          profitCapAt: null,
         }
       })
 
