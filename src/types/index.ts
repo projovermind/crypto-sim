@@ -63,6 +63,7 @@ export const SYMBOLS = [
   'AAVEUSDT', 'FILUSDT', 'APTUSDT', 'ARBUSDT', 'OPUSDT',
   'SUIUSDT', 'SEIUSDT', 'TIAUSDT', 'INJUSDT', 'STXUSDT',
   'IMXUSDT', 'RUNEUSDT', 'PEPEUSDT', 'WIFUSDT', 'FETUSDT',
+  'WLDUSDT', 'ONDOUSDT', 'ENAUSDT',
 ] as const
 
 export const LEVERAGES = [1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 75, 100, 125] as const
