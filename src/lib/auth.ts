@@ -13,6 +13,25 @@ const CRM_RECHECK_MS = 5 * 60 * 1000
 
 const AUTH_SECRET = process.env.NEXTAUTH_SECRET || 'crypto-sim-secret-key-change-in-production'
 
+// crmUserId 별 「허용 여부」 캐시 — 쿠키·Bearer(확장) 모두 getAuthUser 를 지나므로 여기서 한 번에 회수한다.
+const crmAllowCache = new Map<string, { allowed: boolean; at: number }>()
+
+/** CRM 미연결 계정(옛 계정·옛 확장 토큰)은 차단. 연결 계정은 CRM 판정을 5분 캐시로 확인. CRM 장애 시엔 캐시값, 없으면 허용. */
+async function passCrmGate<T extends { crmUserId?: string | null }>(user: T | null): Promise<T | null> {
+  if (!user) return null
+  if (!user.crmUserId) return null
+  const cached = crmAllowCache.get(user.crmUserId)
+  if (cached && Date.now() - cached.at < CRM_RECHECK_MS) return cached.allowed ? user : null
+  try {
+    const allowed = await crmCheckAllowed(user.crmUserId)
+    crmAllowCache.set(user.crmUserId, { allowed, at: Date.now() })
+    return allowed ? user : null
+  } catch (e) {
+    console.error('CRM 권한 확인 실패(기존 판정 유지):', e)
+    return cached ? (cached.allowed ? user : null) : user
+  }
+}
+
 /** JWT 토큰에서 유저 ID/email을 꺼내 DB 조회. 스키마 불일치 시 raw SQL 폴백. */
 export async function getAuthUser(req: NextRequest) {
   const token = await getToken({ req, secret: AUTH_SECRET })
@@ -24,19 +43,19 @@ export async function getAuthUser(req: NextRequest) {
     if (!user && email) {
       user = await prisma.user.findUnique({ where: { email } })
     }
-    return user
+    return await passCrmGate(user)
   } catch (e) {
     // 스키마 불일치 시 raw SQL 폴백 — 핵심 컬럼만 조회
     console.error('getAuthUser Prisma 실패, raw SQL 폴백:', e)
     const rows = await prisma.$queryRaw<Array<{
-      id: string; email: string; name: string; password: string; role: string; status: string; createdAt: Date
+      id: string; email: string; name: string; password: string; role: string; status: string; createdAt: Date; crmUserId: string | null
     }>>`
-      SELECT id, email, name, password, role, status, "createdAt"
+      SELECT id, email, name, password, role, status, "createdAt", "crmUserId"
       FROM "User"
       WHERE id = ${userId} OR email = ${email || ''}
       LIMIT 1
     `
-    return rows[0] || null
+    return await passCrmGate(rows[0] || null)
   }
 }
 
@@ -69,6 +88,35 @@ async function findOrCreateLocalUser(crm: CrmUser) {
   })
 }
 
+/** CRM 위임 로그인 — authorize 와 확장 로그인이 같이 쓴다. 실패는 사유 코드를 message 로 던진다(CRM_UNAVAILABLE 포함). */
+export async function loginViaCrm(username: string, password: string) {
+  let crm
+  try {
+    crm = await crmAuthenticate(username, password)
+  } catch (e) {
+    console.error('CRM 인증 호출 실패:', e)
+    throw new Error('CRM_UNAVAILABLE')
+  }
+  if (!crm.ok) throw new Error(crm.reason)
+
+  const user = await findOrCreateLocalUser(crm.user)
+
+  // 역할 동기화 — POSI 관리자 = CRM 풀 관리자. 로컬 status 는 더 보지 않는다(정지·퇴사는 CRM 이 BLOCKED 로 막고,
+  // 로컬에서 정지를 풀 UI 도 없다 — CRM 이 유일 정본).
+  const role = crm.user.isAdmin ? 'ADMIN' : 'USER'
+  if (user.role !== role) await prisma.user.update({ where: { id: user.id }, data: { role } })
+
+  crmAllowCache.set(crm.user.crmUserId, { allowed: true, at: Date.now() })
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role,
+    status: user.status,
+    crmUserId: crm.user.crmUserId,
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -82,31 +130,7 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        // 인증은 소나무 CRM 에 위임 — 아이디·비밀번호는 CRM 계정 그대로. 로컬 bcrypt 로그인은 없다.
-        let crm
-        try {
-          crm = await crmAuthenticate(credentials.email, credentials.password)
-        } catch (e) {
-          console.error('CRM 인증 호출 실패:', e)
-          throw new Error('CRM_UNAVAILABLE')
-        }
-        if (!crm.ok) throw new Error(crm.reason)
-
-        const user = await findOrCreateLocalUser(crm.user)
-
-        // 역할 동기화 — POSI 관리자 = CRM 풀 관리자. 로컬 status 는 더 보지 않는다(정지·퇴사는 CRM 이 BLOCKED 로 막고,
-        // 로컬에서 정지를 풀 UI 도 없다 — CRM 이 유일 정본).
-        const role = crm.user.isAdmin ? 'ADMIN' : 'USER'
-        if (user.role !== role) await prisma.user.update({ where: { id: user.id }, data: { role } })
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role,
-          status: user.status,
-          crmUserId: crm.user.crmUserId,
-        }
+        return loginViaCrm(credentials.email, credentials.password)
       },
     }),
   ],
