@@ -27,7 +27,11 @@ export function crmAuthenticate(username: string, password: string): Promise<Crm
   return crmPost<CrmAuthResult>('/api/tappo/auth', { username, password })
 }
 
+export async function crmCheck(crmUserId: string): Promise<{ allowed: boolean; name: string | null }> {
+  const r = await crmPost<{ ok: boolean; allowed: boolean; name?: string | null }>('/api/tappo/check', { crmUserId })
+  return { allowed: !!r.ok && !!r.allowed, name: r.name ?? null }
+}
+
 export async function crmCheckAllowed(crmUserId: string): Promise<boolean> {
-  const r = await crmPost<{ ok: boolean; allowed: boolean }>('/api/tappo/check', { crmUserId })
-  return !!r.ok && !!r.allowed
+  return (await crmCheck(crmUserId)).allowed
 }

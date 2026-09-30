@@ -94,16 +94,16 @@ export const authOptions: NextAuthOptions = {
 
         const user = await findOrCreateLocalUser(crm.user)
 
-        // 로컬 이중 잠금 — CRM 이 허용해도 여기서 정지된 계정은 거부.
-        if (user.status === 'SUSPENDED') {
-          throw new Error('SUSPENDED')
-        }
+        // 역할 동기화 — POSI 관리자 = CRM 풀 관리자. 로컬 status 는 더 보지 않는다(정지·퇴사는 CRM 이 BLOCKED 로 막고,
+        // 로컬에서 정지를 풀 UI 도 없다 — CRM 이 유일 정본).
+        const role = crm.user.isAdmin ? 'ADMIN' : 'USER'
+        if (user.role !== role) await prisma.user.update({ where: { id: user.id }, data: { role } })
 
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          role,
           status: user.status,
           crmUserId: crm.user.crmUserId,
         }

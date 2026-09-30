@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { crmCheck } from '@/lib/crm-auth'
 
 // GET /api/admin/users — 전체 유저 목록
 export async function GET(request: NextRequest) {
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           email: true,
+          crmUserId: true,
           name: true,
           nickname1: true,
           nickname2: true,
@@ -42,12 +44,29 @@ export async function GET(request: NextRequest) {
         ORDER BY u."createdAt" DESC
       `
       users = rawUsers.map(u => ({
-        id: u.id, email: u.email, name: u.name, role: u.role, status: u.status, createdAt: u.createdAt,
+        id: u.id, email: u.email, crmUserId: null as string | null, name: u.name, role: u.role, status: u.status, createdAt: u.createdAt,
         _count: { positions: Number(u.positionCount) },
       }))
     }
 
-    return NextResponse.json(users)
+    // TAPPO 상태 = CRM 판정(정본). crmUserId 있는 행마다 병렬 조회 — CRM 장애는 그 행만 「확인 실패」.
+    const checked = await Promise.allSettled(
+      users.map(u => (u.crmUserId ? crmCheck(u.crmUserId) : null)),
+    )
+    const result = users.map((u, i) => {
+      const c = checked[i]
+      let tappo: 'ALLOWED' | 'DENIED' | 'UNLINKED' | 'ERROR' = 'UNLINKED'
+      let crmName: string | null = null
+      if (u.crmUserId && c.status === 'fulfilled' && c.value) {
+        tappo = c.value.allowed ? 'ALLOWED' : 'DENIED'
+        crmName = c.value.name
+      } else if (u.crmUserId) {
+        tappo = 'ERROR'
+      }
+      return { ...u, crmName, tappo }
+    })
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error('GET /api/admin/users error:', error)
     return NextResponse.json({ error: '유저 목록 조회 실패' }, { status: 500 })
