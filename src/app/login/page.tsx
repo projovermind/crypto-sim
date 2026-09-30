@@ -4,57 +4,40 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
+// next-auth 는 authorize 에서 던진 Error 메시지를 result.error 에 그대로 담아 준다(CRM 위임 사유 코드).
+function loginErrorMessage(code: string): string {
+  if (code.includes('NOT_ALLOWED')) return 'TAPPO 사용 권한이 없습니다. 관리자에게 요청하세요'
+  if (code.includes('BLOCKED')) return 'CRM 계정이 정지·퇴사 상태입니다'
+  if (code.includes('LOCKED')) return '로그인 시도가 많아 잠시 잠겼습니다'
+  if (code.includes('CRM_UNAVAILABLE')) return 'CRM 인증 서버에 연결할 수 없습니다'
+  if (code.includes('SUSPENDED')) return '계정이 정지되었습니다.'
+  if (code.includes('ACCOUNT_CONFLICT')) return '이미 다른 CRM 계정에 연결된 아이디입니다. 관리자에게 문의하세요'
+  return '아이디 또는 비밀번호가 올바르지 않습니다.'
+}
+
 export default function LoginPage() {
-  const [isRegister, setIsRegister] = useState(false)
   const [username, setUsername] = useState('')
-  const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setInfo('')
     setLoading(true)
 
     try {
-      if (isRegister) {
-        const res = await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: username, name, password }),
-        })
+      const result = await signIn('credentials', {
+        email: username,
+        password,
+        redirect: false,
+      })
 
-        const data = await res.json()
-        if (!res.ok) {
-          setError(data.error || '회원가입 실패')
-          return
-        }
-
-        setInfo('회원가입 완료! 관리자 승인 후 로그인할 수 있습니다.')
-        setIsRegister(false)
-        setPassword('')
+      if (result?.error) {
+        setError(loginErrorMessage(result.error))
       } else {
-        const result = await signIn('credentials', {
-          email: username,
-          password,
-          redirect: false,
-        })
-
-        if (result?.error) {
-          if (result.error.includes('PENDING')) {
-            setError('관리자 승인 대기 중입니다.')
-          } else if (result.error.includes('SUSPENDED')) {
-            setError('계정이 정지되었습니다.')
-          } else {
-            setError('아이디 또는 비밀번호가 올바르지 않습니다.')
-          }
-        } else {
-          router.push('/dashboard')
-        }
+        router.push('/dashboard')
       }
     } catch (err) {
       setError('오류가 발생했습니다.')
@@ -74,37 +57,20 @@ export default function LoginPage() {
           <p className="text-binance-text-dim text-sm">
             코인 포지션 시뮬레이터
           </p>
+          <p className="text-binance-text-dim text-xs mt-1">
+            소나무 CRM 아이디로 로그인
+          </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-binance-card rounded-xl border border-binance-border p-6 space-y-4">
           <h2 className="text-xl font-bold text-binance-text text-center">
-            {isRegister ? '회원가입' : '로그인'}
+            로그인
           </h2>
 
           {error && (
             <div className="bg-binance-red/10 border border-binance-red/30 rounded-lg p-3 text-sm text-binance-red">
               {error}
-            </div>
-          )}
-
-          {info && (
-            <div className="bg-binance-green/10 border border-binance-green/30 rounded-lg p-3 text-sm text-binance-green">
-              {info}
-            </div>
-          )}
-
-          {isRegister && (
-            <div>
-              <label className="block text-xs text-binance-text-dim mb-1.5">이름</label>
-              <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                className="w-full bg-binance-bg border border-binance-border rounded-lg px-3 py-2.5 text-binance-text text-sm focus:outline-none focus:border-binance-yellow"
-                placeholder="홍길동"
-                required
-              />
             </div>
           )}
 
@@ -115,10 +81,8 @@ export default function LoginPage() {
               value={username}
               onChange={e => setUsername(e.target.value)}
               className="w-full bg-binance-bg border border-binance-border rounded-lg px-3 py-2.5 text-binance-text text-sm focus:outline-none focus:border-binance-yellow"
-              placeholder="영문, 숫자, 밑줄 (3~20자)"
+              placeholder="소나무 CRM 아이디"
               required
-              minLength={3}
-              maxLength={20}
             />
           </div>
 
@@ -140,19 +104,9 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 rounded-lg font-bold text-sm bg-binance-yellow text-binance-bg hover:bg-binance-yellow/90 disabled:opacity-50 transition-colors"
           >
-            {loading ? '처리 중...' : isRegister ? '회원가입' : '로그인'}
+            {loading ? '처리 중...' : '로그인'}
           </button>
 
-          <p className="text-center text-sm text-binance-text-dim">
-            {isRegister ? '이미 계정이 있으신가요?' : '계정이 없으신가요?'}{' '}
-            <button
-              type="button"
-              onClick={() => { setIsRegister(!isRegister); setError(''); setInfo(''); }}
-              className="text-binance-yellow hover:underline"
-            >
-              {isRegister ? '로그인' : '회원가입'}
-            </button>
-          </p>
         </form>
 
         <p className="text-center text-xs text-binance-text-dim mt-4">

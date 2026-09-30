@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -55,46 +54,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/admin/users — 관리자/매니저 계정 생성
+// POST /api/admin/users — 계정 생성 비활성. 로그인이 소나무 CRM 에 위임돼 계정은 CRM 회원관리에서 만든다.
 export async function POST(request: NextRequest) {
-  try {
-    const admin = await getAuthUser(request)
-    if (!admin || admin.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'ADMIN 권한이 필요합니다.' }, { status: 403 })
-    }
-
-    const { username, name, password, role } = await request.json()
-
-    if (!username || !name || !password) {
-      return NextResponse.json({ error: '모든 항목을 입력해주세요.' }, { status: 400 })
-    }
-
-    if (!['MANAGER', 'ADMIN'].includes(role)) {
-      return NextResponse.json({ error: '유효하지 않은 역할입니다.' }, { status: 400 })
-    }
-
-    const existing = await prisma.user.findUnique({ where: { email: username } })
-    if (existing) {
-      return NextResponse.json({ error: '이미 존재하는 아이디입니다.' }, { status: 409 })
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 12)
-    const { getTeleditTemplateDefaults } = await import('@/lib/teledit-defaults')
-    const templateDefaults = await getTeleditTemplateDefaults()
-    const user = await prisma.user.create({
-      data: {
-        email: username,
-        name,
-        password: hashedPassword,
-        role,
-        status: 'APPROVED',
-        ...templateDefaults,
-      },
-    })
-
-    return NextResponse.json({ id: user.id, name: user.name, role: user.role }, { status: 201 })
-  } catch (error) {
-    console.error('POST /api/admin/users error:', error)
-    return NextResponse.json({ error: '계정 생성 실패' }, { status: 500 })
+  const admin = await getAuthUser(request)
+  if (!admin || admin.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'ADMIN 권한이 필요합니다.' }, { status: 403 })
   }
+  return NextResponse.json({ error: 'CRM 에서 관리합니다. 계정은 소나무 CRM 회원관리에서 만드세요.' }, { status: 410 })
 }

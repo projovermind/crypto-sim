@@ -39,6 +39,11 @@ export async function PATCH(request: NextRequest) {
 
   const updateData: any = {}
 
+  // 아이디·비밀번호는 소나무 CRM 계정이 정본 — 여기서 못 바꾼다(로컬 email 은 포지션 공유 링크 등이 참조).
+  if ((email && email !== user.email) || newPassword) {
+    return NextResponse.json({ error: 'CRM 에서 관리합니다. 아이디·비밀번호는 소나무 CRM 에서 변경하세요.' }, { status: 410 })
+  }
+
   // 아이디(email) 변경
   if (email && email !== user.email) {
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(email)) {

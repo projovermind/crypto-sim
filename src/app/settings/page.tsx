@@ -478,7 +478,8 @@ export default function SettingsPage() {
 
                 {/* ── Password Change ── */}
                 <div className="bg-binance-card border border-binance-border rounded-lg p-5">
-                  <h3 className="text-xs font-medium text-binance-text-dim mb-3">비밀번호 변경</h3>
+                  <h3 className="text-xs font-medium text-binance-text-dim mb-1">비밀번호 변경</h3>
+                  <p className="text-[11px] text-binance-text-dim mb-3">CRM 에서 관리합니다. 아이디·비밀번호는 소나무 CRM 에서 변경하세요.</p>
                   <div className="space-y-2.5 max-w-md">
                     <input
                       type="password"
@@ -505,7 +506,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3 mt-4">
                     <button
                       onClick={s.handleChangePassword}
-                      disabled={s.savingPw}
+                      disabled
                       className="px-4 py-2 text-xs bg-binance-yellow text-black font-bold rounded hover:opacity-90 transition-opacity disabled:opacity-50"
                     >
                       {s.savingPw ? '변경 중...' : '비밀번호 변경'}

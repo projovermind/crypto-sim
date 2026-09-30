@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
 
 // PATCH /api/admin/users/[id] — 유저 상태/역할/정보 변경
 export async function PATCH(
@@ -80,15 +79,9 @@ export async function PATCH(
       updateData.profitProofWord = body.profitProofWord || null
     }
 
-    // 비밀번호 초기화 (ADMIN만)
+    // 비밀번호는 소나무 CRM 이 정본 — 로컬 초기화 비활성.
     if (body.newPassword) {
-      if (admin.role !== 'ADMIN') {
-        return NextResponse.json({ error: '비밀번호 변경은 ADMIN만 가능합니다.' }, { status: 403 })
-      }
-      if (body.newPassword.length < 4) {
-        return NextResponse.json({ error: '비밀번호는 4자 이상이어야 합니다.' }, { status: 400 })
-      }
-      updateData.password = await bcrypt.hash(body.newPassword, 12)
+      return NextResponse.json({ error: 'CRM 에서 관리합니다. 비밀번호는 소나무 CRM 에서 변경하세요.' }, { status: 410 })
     }
 
     const updated = await prisma.user.update({

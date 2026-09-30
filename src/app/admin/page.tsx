@@ -457,7 +457,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="border-t border-binance-border pt-3">
-                <span className="text-[10px] text-binance-text-dim block mb-2">비밀번호 변경 (변경 시에만 입력)</span>
+                <span className="text-[10px] text-binance-text-dim block mb-2">비밀번호는 소나무 CRM 에서 변경하세요 (CRM 에서 관리)</span>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[10px] text-binance-text-dim mb-1">현재 비밀번호</label>
@@ -513,14 +513,7 @@ export default function AdminPage() {
                     {f === 'pending' ? `승인 대기 (${users.filter(u => u.status === 'PENDING').length})` : `전체 (${users.length})`}
                   </button>
                 ))}
-                {userRole === 'ADMIN' && (
-                  <button
-                    onClick={() => setShowCreate(!showCreate)}
-                    className="ml-auto px-3 py-1.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-                  >
-                    + 관리자 계정 생성
-                  </button>
-                )}
+                <span className="ml-auto text-[11px] text-binance-text-dim">계정 생성·비밀번호는 소나무 CRM 에서 관리</span>
               </div>
 
               {/* Create Manager/Admin Form */}
@@ -637,8 +630,8 @@ export default function AdminPage() {
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${statusLabel[u.status]?.cls}`}>{statusLabel[u.status]?.text}</span>
                           </td>
                           <td className="py-1.5 px-3">
-                            <input type="password" value={editPw} onChange={e => setEditPw(e.target.value)}
-                              placeholder="새 비밀번호"
+                            <input type="password" value="" disabled readOnly
+                              placeholder="CRM 에서 관리"
                               className="w-full bg-binance-bg border border-binance-border rounded px-2 py-1 text-xs text-binance-text focus:outline-none focus:border-binance-yellow/50" />
                           </td>
                           <td className="py-1.5 px-3 text-xs text-binance-text-dim">
