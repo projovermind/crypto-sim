@@ -45,11 +45,10 @@ export default function NavBar({ session, onLogout }: NavBarProps) {
         <button
           onClick={() => {
             const link = document.createElement('a')
-            link.href = '/api/extension/download'
-            link.download = 'teledit-extension.zip'
+            link.href = '/api/teledit/download'
             link.click()
           }}
-          title="Teledit 확장 다운로드"
+          title="teledit 프로그램 다운로드 (윈도우)"
           className="text-binance-text-dim hover:text-[#2AABEE] transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
