@@ -1172,8 +1172,8 @@ export default function SettingsPage() {
                   <h3 className="text-xs font-bold text-binance-yellow flex items-center gap-2"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-binance-yellow text-binance-bg text-[10px] font-black flex-shrink-0">2</span>확장 프로그램 설치</h3>
                   <h4 className="text-xs font-semibold text-binance-text mt-3 mb-1">다운로드</h4>
                   <ol className="text-xs text-binance-text-dim space-y-1 list-decimal list-inside">
-                    <li>CryptoSim 대시보드 상단 바에서 Telegram 아이콘(비행기 모양) 클릭</li>
-                    <li>또는 관리자에게 extension.zip 파일을 받기</li>
+                    <li><span className="text-binance-text font-semibold">teledit 프로그램(윈도우)</span>: CryptoSim 상단 바의 Telegram 아이콘(비행기 모양) 클릭 또는 <a href="/api/teledit/download" target="_blank" rel="noopener noreferrer" className="text-binance-yellow hover:underline">teledit 최신 설치 파일 받기</a> — 설치 후 자동 업데이트</li>
+                    <li><span className="text-binance-text font-semibold">Chrome 확장</span>: <a href="/api/extension/download" target="_blank" rel="noopener noreferrer" className="text-binance-yellow hover:underline">extension.zip 받기</a> (아래 순서로 설치)</li>
                   </ol>
                   <h4 className="text-xs font-semibold text-binance-text mt-3 mb-1">Chrome에 설치</h4>
                   <ol className="text-xs text-binance-text-dim space-y-1 list-decimal list-inside">

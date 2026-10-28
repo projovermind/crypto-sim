@@ -63,8 +63,8 @@ export default function TeleditGuidePage() {
           <Section title="2. 확장 프로그램 설치">
             <H4>다운로드</H4>
             <Ol>
-              <Li>CryptoSim 대시보드 상단 바에서 Telegram 아이콘(비행기 모양) 클릭</Li>
-              <Li>또는 관리자에게 extension.zip 파일을 받기</Li>
+              <Li><B>teledit 프로그램(윈도우)</B>: CryptoSim 상단 바의 Telegram 아이콘(비행기 모양) 클릭 또는 <A href="/api/teledit/download">teledit 최신 설치 파일 받기</A> — 설치 후 자동 업데이트</Li>
+              <Li><B>Chrome 확장</B>: <A href="/api/extension/download">extension.zip 받기</A> (아래 순서로 설치)</Li>
             </Ol>
 
             <H4>Chrome에 설치</H4>
