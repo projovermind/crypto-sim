@@ -3,8 +3,7 @@ import { timingSafeEqual } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { calculateFee } from '@/lib/calculations'
 import { generateAutoComments } from '@/lib/auto-comments'
-import { crmCheckAllowed } from '@/lib/crm-auth'
-import { parseSyncPayload, runAiExpertSync, type SyncDeps } from '@/lib/ai-expert-sync'
+import { parseAiExpertLogins, parseSyncPayload, runAiExpertSync, type SyncDeps } from '@/lib/ai-expert-sync'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -42,8 +41,8 @@ function buildReactionData(u: any): string {
 
 const deps: SyncDeps = {
   findUserByLogin: (login) => prisma.user.findUnique({ where: { email: login } }) as any,
-  // TODO: CRM 에 AI본부 소속 판정 API 가 생기면 여기서 교체. 현재는 CRM 연결 + TAPPO 허용 여부로 판정.
-  isAiExpertMember: (crmUserId) => crmCheckAllowed(crmUserId),
+  // AI본부 판정 = env POSI_AI_EXPERT_LOGINS(쉼표, login 기준) 허용 목록. 호출마다 읽어 env 변경이 즉시 반영된다.
+  isAiExpertMember: async (login) => parseAiExpertLogins(process.env.POSI_AI_EXPERT_LOGINS).has(login.trim().toLowerCase()),
   messageExists: async (userId, sendTime, content) =>
     (await prisma.teleditMessage.count({ where: { userId, sendTime, content } })) > 0,
   createMessage: async (userId, m) => {

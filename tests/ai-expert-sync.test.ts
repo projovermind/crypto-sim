@@ -1,7 +1,7 @@
 // 실행: node --test tests/ai-expert-sync.test.ts
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseSyncPayload, runAiExpertSync, type SyncDeps, type SyncUser } from '../src/lib/ai-expert-sync.ts'
+import { parseAiExpertLogins, parseSyncPayload, runAiExpertSync, type SyncDeps, type SyncUser } from '../src/lib/ai-expert-sync.ts'
 
 const user: SyncUser = { id: 'u1', name: '홍', crmUserId: 'c1' }
 
@@ -10,8 +10,8 @@ function fakeDeps(over: Partial<SyncDeps> = {}) {
   const poss: Array<{ symbol: string; entryTime: Date; entryPrice: number }> = []
   const comments: string[] = []
   const deps: SyncDeps = {
-    findUserByLogin: async (l) => (l === 'ai1' ? user : l === 'nolink' ? { ...user, crmUserId: null } : null),
-    isAiExpertMember: async (c) => c === 'c1',
+    findUserByLogin: async (l) => (l === 'ai1' || l === 'notlisted' ? user : null),
+    isAiExpertMember: async (l) => l === 'ai1',
     messageExists: async (_u, t, c) => msgs.includes(`${t.toISOString()}|${c}`),
     createMessage: async (_u, m) => { msgs.push(`${m.sendTime.toISOString()}|${m.content}`) },
     positionExists: async (_u, s, t) => poss.some((p) => p.symbol === s && p.entryTime.getTime() === t.getTime()),
@@ -42,9 +42,9 @@ test('파싱: 잘못된 입력은 거부', () => {
   assert.equal(parseSyncPayload({ login: 'a', positions: [{ ...body.positions[0], entryPrice: 0 }] }).ok, false)
 })
 
-test('비회원/미연결/없는 계정은 403', async () => {
+test('목록 밖/없는 계정은 403', async () => {
   const p = (parseSyncPayload(body) as any).payload
-  for (const login of ['nobody', 'nolink']) {
+  for (const login of ['nobody', 'notlisted']) {
     const { deps } = fakeDeps()
     assert.equal((await runAiExpertSync({ ...p, login }, deps)).status, 403)
   }
@@ -80,4 +80,10 @@ test('같은 요청 안의 중복 항목은 순차 처리로 skip', async () => 
   const { deps } = fakeDeps()
   const r: any = await runAiExpertSync(p, deps)
   assert.deepEqual([r.positions.created, r.positions.skipped], [1, 1])
+})
+
+test('허용 목록: 기본값·env 파싱(공백·대소문자)', () => {
+  assert.deepEqual([...parseAiExpertLogins(undefined)], ['e82100406', 'e5777e742', 'e6fe15aa2'])
+  assert.equal(parseAiExpertLogins('  ').size, 3)
+  assert.deepEqual([...parseAiExpertLogins(' A1 , b2,, ')], ['a1', 'b2'])
 })

@@ -105,10 +105,19 @@ export interface SyncUser {
   [key: string]: unknown // 반응·댓글 설정 컬럼(자동댓글에 그대로 전달)
 }
 
+export const DEFAULT_AI_EXPERT_LOGINS = 'e82100406,e5777e742,e6fe15aa2'
+
+/** env(쉼표 구분) → 소문자 허용 목록. 비어 있으면 기본값. */
+export function parseAiExpertLogins(raw: string | undefined): Set<string> {
+  const list = (raw && raw.trim() ? raw : DEFAULT_AI_EXPERT_LOGINS)
+    .split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
+  return new Set(list)
+}
+
 export interface SyncDeps {
   findUserByLogin(login: string): Promise<SyncUser | null>
-  /** CRM AI본부 소속 + 사용 허용 여부 */
-  isAiExpertMember(crmUserId: string): Promise<boolean>
+  /** AI본부 허용 목록(login 기준) 포함 여부 */
+  isAiExpertMember(login: string): Promise<boolean>
   messageExists(userId: string, sendTime: Date, content: string): Promise<boolean>
   createMessage(userId: string, m: SyncMessageInput): Promise<void>
   positionExists(userId: string, symbol: string, entryTime: Date): Promise<boolean>
@@ -127,9 +136,8 @@ export type SyncOutcome =
 
 export async function runAiExpertSync(payload: SyncPayload, deps: SyncDeps): Promise<SyncOutcome> {
   const user = await deps.findUserByLogin(payload.login)
-  // 존재 여부를 구분해 노출하지 않는다 — 미연결·비회원 모두 403.
-  if (!user || !user.crmUserId) return { status: 403, error: 'AI본부 회원이 아닙니다.' }
-  if (!(await deps.isAiExpertMember(user.crmUserId))) return { status: 403, error: 'AI본부 회원이 아닙니다.' }
+  // 존재 여부를 구분해 노출하지 않는다 — 없는 계정·비회원 모두 403.
+  if (!user || !(await deps.isAiExpertMember(payload.login))) return { status: 403, error: 'AI본부 회원이 아닙니다.' }
 
   const out = {
     messages: { created: 0, skipped: 0, failed: 0 },
