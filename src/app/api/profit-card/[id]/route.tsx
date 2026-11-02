@@ -105,11 +105,15 @@ export async function GET(
     // ?factor=0.8~1 : ROE 에 factor 곱, Last Price 는 ROE 에 맞게 재계산. 없거나 범위 밖이면 기존 동작
     let displayRoe = pnlData.roe
     let displayLast = closePrice
+    let displayLev = position.leverage
     const factorRaw = request.nextUrl.searchParams.get('factor')
     const factor = factorRaw !== null ? parseFloat(factorRaw) : NaN
     if (Number.isFinite(factor) && factor >= 0.8 && factor <= 1) {
       displayRoe = pnlData.roe * factor
-      const move = displayRoe / 100 / position.leverage
+      // ?lev=1~125 : 댓글 단 사람마다 배율을 달리 표시. ROE 는 그대로 두고 Last Price 를 그 배율에 맞춘다
+      const levRaw = parseFloat(request.nextUrl.searchParams.get('lev') ?? '')
+      if (Number.isFinite(levRaw) && levRaw >= 1 && levRaw <= 125) displayLev = Math.round(levRaw)
+      const move = displayRoe / 100 / displayLev
       displayLast = position.side === 'LONG' ? entryPrice * (1 + move) : entryPrice * (1 - move)
     }
 
@@ -186,7 +190,7 @@ export async function GET(
               </div>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <i style={{ margin: '1px 12px', width: 1, height: 16, background: 'hsla(0,0%,100%,.2)', display: 'block' }} />
-                <span style={{ color: '#fff' }}>{position.leverage}X</span>
+                <span style={{ color: '#fff' }}>{displayLev}X</span>
               </div>
             </div>
           </div>
