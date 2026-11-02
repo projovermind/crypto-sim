@@ -102,6 +102,17 @@ export async function GET(
     const sideColor = position.side === 'LONG' ? '#00ff85' : '#ff3d55'
     const entryPrice = (position as any).inputPrice ?? position.entryPrice
 
+    // ?factor=0.8~1 : ROE 에 factor 곱, Last Price 는 ROE 에 맞게 재계산. 없거나 범위 밖이면 기존 동작
+    let displayRoe = pnlData.roe
+    let displayLast = closePrice
+    const factorRaw = request.nextUrl.searchParams.get('factor')
+    const factor = factorRaw !== null ? parseFloat(factorRaw) : NaN
+    if (Number.isFinite(factor) && factor >= 0.8 && factor <= 1) {
+      displayRoe = pnlData.roe * factor
+      const move = displayRoe / 100 / position.leverage
+      displayLast = position.side === 'LONG' ? entryPrice * (1 + move) : entryPrice * (1 - move)
+    }
+
     const cardDate = position.closedAt ? new Date(position.closedAt) : new Date()
     const pad = (n: number) => n.toString().padStart(2, '0')
     const dateStr = `${cardDate.getFullYear()}-${pad(cardDate.getMonth() + 1)}-${pad(cardDate.getDate())} ${pad(cardDate.getHours())}:${pad(cardDate.getMinutes())}:${pad(cardDate.getSeconds())}`
@@ -185,7 +196,7 @@ export async function GET(
             <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 20 }}>
               <div style={{ fontSize: 12, lineHeight: '16px', color: 'rgba(255,255,255,0.8)', marginBottom: 0 }}>ROE</div>
               <div style={{ fontSize: 44, lineHeight: '44px', color: pnlColor, fontWeight: 600 }}>
-                {`${isProfit ? '+' : ''}${formatNumber(pnlData.roe)}%`}
+                {`${isProfit ? '+' : ''}${formatNumber(displayRoe)}%`}
               </div>
             </div>
 
@@ -198,7 +209,7 @@ export async function GET(
             {/* Last Price */}
             <div style={{ display: 'flex', fontSize: 12, lineHeight: '14px', color: '#fff' }}>
               <span style={{ color: 'rgba(255,255,255,0.8)' }}>Last Price: </span>
-              <span style={{ fontWeight: 600, marginLeft: 4 }}>{formatPrice(closePrice)}</span>
+              <span style={{ fontWeight: 600, marginLeft: 4 }}>{formatPrice(displayLast)}</span>
             </div>
           </div>
 
