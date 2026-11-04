@@ -102,19 +102,19 @@ export async function GET(
     const sideColor = position.side === 'LONG' ? '#00ff85' : '#ff3d55'
     const entryPrice = (position as any).inputPrice ?? position.entryPrice
 
-    // ?factor=0.8~1 : ROE 에 factor 곱, Last Price 는 ROE 에 맞게 재계산. 없거나 범위 밖이면 기존 동작
+    // ?factor=0.8~1 : Last Price 가 독립변수 — 원래 청산가까지 간 거리의 factor 만큼만 가고(원본보다 덜 번다),
+    // ROE 는 그 가격 변동 × 배율로 종속된다. ?lev=1~125 로 배율을 달리 표시하면 ROE 도 배율에 비례해 달라진다.
     let displayRoe = pnlData.roe
     let displayLast = closePrice
     let displayLev = position.leverage
     const factorRaw = request.nextUrl.searchParams.get('factor')
     const factor = factorRaw !== null ? parseFloat(factorRaw) : NaN
     if (Number.isFinite(factor) && factor >= 0.8 && factor <= 1) {
-      displayRoe = pnlData.roe * factor
-      // ?lev=1~125 : 댓글 단 사람마다 배율을 달리 표시. ROE 는 그대로 두고 Last Price 를 그 배율에 맞춘다
       const levRaw = parseFloat(request.nextUrl.searchParams.get('lev') ?? '')
       if (Number.isFinite(levRaw) && levRaw >= 1 && levRaw <= 125) displayLev = Math.round(levRaw)
-      const move = displayRoe / 100 / displayLev
-      displayLast = position.side === 'LONG' ? entryPrice * (1 + move) : entryPrice * (1 - move)
+      const move = (closePrice - position.entryPrice) / position.entryPrice // 실제 가격 변동률(부호 포함)
+      displayLast = entryPrice * (1 + move * factor)
+      displayRoe = pnlData.roe * factor * (displayLev / position.leverage)
     }
 
     const cardDate = position.closedAt ? new Date(position.closedAt) : new Date()
