@@ -108,7 +108,7 @@ export default function ProfitCapAlertModal({ userId, onSelectPosition }: Profit
                 <span>⚠</span> 수익 상한 도달 알림
               </h3>
               <p className="text-[11px] text-binance-text-dim mt-1.5 leading-relaxed">
-                아래 포지션은 <span className="text-binance-green font-semibold">수익 $10,000</span>에 도달했습니다.
+                아래 포지션은 <span className="text-binance-green font-semibold">수익 $20,000</span>에 도달했습니다.
                 <br />
                 <span className="text-binance-text">2일 내 종료</span>가 필요합니다.
               </p>

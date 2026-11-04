@@ -124,7 +124,7 @@ export function calculatePnL(
 //   2) 진입 후 MAX_POSITION_AGE_DAYS 경과                  → CLOSED_MANUAL
 // 상한 도달 시각 자체는 Position.profitCapAt 에 기록해 두고, 유예가 끝나면 강제 종료한다.
 export const MAX_POSITION_AGE_DAYS = 21;
-export const MAX_PROFIT_USDT = 10000;
+export const MAX_PROFIT_USDT = 20000;
 /** 수익 상한 도달 후 강제 종료까지의 유예 기간(일) */
 export const PROFIT_CAP_GRACE_DAYS = 2;
 
