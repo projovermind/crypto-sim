@@ -146,6 +146,7 @@ export async function GET(
       const fmtOpen = (p: number) => p.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: p >= 1000 ? 1 : p >= 1 ? 2 : p >= 0.01 ? 4 : 8 })
       const fmtLast = (p: number) => formatNumber(p, p >= 1000 ? 1 : p >= 1 ? 2 : p >= 0.01 ? 4 : 8)
       const echoDate = dateStr.slice(0, 16)
+      const noPnl = request.nextUrl.searchParams.get('nopnl') === '1' // PNL 체크를 끈 카드 — 나머지 글자 위치는 그대로(끈 상태의 이동은 미확인)
       // ?ref=0~99 : 교육용 임의 추천 코드 + 우리가 만든 QR(public/echobit/qr, 가입용 아님)
       const refIdx = parseInt(request.nextUrl.searchParams.get('ref') ?? '', 10)
       let refCode = '', refQr = ''
@@ -182,8 +183,8 @@ export async function GET(
             })()}
             {txt('ROI', 20, 108, 11, GRAY)}
             {txt(roiStr, 20, 152.4, 48, valColor)}
-            {txt('PNL(USDT)', 20, 187, 11, GRAY)}
-            {txt(pnlStr, 20, 210.6, 22, valColor)}
+            {!noPnl && txt('PNL(USDT)', 20, 187, 11, GRAY)}
+            {!noPnl && txt(pnlStr, 20, 210.6, 22, valColor)}
             {txt('Opening price', 20, 239, 10, GRAY)}
             {txt(fmtOpen(entryPrice), 20, 257.2, 14, WHITE)}
             {txt('Latest price', 20, 284, 10, GRAY)}
