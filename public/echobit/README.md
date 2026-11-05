@@ -1,0 +1,11 @@
+# Echobit 공유 카드 원본 (2026-11-05 수집, echobit.com 선물 > 포지션 Share, 데모 거래로 확인)
+- position-share-1.png 테더 코인 / position-share-2.png 우주인 — 글자 없는 배경 1008x1284. 카드는 캔버스 672x856, ctx.scale(2,2) 후 336x428 좌표계로 그린다
+- header-logo.png 249x57 → (221,20) 크기 95x22
+- layout.txt: 이익 롱 포지션에서 캡처한 그리기 순서·좌표(CSS px)·글꼴·색. layout-short.txt: 손실 숏
+- 글꼴은 `PingFangSC-Medium` 하나만 지정(없으면 브라우저 기본 sans)
+- 가로 배치: 종목명 x=20 (18px). "5X" x = 20 + 종목명 너비 + 9. "Open long/short" x = 5X x + 5X 너비(10px) + 9. y=76 (종목명 y=79)
+- 색: 흰 #ffffff, 회 #8b8a90, 보라(5X) #944af9, 이익/Open long #44c17b, 손실/Open short #ef5532
+- 값 형식: ROI "+0.28%"(이익은 + 붙음, 손실 0.00%는 부호 없음), PNL "+7.7984"/"-0.0022"(소수 4자리), Opening price "80,581"(자릿수 쉼표, 끝 .0 없음), Latest price "80,626.9"(소수 1자리)
+- QR: 128x128 data 이미지를 (20,340) 64x64. 추천코드 "Referral Code" (97,367) 14px, 코드 (97,397) 18px
+- 체크박스(Leverage/ROI/PNL/Referral Code)를 끄면 해당 글자가 빠짐 — 끈 상태의 좌표 이동은 미확인
+- 미확인: 모바일 레이아웃(카드 캔버스는 같은 336x428 로 보이나 실제 모바일 화면은 못 봄), 큰 손실 ROI 표기

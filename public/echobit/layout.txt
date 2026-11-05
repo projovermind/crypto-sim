@@ -1,0 +1,17 @@
+SCALE 2,2
+DRAW https://www.echobit.com/future/position-share-1.png 1008x1284 0,0,336,428
+DRAW https://www.echobit.com/common/header-logo.png 249x57 221,20,95,22
+TEXT "2026-11-05 16:14" 20 30 10px PingFangSC-Medium #ffffff start alphabetic canvas 672x856
+TEXT "TBTCTUSDT Perpetual" 20 79 18px PingFangSC-Medium #ffffff start alphabetic canvas 672x856
+TEXT "5X" 223.65188598632812 76 10px PingFangSC-Medium #944af9 start alphabetic canvas 672x856
+TEXT "Open long" 245.23187255859375 76 10px PingFangSC-Medium #44c17b start alphabetic canvas 672x856
+TEXT "ROI" 20 108 11px PingFangSC-Medium #8b8a90 start alphabetic canvas 672x856
+TEXT "+0.28%" 20 152.4 48px PingFangSC-Medium #44c17b start alphabetic canvas 672x856
+TEXT "PNL(TUSDT)" 20 187 11px PingFangSC-Medium #8b8a90 start alphabetic canvas 672x856
+TEXT "+7.7984" 20 210.6 22px PingFangSC-Medium #44c17b start alphabetic canvas 672x856
+TEXT "Opening price" 20 239 10px PingFangSC-Medium #8b8a90 start alphabetic canvas 672x856
+TEXT "80,581" 20 257.2 14px PingFangSC-Medium #ffffff start alphabetic canvas 672x856
+TEXT "Latest price" 20 284 10px PingFangSC-Medium #8b8a90 start alphabetic canvas 672x856
+TEXT "80,626.9" 20 302.2 14px PingFangSC-Medium #ffffff start alphabetic canvas 672x856
+DRAW-data 128x128 20,340,64,64
+TEXT "Referral Code" 97 367 14px PingFangSC-Medium #ffffff start alphabetic canvas 672x856

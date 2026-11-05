@@ -59,6 +59,16 @@ async function getLogo(): Promise<string> {
   return logoCache
 }
 
+const echoCache: Record<string, string> = {}
+async function getEchobitAsset(name: string): Promise<string> {
+  if (echoCache[name]) return echoCache[name]
+  try {
+    const buf = await readFile(join(process.cwd(), 'public', 'echobit', name))
+    echoCache[name] = `data:image/png;base64,${buf.toString('base64')}`
+  } catch { echoCache[name] = '' }
+  return echoCache[name]
+}
+
 // Tapbit candle icon (ProfitCard.tsx에서 그대로)
 const PERPETUAL_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAHmSURBVHgB7ZcxS8NAFMdfRCGgSEZdSscKFTuKiGQR6ib4BZzEQVwcHMW5i6OjiEPHjo6OHTt2DCLoGApCwCG+Ry/4cvWSS5q7iuQHjyTNvd4/9969uwOomQ8HLBLHsYeXc7QIre84zkeezxLYZRfNRfPEfS62BboF21sXWBgtgZg7LlpH5JBVljXbHaO16AZFPmByB2AJXYEb7F57FMWIewpfikqTt//tw3UFFgY79/HiZzRpCeM+VHYoQlHym8lJ4kNxKFIp0UYEVjmZrJSZw6MTWFndVFrw+qb0nclB/Hqq8HKV5yPSFfmVEKI96yxbZUiNoJhVXSGIG8eV3pHPKRhCDnHZ3HFNFXFlmQnDCVxd3ygdd7a34PLiDEyjFjgJ4fGpr3Q82N+zIvDPbxaMrSScTrud+d5bX1O+syKw17uFshgJMdZEqo0RlCPkDyZzcCB3lgN90Iu8ozEWYuxojJcx/w1rJe0rO+JxhG0Gef+jFNhsNODr8x0WTZUhLptzmcgCKSRF8iZhyDeZVZIKMXWCeXIP0w0APyJ22fMILWDvQpNnlJkcFCMhJ7cPPwIDbDMCS/yPc/EisS1wCNNJSGmklSZW1uIEcSy4K+JTh3hedAXyIlymkJuFDkS00IsjaU1NlXwDc0KDXXaFRUEAAAAASUVORK5CYII='
 
@@ -120,6 +130,70 @@ export async function GET(
     const cardDate = position.closedAt ? new Date(position.closedAt) : new Date()
     const pad = (n: number) => n.toString().padStart(2, '0')
     const dateStr = `${cardDate.getFullYear()}-${pad(cardDate.getMonth() + 1)}-${pad(cardDate.getDate())} ${pad(cardDate.getHours())}:${pad(cardDate.getMinutes())}:${pad(cardDate.getSeconds())}`
+
+    // ── ?design=echobit : public/echobit/README.md·layout*.txt 규격 (672x856, 336x428 좌표계 ×2) ──
+    if (request.nextUrl.searchParams.get('design') === 'echobit') {
+      const S = 2
+      const echoBg = await getEchobitAsset(bgIdx === 1 ? 'position-share-2.png' : 'position-share-1.png')
+      const echoLogo = await getEchobitAsset('header-logo.png')
+      const GREEN = '#44c17b', RED = '#ef5532', GRAY = '#8b8a90', WHITE = '#ffffff', PURPLE = '#944af9'
+      const valColor = isProfit ? GREEN : RED
+      const sideTxtColor = position.side === 'LONG' ? GREEN : RED
+      const roiStr = (displayRoe >= 0.005 ? '+' : '') + formatNumber(displayRoe) + '%'
+      const pnlStr = (pnlData.pnl >= 0.00005 ? '+' : '') + formatNumber(pnlData.pnl, 4)
+      const fmtOpen = (p: number) => p.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: p >= 1000 ? 1 : p >= 1 ? 2 : p >= 0.01 ? 4 : 8 })
+      const fmtLast = (p: number) => formatNumber(p, p >= 1000 ? 1 : p >= 1 ? 2 : p >= 0.01 ? 4 : 8)
+      const echoDate = dateStr.slice(0, 16)
+      // baseline y → top (lineHeight=글자크기, Inter 기준 baseline ≈ top + 0.864·fs)
+      const T = (base: number, fs: number) => (base - 0.864 * fs) * S
+      const txt = (s: string, x: number, base: number, fs: number, color: string) => (
+        <div style={{ position: 'absolute', left: x * S, top: T(base, fs), fontSize: fs * S, lineHeight: `${fs * S}px`, color, fontWeight: 600, whiteSpace: 'nowrap', display: 'flex' }}>{s}</div>
+      )
+      return new ImageResponse(
+        (
+          <div style={{ width: 336 * S, height: 428 * S, position: 'relative', display: 'flex', fontFamily: 'Inter', backgroundColor: '#000' }}>
+            {echoBg && <img src={echoBg} width={336 * S} height={428 * S} style={{ position: 'absolute', left: 0, top: 0, width: 336 * S, height: 428 * S }} />}
+            {echoLogo && <img src={echoLogo} width={95 * S} height={22 * S} style={{ position: 'absolute', left: 221 * S, top: 20 * S, width: 95 * S, height: 22 * S }} />}
+            {txt(echoDate, 20, 30, 10, WHITE)}
+            {txt(`${position.symbol} Perpetual`, 20, 79, 18, WHITE)}
+            {/* 종목명 너비에 따라 5X / Open long 가로 배치 (간격 9, 5X 너비 ≈10) */}
+            {(() => {
+              const nameW = (`${position.symbol} Perpetual`.length) * 18 * 0.58
+              const x5 = 20 + nameW + 9
+              return (
+                <>
+                  {txt(`${displayLev}X`, x5, 76, 10, PURPLE)}
+                  {txt(position.side === 'LONG' ? 'Open long' : 'Open short', x5 + 10 + 9, 76, 10, sideTxtColor)}
+                </>
+              )
+            })()}
+            {txt('ROI', 20, 108, 11, GRAY)}
+            {txt(roiStr, 20, 152.4, 48, valColor)}
+            {txt('PNL(USDT)', 20, 187, 11, GRAY)}
+            {txt(pnlStr, 20, 210.6, 22, valColor)}
+            {txt('Opening price', 20, 239, 10, GRAY)}
+            {txt(fmtOpen(entryPrice), 20, 257.2, 14, WHITE)}
+            {txt('Latest price', 20, 284, 10, GRAY)}
+            {txt(fmtLast(displayLast), 20, 302.2, 14, WHITE)}
+          </div>
+        ),
+        {
+          width: 336 * S,
+          height: 428 * S,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Pragma': 'no-cache',
+          },
+          fonts: [
+            { name: 'Inter', data: FONT_REGULAR,  weight: 400 as const, style: 'normal' as const },
+            { name: 'Inter', data: FONT_SEMIBOLD, weight: 600 as const, style: 'normal' as const },
+          ],
+        },
+      )
+    }
 
     // ── JSX: ProfitCard.tsx와 1:1 동일 구조 ─────────────────────────────────
     return new ImageResponse(
