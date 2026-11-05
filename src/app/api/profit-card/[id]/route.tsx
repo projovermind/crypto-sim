@@ -140,7 +140,9 @@ export async function GET(
       const valColor = isProfit ? GREEN : RED
       const sideTxtColor = position.side === 'LONG' ? GREEN : RED
       const roiStr = (displayRoe >= 0.005 ? '+' : '') + formatNumber(displayRoe) + '%'
-      const pnlStr = (pnlData.pnl >= 0.00005 ? '+' : '') + formatNumber(pnlData.pnl, 4)
+      // PNL 도 ROE 에 종속 — 원본 PNL 을 표시 ROE/원본 ROE 비율로 줄이거나 늘린다 (ROE 0 이면 원본 그대로)
+      const displayPnl = pnlData.roe !== 0 ? pnlData.pnl * (displayRoe / pnlData.roe) : pnlData.pnl
+      const pnlStr = (displayPnl >= 0.00005 ? '+' : '') + formatNumber(displayPnl, 4)
       const fmtOpen = (p: number) => p.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: p >= 1000 ? 1 : p >= 1 ? 2 : p >= 0.01 ? 4 : 8 })
       const fmtLast = (p: number) => formatNumber(p, p >= 1000 ? 1 : p >= 1 ? 2 : p >= 0.01 ? 4 : 8)
       const echoDate = dateStr.slice(0, 16)
