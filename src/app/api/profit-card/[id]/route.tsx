@@ -117,6 +117,7 @@ export async function GET(
     let displayRoe = pnlData.roe
     let displayLast = closePrice
     let displayLev = position.leverage
+    let displayOpen = entryPrice
     const factorRaw = request.nextUrl.searchParams.get('factor')
     const factor = factorRaw !== null ? parseFloat(factorRaw) : NaN
     if (Number.isFinite(factor) && factor >= 0.8 && factor <= 1) {
@@ -125,6 +126,16 @@ export async function GET(
       const move = (closePrice - position.entryPrice) / position.entryPrice // 실제 가격 변동률(부호 포함)
       displayLast = entryPrice * (1 + move * factor)
       displayRoe = pnlData.roe * factor * (displayLev / position.leverage)
+      // ?os=0~0.06 : 따라 들어간 사람은 진입이 조금 불리하다 — 롱은 Opening 을 높게, 숏은 낮게 (가격 변동폭의 os 비율만큼).
+      // 이때 ROE 는 표시된 Opening·Last 와 배율로 다시 계산한다 (원본 ROE/순수 변동 비율로 수수료분 유지).
+      const os = parseFloat(request.nextUrl.searchParams.get('os') ?? '')
+      if (Number.isFinite(os) && os > 0 && os <= 0.06) {
+        const dir = position.side === 'LONG' ? 1 : -1
+        displayOpen = entryPrice + dir * entryPrice * Math.abs(move) * os
+        const pureOrig = dir * move * 100 * position.leverage
+        const feeRatio = pureOrig !== 0 ? pnlData.roe / pureOrig : 1
+        displayRoe = feeRatio * dir * ((displayLast - displayOpen) / displayOpen) * 100 * displayLev
+      }
     }
 
     const cardDate = position.closedAt ? new Date(position.closedAt) : new Date()
@@ -186,7 +197,7 @@ export async function GET(
             {!noPnl && txt('PNL(USDT)', 20, 187, 11, GRAY)}
             {!noPnl && txt(pnlStr, 20, 210.6, 22, valColor)}
             {txt('Opening price', 20, 239, 10, GRAY)}
-            {txt(fmtOpen(entryPrice), 20, 257.2, 14, WHITE)}
+            {txt(fmtOpen(displayOpen), 20, 257.2, 14, WHITE)}
             {txt('Latest price', 20, 284, 10, GRAY)}
             {txt(fmtLast(displayLast), 20, 302.2, 14, WHITE)}
             {refCode && refQr && <img src={refQr} width={64 * S} height={64 * S} style={{ position: 'absolute', left: 20 * S, top: 340 * S, width: 64 * S, height: 64 * S }} />}
@@ -298,7 +309,7 @@ export async function GET(
             {/* Entry Price */}
             <div style={{ display: 'flex', fontSize: 12, lineHeight: '14px', color: '#fff', marginBottom: 6 }}>
               <span style={{ color: 'rgba(255,255,255,0.8)' }}>Entry Price: </span>
-              <span style={{ fontWeight: 600, marginLeft: 4 }}>{formatPrice(entryPrice)}</span>
+              <span style={{ fontWeight: 600, marginLeft: 4 }}>{formatPrice(displayOpen)}</span>
             </div>
 
             {/* Last Price */}
