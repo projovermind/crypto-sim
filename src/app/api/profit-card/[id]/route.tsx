@@ -158,12 +158,13 @@ export async function GET(
             {txt(`${position.symbol} Perpetual`, 20, 79, 18, WHITE)}
             {/* 종목명 너비에 따라 5X / Open long 가로 배치 (간격 9, 5X 너비 ≈10) */}
             {(() => {
-              const nameW = (`${position.symbol} Perpetual`.length) * 18 * 0.58
+              const nameW = (`${position.symbol} Perpetual`.length) * 18 * 0.569 // 실측: 'TBTCTUSDT Perpetual' 5X x=223.65
               const x5 = 20 + nameW + 9
+              const w5 = `${displayLev}X`.length * 6.3 // 실측: '5X' 너비 12.58
               return (
                 <>
                   {txt(`${displayLev}X`, x5, 76, 10, PURPLE)}
-                  {txt(position.side === 'LONG' ? 'Open long' : 'Open short', x5 + 10 + 9, 76, 10, sideTxtColor)}
+                  {txt(position.side === 'LONG' ? 'Open long' : 'Open short', x5 + w5 + 9, 76, 10, sideTxtColor)}
                 </>
               )
             })()}
