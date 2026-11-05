@@ -144,6 +144,16 @@ export async function GET(
       const fmtOpen = (p: number) => p.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: p >= 1000 ? 1 : p >= 1 ? 2 : p >= 0.01 ? 4 : 8 })
       const fmtLast = (p: number) => formatNumber(p, p >= 1000 ? 1 : p >= 1 ? 2 : p >= 0.01 ? 4 : 8)
       const echoDate = dateStr.slice(0, 16)
+      // ?ref=0~99 : 교육용 임의 추천 코드 + 우리가 만든 QR(public/echobit/qr, 가입용 아님)
+      const refIdx = parseInt(request.nextUrl.searchParams.get('ref') ?? '', 10)
+      let refCode = '', refQr = ''
+      if (refIdx >= 0 && refIdx <= 99) {
+        try {
+          const codes: string[] = JSON.parse(await readFile(join(process.cwd(), 'public', 'echobit', 'qr', 'codes.json'), 'utf8'))
+          refCode = codes[refIdx] ?? ''
+          if (refCode) refQr = await getEchobitAsset(`qr/${String(refIdx).padStart(2, '0')}.png`)
+        } catch { refCode = '' }
+      }
       // baseline y → top (lineHeight=글자크기, Inter 기준 baseline ≈ top + 0.864·fs)
       const T = (base: number, fs: number) => (base - 0.864 * fs) * S
       const txt = (s: string, x: number, base: number, fs: number, color: string) => (
@@ -176,6 +186,9 @@ export async function GET(
             {txt(fmtOpen(entryPrice), 20, 257.2, 14, WHITE)}
             {txt('Latest price', 20, 284, 10, GRAY)}
             {txt(fmtLast(displayLast), 20, 302.2, 14, WHITE)}
+            {refCode && refQr && <img src={refQr} width={64 * S} height={64 * S} style={{ position: 'absolute', left: 20 * S, top: 340 * S, width: 64 * S, height: 64 * S }} />}
+            {refCode && refQr && txt('Referral Code', 97, 367, 14, WHITE)}
+            {refCode && refQr && txt(refCode, 97, 397, 18, WHITE)}
           </div>
         ),
         {
